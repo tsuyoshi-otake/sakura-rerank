@@ -9,6 +9,7 @@ from sakura_rerank.data.manifest import (
     ManifestBlockedError,
     ManifestError,
     _verify_local_artifact,
+    hash_file_many,
     load_manifest_document,
     validate_blocked_report,
     validate_manifest,
@@ -49,6 +50,16 @@ def local_stage_for(
 
 
 class ManifestValidatorTests(unittest.TestCase):
+    def test_multi_digest_hashes_one_payload_consistently(self) -> None:
+        payload = b"one pass digest fixture"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "fixture.bin"
+            path.write_bytes(payload)
+            measured = hash_file_many(path, ("md5", "sha1", "sha256"), chunk_size=3)
+        self.assertEqual(measured["md5"], hashlib.md5(payload).hexdigest())
+        self.assertEqual(measured["sha1"], hashlib.sha1(payload).hexdigest())
+        self.assertEqual(measured["sha256"], hashlib.sha256(payload).hexdigest())
+
     def test_committed_20260801_metadata_is_verified_without_downloading_dump(self) -> None:
         validated = validate_manifest_document(
             load_manifest_document(CONFIRMED_MANIFEST_PATH), REPOSITORY_ROOT

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
+from .jawiki_acquisition import AcquisitionError, acquire_jawiki
 from .manifest import (
     ManifestBlockedError,
     ManifestError,
@@ -86,6 +87,16 @@ def _parser() -> argparse.ArgumentParser:
     dictionary_index.add_argument("--audit-report", type=Path, required=True)
     dictionary_index.add_argument("--manifest", type=Path, required=True)
     dictionary_index.add_argument("--indexer-git-sha", required=True)
+
+    acquire = commands.add_parser(
+        "jawiki-acquire", help="resume and verify the pinned jawiki artifact"
+    )
+    acquire.add_argument("manifest", type=Path)
+    acquire.add_argument("--allowed-root", type=Path, required=True)
+    acquire.add_argument("--output", type=Path, required=True)
+    acquire.add_argument("--local-manifest", type=Path, required=True)
+    acquire.add_argument("--max-attempts", type=int, default=5)
+    acquire.add_argument("--timeout-seconds", type=float, default=60.0)
 
     return parser
 
@@ -174,6 +185,45 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         return 0
 
+    if arguments.command == "jawiki-acquire":
+        last_reported = -1
+
+        def report_progress(observed: int, expected: int) -> None:
+            nonlocal last_reported
+            bucket = observed // (256 * 1024 * 1024)
+            if bucket != last_reported or observed == expected:
+                last_reported = bucket
+                print(
+                    json.dumps(
+                        {"status": "downloading", "bytes": observed, "total_bytes": expected},
+                        sort_keys=True,
+                    ),
+                    file=sys.stderr,
+                    flush=True,
+                )
+
+        acquired = acquire_jawiki(
+            arguments.manifest,
+            allowed_root=arguments.allowed_root,
+            destination=arguments.output,
+            local_manifest_output=arguments.local_manifest,
+            max_attempts=arguments.max_attempts,
+            timeout_seconds=arguments.timeout_seconds,
+            progress=report_progress,
+        )
+        print(
+            json.dumps(
+                {
+                    "status": acquired["status"],
+                    "downloaded": acquired["downloaded"],
+                    "byte_size": acquired["byte_size"],
+                    "local_sha256": acquired["local_sha256"],
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
     if arguments.command == "tier-a":
         tier_a_paths = {
             "source_spans": arguments.source_spans,
@@ -251,7 +301,14 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(error.report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         )
         return 3
-    except (ContractError, ManifestError, SplitError, TierAError, OSError) as error:
+    except (
+        AcquisitionError,
+        ContractError,
+        ManifestError,
+        SplitError,
+        TierAError,
+        OSError,
+    ) as error:
         print(f"data validation failed: {error}", file=sys.stderr)
         return 2
 
