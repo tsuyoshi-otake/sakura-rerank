@@ -37,20 +37,14 @@ FIXTURE_CANDIDATE_SOURCE = "fixture_full_reading_nbest"
 AUTOMATIC_TIER_A_SOURCE = "sakura_converter_forward_verification"
 SPLITS = ("train", "dev", "final-holdout")
 
-# Only a measured immutable exporter identity may enter this allowlist.  The
-# pinned Sakura Input HEAD is deliberately not sufficient: its production
-# converter bound remains 18, while this research binary is isolated behind the
-# Sakura Input research-top32 feature and patch.
-VERIFIED_RESEARCH_EXPORTER_IDENTITIES: frozenset[tuple[str | None, str | None]] = (
-    frozenset(
-        {
-            (
-                "e6242eecb33e7872954229d7faafef2950a11740",
-                "a720f01d763b7129c5a64afdd7e0ac291c7c0efeac63503a0c37ffacddb9a4fd",
-            ),
-        }
-    )
-)
+# Commit C intentionally leaves the verified identity allowlist empty.  Commit
+# D may add exactly one measured Git-tree/binary pair together with the complete
+# trusted build metadata.  The pinned Sakura Input HEAD alone is never an
+# exporter identity: the production converter bound remains 18, while this
+# research binary is isolated behind the Sakura Input research-top32 feature and
+# patch.
+VERIFIED_RESEARCH_EXPORTER_IDENTITIES: frozenset[tuple[str, str]] = frozenset()
+VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA: dict[tuple[str, str], dict[str, Any]] = {}
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")

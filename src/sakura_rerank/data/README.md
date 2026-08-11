@@ -42,12 +42,12 @@ snapshot has a content hash.
 It records an exporter Git SHA and/or binary SHA-256, requested limit, effective
 converter bound, returned count, and whether a short search was exhausted or a
 result was truncated. The pinned base Sakura Input HEAD is not an exporter
-identity: its production converter/UI bound is 18. The verified identity in
-`manifests/research-exporter-verified.json` was measured from Commit A
-`e6242eecb33e7872954229d7faafef2950a11740` using the pinned Sakura Input HEAD,
-dictionary, instrumentation patch, Cargo lockfile, and release binary hash.
-Only that exact `(exporter_git_sha, exporter_binary_sha256)` pair is allowlisted;
-unverified or different binaries remain blocked.
+identity: its production converter/UI bound is 18. Commit C intentionally
+removes the previously recorded identity and leaves the allowlist empty until a
+reproducible Commit D measurement pins the Git-tree source, binary, patch,
+Cargo.lock, toolchain, target, profile, flags, environment, and converter bound
+together. Unverified measurement artifacts remain outside the trusted dataset
+boundary.
 
 Production records fail closed unless they identify Sakura Input HEAD
 `8e966dff456e4e7165e025f97c1f73327ff3f550` and dictionary SHA-256

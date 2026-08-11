@@ -21,6 +21,29 @@ const MAX_EXPORT_BYTES: usize = 256 * 1024 * 1024;
 const PINNED_SAKURA_INPUT_HEAD: &str = "8e966dff456e4e7165e025f97c1f73327ff3f550";
 const PINNED_DICTIONARY_SHA256: &str =
     "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad";
+const EXPORTER_MANIFEST_SCHEMA_VERSION: u64 = 2;
+const EXPECTED_RUSTC_VERSION: &str = "rustc 1.96.0 (ac68faa20 2026-05-25)";
+const EXPECTED_CARGO_VERSION: &str = "cargo 1.96.0 (30a34c682 2026-05-25)";
+const EXPECTED_TARGET_TRIPLE: &str = "x86_64-pc-windows-msvc";
+const EXPECTED_PROFILE: &str = "release";
+const EXPECTED_BUILD_FLAGS: [&str; 3] = [
+    "--remap-path-prefix=<WORKSPACE>=/sakura-input",
+    "-C",
+    "link-arg=/Brepro",
+];
+const EXPECTED_BUILD_ENVIRONMENT: [(&str, &str); 11] = [
+    ("CARGO_BUILD_TARGET", "x86_64-pc-windows-msvc"),
+    ("CARGO_INCREMENTAL", "0"),
+    ("CARGO_NET_OFFLINE", "true"),
+    ("CARGO_PROFILE_RELEASE_CODEGEN_UNITS", "1"),
+    ("CARGO_PROFILE_RELEASE_DEBUG", "0"),
+    ("CARGO_PROFILE_RELEASE_LTO", "fat"),
+    ("CARGO_PROFILE_RELEASE_OPT_LEVEL", "3"),
+    ("CARGO_PROFILE_RELEASE_PANIC", "abort"),
+    ("CARGO_PROFILE_RELEASE_STRIP", "true"),
+    ("RUSTUP_TOOLCHAIN", "stable-x86_64-pc-windows-msvc"),
+    ("SOURCE_DATE_EPOCH", "0"),
+];
 
 #[derive(Debug)]
 struct ExportError(&'static str);
@@ -56,6 +79,14 @@ struct Identity {
     exporter_binary_sha256: String,
     sakura_input_head: String,
     dictionary_sha256: String,
+    instrumentation_patch_sha256: String,
+    cargo_lock_sha256: String,
+    rustc_version: String,
+    cargo_version: String,
+    target_triple: String,
+    profile: String,
+    build_flags: Vec<String>,
+    build_environment: BTreeMap<String, String>,
     requested_limit: usize,
     effective_converter_bound: usize,
     user_dictionary_enabled: bool,
@@ -88,17 +119,11 @@ fn run() -> Result<(), ExportError> {
     let arguments = parse_args(env::args().skip(1))?;
     reject_path_collisions(&arguments)?;
     let identity = load_identity(&arguments.identity_manifest)?;
+    validate_embedded_identity(&identity)?;
     let embedded_git_sha = option_env!("SAKURA_RERANK_EXPORTER_GIT_SHA")
         .ok_or(ExportError("missing embedded exporter Git identity"))?;
-    require_git_sha(embedded_git_sha)?;
-    if identity.exporter_git_sha != embedded_git_sha {
-        return Err(ExportError(
-            "exporter Git identity does not match the binary",
-        ));
-    }
-    if identity.sakura_input_head != PINNED_SAKURA_INPUT_HEAD {
-        return Err(ExportError("Sakura Input HEAD is not the pinned revision"));
-    }
+    validate_git_identity(&identity, embedded_git_sha)?;
+    validate_sakura_input_head(&identity)?;
     if identity.requested_limit != REQUESTED_LIMIT
         || identity.effective_converter_bound != EFFECTIVE_CONVERTER_BOUND
     {
@@ -113,20 +138,11 @@ fn run() -> Result<(), ExportError> {
     let binary_sha256 = sha256_file(
         &env::current_exe().map_err(|_| ExportError("cannot locate exporter binary"))?,
     )?;
-    if identity.exporter_binary_sha256 != binary_sha256 {
-        return Err(ExportError(
-            "exporter binary hash does not match the manifest",
-        ));
-    }
+    validate_binary_identity(&identity, &binary_sha256)?;
     let dictionary_bytes = read_bounded_file(&arguments.dictionary, MAX_INPUT_BYTES)?;
     let dictionary_sha256 = sha256_bytes(&dictionary_bytes);
-    if dictionary_sha256 != PINNED_DICTIONARY_SHA256
-        || identity.dictionary_sha256 != dictionary_sha256
-    {
-        return Err(ExportError(
-            "dictionary hash does not match the pinned input",
-        ));
-    }
+    validate_dictionary_identity(&identity, &dictionary_sha256)?;
+    maybe_inject_failure("input")?;
     let input_bytes = read_bounded_file(&arguments.input, MAX_INPUT_BYTES)?;
     let input_sha256 = sha256_bytes(&input_bytes);
     let input_records = parse_input(&input_bytes)?;
@@ -184,6 +200,7 @@ fn run() -> Result<(), ExportError> {
         verification_status: identity.verification_status.clone(),
     };
     let report_payload = canonical_json_bytes(&summary_value(&summary))?;
+    maybe_inject_failure("output")?;
     write_pair_atomic(
         &arguments.output,
         &output_payload,
@@ -275,6 +292,49 @@ where
     })
 }
 
+fn validate_git_identity(identity: &Identity, embedded_git_sha: &str) -> Result<(), ExportError> {
+    require_git_sha(embedded_git_sha)?;
+    if identity.exporter_git_sha != embedded_git_sha {
+        return Err(ExportError(
+            "exporter Git identity does not match the binary",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_binary_identity(
+    identity: &Identity,
+    actual_binary_sha256: &str,
+) -> Result<(), ExportError> {
+    if identity.exporter_binary_sha256 != actual_binary_sha256 {
+        return Err(ExportError(
+            "exporter binary hash does not match the manifest",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_sakura_input_head(identity: &Identity) -> Result<(), ExportError> {
+    if identity.sakura_input_head != PINNED_SAKURA_INPUT_HEAD {
+        return Err(ExportError("Sakura Input HEAD is not the pinned revision"));
+    }
+    Ok(())
+}
+
+fn validate_dictionary_identity(
+    identity: &Identity,
+    actual_dictionary_sha256: &str,
+) -> Result<(), ExportError> {
+    if actual_dictionary_sha256 != PINNED_DICTIONARY_SHA256
+        || identity.dictionary_sha256 != actual_dictionary_sha256
+    {
+        return Err(ExportError(
+            "dictionary hash does not match the pinned input",
+        ));
+    }
+    Ok(())
+}
+
 fn load_identity(path: &Path) -> Result<Identity, ExportError> {
     let bytes = read_bounded_file(path, 64 * 1024)?;
     let value: Value = serde_json::from_slice(&bytes)
@@ -296,6 +356,8 @@ fn load_identity(path: &Path) -> Result<Identity, ExportError> {
         "cargo_version",
         "target_triple",
         "profile",
+        "build_flags",
+        "build_environment",
         "requested_limit",
         "effective_converter_bound",
         "user_dictionary_enabled",
@@ -303,7 +365,8 @@ fn load_identity(path: &Path) -> Result<Identity, ExportError> {
     if object.len() != expected.len() || expected.iter().any(|key| !object.contains_key(*key)) {
         return Err(ExportError("identity manifest fields are incomplete"));
     }
-    if object.get("schema_version").and_then(Value::as_u64) != Some(1)
+    if object.get("schema_version").and_then(Value::as_u64)
+        != Some(EXPORTER_MANIFEST_SCHEMA_VERSION)
         || object.get("manifest_kind").and_then(Value::as_str) != Some("research_top32_exporter")
     {
         return Err(ExportError("identity manifest schema is unsupported"));
@@ -320,14 +383,23 @@ fn load_identity(path: &Path) -> Result<Identity, ExportError> {
     require_git_sha(&sakura_input_head)?;
     let dictionary_sha256 = require_string(object, "dictionary_sha256")?.to_owned();
     require_sha256(&dictionary_sha256)?;
-    require_sha256(require_string(object, "instrumentation_patch_sha256")?)?;
-    require_sha256(require_string(object, "cargo_lock_sha256")?)?;
+    let instrumentation_patch_sha256 =
+        require_string(object, "instrumentation_patch_sha256")?.to_owned();
+    require_sha256(&instrumentation_patch_sha256)?;
+    let cargo_lock_sha256 = require_string(object, "cargo_lock_sha256")?.to_owned();
+    require_sha256(&cargo_lock_sha256)?;
+    let rustc_version = require_string(object, "rustc_version")?.to_owned();
+    let cargo_version = require_string(object, "cargo_version")?.to_owned();
+    let target_triple = require_string(object, "target_triple")?.to_owned();
     for key in ["rustc_version", "cargo_version", "target_triple"] {
         if require_string(object, key)?.is_empty() {
             return Err(ExportError("identity toolchain field is empty"));
         }
     }
-    if object.get("profile").and_then(Value::as_str) != Some("release")
+    let profile = require_string(object, "profile")?.to_owned();
+    let build_flags = parse_build_flags(object.get("build_flags"))?;
+    let build_environment = parse_build_environment(object.get("build_environment"))?;
+    if profile != EXPECTED_PROFILE
         || object.get("requested_limit").and_then(Value::as_u64) != Some(REQUESTED_LIMIT as u64)
         || object
             .get("effective_converter_bound")
@@ -348,10 +420,101 @@ fn load_identity(path: &Path) -> Result<Identity, ExportError> {
         exporter_binary_sha256,
         sakura_input_head,
         dictionary_sha256,
+        instrumentation_patch_sha256,
+        cargo_lock_sha256,
+        rustc_version,
+        cargo_version,
+        target_triple,
+        profile,
+        build_flags,
+        build_environment,
         requested_limit: REQUESTED_LIMIT,
         effective_converter_bound: EFFECTIVE_CONVERTER_BOUND,
         user_dictionary_enabled: false,
     })
+}
+
+fn parse_build_flags(value: Option<&Value>) -> Result<Vec<String>, ExportError> {
+    let values = value
+        .and_then(Value::as_array)
+        .ok_or(ExportError("identity build flags are not an array"))?;
+    let flags = values
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .filter(|flag| !flag.is_empty())
+                .map(ToOwned::to_owned)
+                .ok_or(ExportError("identity build flag is not a non-empty string"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if flags
+        != EXPECTED_BUILD_FLAGS
+            .iter()
+            .map(|flag| (*flag).to_owned())
+            .collect::<Vec<_>>()
+    {
+        return Err(ExportError("identity build flags are not pinned"));
+    }
+    Ok(flags)
+}
+
+fn parse_build_environment(value: Option<&Value>) -> Result<BTreeMap<String, String>, ExportError> {
+    let object = value
+        .and_then(Value::as_object)
+        .ok_or(ExportError("identity build environment is not an object"))?;
+    let environment = object
+        .iter()
+        .map(|(key, value)| {
+            let value = value
+                .as_str()
+                .filter(|value| !value.is_empty())
+                .ok_or(ExportError("identity build environment value is invalid"))?;
+            Ok((key.clone(), value.to_owned()))
+        })
+        .collect::<Result<BTreeMap<_, _>, ExportError>>()?;
+    let expected = EXPECTED_BUILD_ENVIRONMENT
+        .into_iter()
+        .map(|(key, value)| (key.to_owned(), value.to_owned()))
+        .collect::<BTreeMap<_, _>>();
+    if environment != expected {
+        return Err(ExportError("identity build environment is not pinned"));
+    }
+    Ok(environment)
+}
+
+fn validate_embedded_identity(identity: &Identity) -> Result<(), ExportError> {
+    let embedded_patch = option_env!("SAKURA_RERANK_PATCH_SHA256").ok_or(ExportError(
+        "missing embedded instrumentation patch identity",
+    ))?;
+    let embedded_lock = option_env!("SAKURA_RERANK_CARGO_LOCK_SHA256")
+        .ok_or(ExportError("missing embedded Cargo.lock identity"))?;
+    let embedded_rustc = option_env!("SAKURA_RERANK_RUSTC_VERSION")
+        .ok_or(ExportError("missing embedded rustc identity"))?;
+    let embedded_cargo = option_env!("SAKURA_RERANK_CARGO_VERSION")
+        .ok_or(ExportError("missing embedded cargo identity"))?;
+    if identity.instrumentation_patch_sha256 != embedded_patch
+        || identity.cargo_lock_sha256 != embedded_lock
+        || identity.rustc_version != embedded_rustc
+        || identity.cargo_version != embedded_cargo
+        || identity.target_triple != EXPECTED_TARGET_TRIPLE
+        || identity.profile != EXPECTED_PROFILE
+    {
+        return Err(ExportError(
+            "identity metadata does not match the measured build",
+        ));
+    }
+    if embedded_rustc != EXPECTED_RUSTC_VERSION || embedded_cargo != EXPECTED_CARGO_VERSION {
+        return Err(ExportError("build toolchain is not the pinned toolchain"));
+    }
+    Ok(())
+}
+
+fn maybe_inject_failure(point: &str) -> Result<(), ExportError> {
+    if env::var("SAKURA_RERANK_TEST_FAIL_AT").ok().as_deref() == Some(point) {
+        return Err(ExportError("test failure injection"));
+    }
+    Ok(())
 }
 
 fn parse_input(payload: &[u8]) -> Result<Vec<InputRecord>, ExportError> {
@@ -916,6 +1079,7 @@ fn write_pair_atomic(
     let mut report_published = false;
     let result = (|| {
         write_new_synced(&output_temp, output)?;
+        maybe_inject_failure("report")?;
         write_new_synced(&report_temp, report)?;
         if output_path.exists() || report_path.exists() {
             return Err(ExportError("output or report appeared during export"));
@@ -957,4 +1121,162 @@ fn write_new_synced(path: &Path, bytes: &[u8]) -> Result<(), ExportError> {
     file.sync_all()
         .map_err(|_| ExportError("cannot flush atomic temporary output"))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Mutex, OnceLock};
+
+    fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("test lock")
+    }
+
+    fn test_root(name: &str) -> PathBuf {
+        let root = env::temp_dir().join(format!(
+            "sakura-research-exporter-{name}-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("test directory");
+        root
+    }
+
+    fn assert_empty(root: &Path) {
+        assert_eq!(
+            fs::read_dir(root).expect("test directory listing").count(),
+            0,
+            "temporary residue remained"
+        );
+    }
+
+    fn test_identity() -> Identity {
+        Identity {
+            verification_status: "unverified".to_owned(),
+            exporter_git_sha: "a".repeat(40),
+            exporter_binary_sha256: "b".repeat(64),
+            sakura_input_head: PINNED_SAKURA_INPUT_HEAD.to_owned(),
+            dictionary_sha256: PINNED_DICTIONARY_SHA256.to_owned(),
+            instrumentation_patch_sha256: "c".repeat(64),
+            cargo_lock_sha256: "d".repeat(64),
+            rustc_version: EXPECTED_RUSTC_VERSION.to_owned(),
+            cargo_version: EXPECTED_CARGO_VERSION.to_owned(),
+            target_triple: EXPECTED_TARGET_TRIPLE.to_owned(),
+            profile: EXPECTED_PROFILE.to_owned(),
+            build_flags: EXPECTED_BUILD_FLAGS
+                .iter()
+                .map(|value| (*value).to_owned())
+                .collect(),
+            build_environment: EXPECTED_BUILD_ENVIRONMENT
+                .iter()
+                .map(|(key, value)| ((*key).to_owned(), (*value).to_owned()))
+                .collect(),
+            requested_limit: REQUESTED_LIMIT,
+            effective_converter_bound: EFFECTIVE_CONVERTER_BOUND,
+            user_dictionary_enabled: false,
+        }
+    }
+
+    #[test]
+    fn wrong_git_binary_dictionary_and_sakura_identities_are_rejected() {
+        let identity = test_identity();
+        assert!(validate_git_identity(&identity, &"e".repeat(40)).is_err());
+        assert!(validate_binary_identity(&identity, &"f".repeat(64)).is_err());
+        assert!(validate_dictionary_identity(&identity, &"0".repeat(64)).is_err());
+        let mut wrong_sakura = identity;
+        wrong_sakura.sakura_input_head = "1".repeat(40);
+        assert!(validate_sakura_input_head(&wrong_sakura).is_err());
+    }
+
+    #[test]
+    fn production_limit_eighteen_cli_is_rejected() {
+        let arguments = [
+            "--input",
+            "input",
+            "--dictionary",
+            "dictionary",
+            "--output",
+            "output",
+            "--report",
+            "report",
+            "--identity-manifest",
+            "identity",
+            "--limit",
+            "18",
+        ];
+        assert!(parse_args(arguments).is_err());
+    }
+
+    #[test]
+    fn path_collision_is_rejected_before_publication() {
+        let root = test_root("collision");
+        let output = root.join("same");
+        let arguments = Args {
+            input: root.join("input"),
+            dictionary: root.join("dictionary"),
+            output: output.clone(),
+            report: output,
+            identity_manifest: root.join("identity"),
+            limit: REQUESTED_LIMIT,
+        };
+        assert!(reject_path_collisions(&arguments).is_err());
+        fs::remove_dir_all(root).expect("test cleanup");
+    }
+
+    #[test]
+    fn input_failure_injection_has_no_publication() {
+        let _guard = test_lock();
+        let root = test_root("input-failure");
+        env::set_var("SAKURA_RERANK_TEST_FAIL_AT", "input");
+        assert!(maybe_inject_failure("input").is_err());
+        env::remove_var("SAKURA_RERANK_TEST_FAIL_AT");
+        assert_empty(&root);
+        fs::remove_dir_all(root).expect("test cleanup");
+    }
+
+    #[test]
+    fn output_and_report_failure_injection_leave_no_partial_or_temporary_files() {
+        let _guard = test_lock();
+        for point in ["output", "report"] {
+            let root = test_root(point);
+            let output = root.join("output.jsonl");
+            let report = root.join("report.json");
+            env::set_var("SAKURA_RERANK_TEST_FAIL_AT", point);
+            let result = if point == "output" {
+                maybe_inject_failure(point)
+            } else {
+                write_pair_atomic(&output, b"output", &report, b"report")
+            };
+            env::remove_var("SAKURA_RERANK_TEST_FAIL_AT");
+            assert!(result.is_err());
+            assert!(!output.exists());
+            assert!(!report.exists());
+            assert_empty(&root);
+            fs::remove_dir_all(root).expect("test cleanup");
+        }
+    }
+
+    #[test]
+    fn report_and_summary_do_not_contain_raw_input_text() {
+        let summary = Summary {
+            record_count: 1,
+            requested_limit: REQUESTED_LIMIT,
+            effective_converter_bound: EFFECTIVE_CONVERTER_BOUND,
+            total_candidate_count: 1,
+            truncated_record_count: 0,
+            search_exhausted_record_count: 1,
+            input_sha256: "0".repeat(64),
+            output_sha256: "1".repeat(64),
+            dictionary_sha256: PINNED_DICTIONARY_SHA256.to_owned(),
+            exporter_git_sha: "2".repeat(40),
+            exporter_binary_sha256: "3".repeat(64),
+            verification_status: "unverified".to_owned(),
+        };
+        let report = canonical_json_string(&summary_value(&summary)).expect("summary JSON");
+        assert!(!report.contains("private-reading"));
+        assert!(!report.contains("host-document"));
+        assert!(report.contains("input_sha256"));
+    }
 }

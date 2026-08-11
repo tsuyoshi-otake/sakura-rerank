@@ -23,6 +23,7 @@ from .contracts import (
     RESEARCH_EXPORTER_CONTRACT_VERSION,
     TRAINING_TOP_K,
     VERIFIED_RESEARCH_EXPORTER_IDENTITIES,
+    VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA,
     ContractError,
     _has_verified_research_exporter,
     _require_bool,
@@ -37,7 +38,7 @@ from .contracts import (
 )
 
 
-EXPORTER_MANIFEST_SCHEMA_VERSION = 1
+EXPORTER_MANIFEST_SCHEMA_VERSION = 2
 EXPORTER_MANIFEST_KIND = "research_top32_exporter"
 EXPORT_RECORD_TYPE = "research_converter_snapshot"
 MAX_EXPORT_RECORDS = 4_096
@@ -57,6 +58,8 @@ _MANIFEST_FIELDS = {
     "cargo_version",
     "target_triple",
     "profile",
+    "build_flags",
+    "build_environment",
     "requested_limit",
     "effective_converter_bound",
     "user_dictionary_enabled",
@@ -82,6 +85,51 @@ def _load_object(path: str | Path, field: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ContractError(f"{field}: must be a JSON object")
     return value
+
+
+def _parse_build_flags(value: Any, field: str) -> list[str]:
+    if not isinstance(value, list) or not value or len(value) > 32:
+        raise ContractError(f"{field}: must be a bounded non-empty array")
+    normalized: list[str] = []
+    for index, flag in enumerate(value):
+        normalized.append(_require_string(flag, f"{field}[{index}]", max_chars=512))
+    return normalized
+
+
+def _parse_build_environment(value: Any, field: str) -> dict[str, str]:
+    if not isinstance(value, Mapping) or not value or len(value) > 64:
+        raise ContractError(f"{field}: must be a bounded non-empty object")
+    normalized: dict[str, str] = {}
+    for name, environment_value in value.items():
+        name = _require_string(name, f"{field}.name", max_chars=128)
+        if name in normalized:
+            raise ContractError(f"{field}: duplicate environment name")
+        normalized[name] = _require_string(
+            environment_value, f"{field}.{name}", allow_empty=True, max_chars=512
+        )
+    return dict(sorted(normalized.items()))
+
+
+def _validate_trusted_metadata(
+    identity: tuple[str, str], normalized: Mapping[str, Any], *, require_verified: bool
+) -> None:
+    trusted = VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA.get(identity)
+    if normalized["verification_status"] == "verified" and trusted is None:
+        raise ContractError("exporter_manifest: verified identity is outside the allowlist")
+    if require_verified and trusted is None:
+        raise ContractError("exporter_manifest: an allowlisted verified identity is required")
+    if trusted is None:
+        return
+    metadata_fields = set(_MANIFEST_FIELDS) - {
+        "exporter_git_sha",
+        "exporter_binary_sha256",
+        "verification_status",
+    }
+    if set(trusted) != metadata_fields:
+        raise ContractError("exporter_manifest: trusted metadata definition is incomplete")
+    for field in sorted(metadata_fields):
+        if normalized[field] != trusted[field]:
+            raise ContractError(f"exporter_manifest.{field}: does not match trusted identity metadata")
 
 
 def validate_exporter_manifest(
@@ -145,6 +193,10 @@ def validate_exporter_manifest(
     profile = _require_string(manifest["profile"], "exporter_manifest.profile")
     if profile != "release":
         raise ContractError("exporter_manifest.profile: release is required")
+    build_flags = _parse_build_flags(manifest["build_flags"], "exporter_manifest.build_flags")
+    build_environment = _parse_build_environment(
+        manifest["build_environment"], "exporter_manifest.build_environment"
+    )
     requested_limit = _require_integer(
         manifest["requested_limit"], "exporter_manifest.requested_limit"
     )
@@ -160,12 +212,13 @@ def validate_exporter_manifest(
         raise ContractError("exporter_manifest.user_dictionary_enabled: must be false")
 
     identity = (exporter_git_sha, exporter_binary_sha256)
-    if status == "verified" and identity not in VERIFIED_RESEARCH_EXPORTER_IDENTITIES:
-        raise ContractError("exporter_manifest: verified identity is outside the allowlist")
-    if require_verified and (status != "verified" or identity not in VERIFIED_RESEARCH_EXPORTER_IDENTITIES):
-        raise ContractError("exporter_manifest: an allowlisted verified identity is required")
+    if identity not in VERIFIED_RESEARCH_EXPORTER_IDENTITIES:
+        if status == "verified":
+            raise ContractError("exporter_manifest: verified identity is outside the allowlist")
+        if require_verified:
+            raise ContractError("exporter_manifest: an allowlisted verified identity is required")
 
-    return {
+    normalized = {
         "schema_version": EXPORTER_MANIFEST_SCHEMA_VERSION,
         "manifest_kind": EXPORTER_MANIFEST_KIND,
         "verification_status": status,
@@ -179,10 +232,14 @@ def validate_exporter_manifest(
         "cargo_version": cargo_version,
         "target_triple": target_triple,
         "profile": profile,
+        "build_flags": build_flags,
+        "build_environment": build_environment,
         "requested_limit": TRAINING_TOP_K,
         "effective_converter_bound": TRAINING_TOP_K,
         "user_dictionary_enabled": False,
     }
+    _validate_trusted_metadata(identity, normalized, require_verified=require_verified)
+    return normalized
 
 
 def read_exporter_manifest(path: str | Path, *, require_verified: bool = True) -> dict[str, Any]:

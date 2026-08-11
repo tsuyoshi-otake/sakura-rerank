@@ -188,7 +188,7 @@ index 96ca606..48518d7 100644
 +    }
 +}
 +
-@@ -1075,0 +1215,54 @@ fn synthetic_run_cost(base: i64, per_character: i64, characters: usize) -> i64 {
+@@ -1075,0 +1215,54 @@ fn synthetic_run_cost(base: i64, per_character: i64, characters: usize) {
 +
 +
 +#[cfg(all(test, not(feature = "research-top32")))]
@@ -242,4 +242,217 @@ index 96ca606..48518d7 100644
 +        );
 +        assert_eq!(ResearchSearchStatus::Truncated.as_str(), "truncated");
 +    }
++}
+diff --git a/crates/dictc/Cargo.toml b/crates/dictc/Cargo.toml
+--- a/crates/dictc/Cargo.toml
++++ b/crates/dictc/Cargo.toml
+@@ -41,0 +42,4 @@ path = "src/bin/llm-detail-promote.rs"
++[features]
++# Integration fixtures exercise the same research converter path as the exporter.
++research-top32 = ["sakura-core/research-top32"]
++
+diff --git a/crates/dictc/tests/research_top32.rs b/crates/dictc/tests/research_top32.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/dictc/tests/research_top32.rs
+@@ -0,0 +1,200 @@
++#![cfg(feature = "research-top32")]
++
++use dictc::{compile, parse_connection, parse_entries};
++use sakura_core::conversion::{
++    ConversionCandidate, ConversionOptions, Converter, ResearchSearchStatus,
++    ResearchSegmentSource,
++};
++use sakura_core::dictionary::Dictionary;
++use std::fmt::Write as _;
++
++const ENTRIES: &str = "# license: BSD-3-Clause\n\
++reading\tsurface\tleft_id\tright_id\tword_cost\tprediction_cost\tflags\tannotation\n\
++\u{3077}\u{308b}\u{308a}\u{304f}\u{3048}\u{3059}\u{3068}\tPull request\t1\t1\t120\t80\tit,predict\tIT term\n\
++\u{304d}\u{3087}\u{3046}\t\u{4eca}\u{65e5}\t1\t1\t100\t-\t\t\n\
++\u{304b}\u{3093}\u{3059}\u{3046}\t\u{51fd}\u{6570}\t1\t1\t1000\t-\t\t\n\
++\u{304b}\u{3093}\u{3059}\u{3046}\t\u{95a2}\u{6570}\t1\t1\t1100\t600\tit,predict\tprogramming\n\
++x\tX\t1\t1\t100\t-\t\t\n";
++
++const CONNECTION: &str = "# license: BSD-3-Clause\n\
++classes\t3\n\
++default\t0\n";
++
++fn fixture() -> Vec<u8> {
++    let entries = parse_entries("research-fixture.tsv", ENTRIES).expect("entries");
++    let matrix = parse_connection("research-matrix.tsv", CONNECTION, false).expect("matrix");
++    compile(&entries, &matrix).expect("image")
++}
++
++fn research(bytes: &[u8], reading: &str, max_candidates: usize) -> Vec<ConversionCandidate> {
++    let dictionary = Dictionary::parse(bytes).expect("dictionary");
++    let mut converter = Converter::new();
++    converter
++        .convert_research(
++            &dictionary,
++            reading,
++            ConversionOptions {
++                max_candidates,
++                it_bias_per_mille: 0,
++                max_it_boost: 0,
++                initial_right_id: 0,
++            },
++        )
++        .expect("research conversion")
++        .candidates()
++        .to_vec()
++}
++
++fn research_with_status(
++    bytes: &[u8],
++    reading: &str,
++    max_candidates: usize,
++) -> (Vec<ConversionCandidate>, ResearchSearchStatus) {
++    let dictionary = Dictionary::parse(bytes).expect("dictionary");
++    let mut converter = Converter::new();
++    let result = converter
++        .convert_research(
++            &dictionary,
++            reading,
++            ConversionOptions {
++                max_candidates,
++                it_bias_per_mille: 0,
++                max_it_boost: 0,
++                initial_right_id: 0,
++            },
++        )
++        .expect("research conversion");
++    (result.candidates().to_vec(), result.result_status())
++}
++
++fn compiled(entries: &str, connection: &str) -> Vec<u8> {
++    let entries = parse_entries("research-budget.tsv", entries).expect("entries");
++    let matrix = parse_connection("research-budget.matrix", connection, false).expect("matrix");
++    compile(&entries, &matrix).expect("image")
++}
++
++#[test]
++fn deterministic_fixture_has_exact_18_candidate_prefix_and_top_six() {
++    let bytes = fixture();
++    let at_18 = research(
++        &bytes,
++        "\u{304b}\u{3093}\u{3059}\u{3046}",
++        18,
++    );
++    let at_32 = research(
++        &bytes,
++        "\u{304b}\u{3093}\u{3059}\u{3046}",
++        32,
++    );
++    assert!(at_32.len() >= at_18.len());
++    // ConversionCandidate equality covers surface, cost, fingerprint inputs,
++    // entry index, every segment feature, and every segment provenance field.
++    assert_eq!(at_18, at_32[..at_18.len()]);
++    assert_eq!(&at_32[..at_32.len().min(6)], &at_18[..at_18.len().min(6)]);
++}
++
++#[test]
++fn actual_converter_paths_report_all_research_provenance_categories() {
++    let bytes = fixture();
++    let system = research(&bytes, "\u{304d}\u{3087}\u{3046}", 32);
++    let system_candidate = system
++        .iter()
++        .find(|candidate| candidate.system_entry_index().is_some())
++        .expect("system dictionary path");
++    assert!(system_candidate.segments().iter().all(|segment| {
++        segment.source_category == ResearchSegmentSource::SystemDictionary
++    }));
++
++    let reading = research(
++        &bytes,
++        "\u{672a}\u{767b}\u{9332}",
++        32,
++    );
++    assert!(reading.iter().any(|candidate| {
++        candidate.segments().iter().any(|segment| {
++            segment.source_category == ResearchSegmentSource::ReadingFallback
++        })
++    }));
++
++    let katakana = research(
++        &bytes,
++        "\u{304b}\u{306a}",
++        32,
++    );
++    assert!(katakana.iter().any(|candidate| {
++        candidate.segments().iter().any(|segment| {
++            segment.source_category == ResearchSegmentSource::KatakanaFallback
++        })
++    }));
++
++    let literal = research(
++        &bytes,
++        "\u{3044}\u{3063}\u{307d}\u{3093}",
++        32,
++    );
++    assert!(literal.iter().any(|candidate| {
++        candidate.segments().iter().any(|segment| {
++            segment.source_category == ResearchSegmentSource::GeneratedLiteral
++        })
++    }));
++
++    let mixed = research(
++        &bytes,
++        "\u{3044}\u{3063}\u{307d}\u{3093}x",
++        32,
++    );
++    assert!(mixed.iter().any(|candidate| {
++        let has_literal = candidate.segments().iter().any(|segment| {
++            segment.source_category == ResearchSegmentSource::GeneratedLiteral
++        });
++        let has_system = candidate.segments().iter().any(|segment| {
++            segment.source_category == ResearchSegmentSource::SystemDictionary
++        });
++        has_literal && has_system
++    }));
++}
++
++#[test]
++fn research_path_disables_user_dictionary_and_identifier_variants() {
++    let bytes = fixture();
++    let candidates = research(
++        &bytes,
++        "\u{3077}\u{308b}\u{308a}\u{304f}\u{3048}\u{3059}\u{3068}",
++        32,
++    );
++    assert!(candidates.iter().all(|candidate| {
++        candidate.segments().iter().all(|segment| {
++            segment.source_category != ResearchSegmentSource::UserDictionary
++        })
++    }));
++    for generated in ["pullRequest", "pull_request", "PULL_REQUEST", "pull-request"] {
++        assert!(!candidates.iter().any(|candidate| candidate.text() == generated));
++    }
++}
++
++#[test]
++fn all_terminal_branches_are_observable() {
++    let bytes = fixture();
++    let reading = "\u{304d}\u{3087}\u{3046}";
++    let (_, exhausted) = research_with_status(&bytes, reading, 32);
++    assert_eq!(exhausted, ResearchSearchStatus::SearchExhausted);
++    let (_, candidate_limit) = research_with_status(&bytes, reading, 1);
++    assert_eq!(candidate_limit, ResearchSearchStatus::Truncated);
++
++    let mut entries = String::from(
++        "# license: BSD-3-Clause\nreading\tsurface\tleft_id\tright_id\tword_cost\tprediction_cost\tflags\tannotation\n",
++    );
++    for id in 0..12 {
++        writeln!(&mut entries, "\u{3042}\tx\t{id}\t{id}\t{id}\t-\t\t").expect("entry");
++    }
++    let bytes = compiled(
++        &entries,
++        "# license: BSD-3-Clause\nclasses\t12\ndefault\t0\n",
++    );
++    let (_, state_budget) = research_with_status(
++        &bytes,
++        "\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}",
++        32,
++    );
++    assert_eq!(state_budget, ResearchSearchStatus::Truncated);
 +}
