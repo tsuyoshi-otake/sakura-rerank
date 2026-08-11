@@ -22,6 +22,18 @@ from .splitter import (
     publish_split_artifacts,
 )
 from .research_exporter import validate_export_file
+from .tier_a import (
+    TierABlockedError,
+    TierAError,
+    ensure_distinct_tier_a_paths,
+    generate_tier_a_records,
+    publish_tier_a_artifacts,
+    read_dictionary_index,
+    read_dictionary_index_manifest,
+    read_source_spans,
+    require_preprocessing_manifest,
+    validate_dictionary_index_manifest,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -51,6 +63,19 @@ def _parser() -> argparse.ArgumentParser:
     split.add_argument("output", type=Path)
     split.add_argument("--seed", type=int, required=True)
     split.add_argument("--report", type=Path, required=True)
+
+    tier_a = commands.add_parser(
+        "tier-a", help="assemble verified Tier A records from immutable inputs"
+    )
+    tier_a.add_argument("source_spans", type=Path)
+    tier_a.add_argument("exporter_jsonl", type=Path)
+    tier_a.add_argument("output", type=Path)
+    tier_a.add_argument("--dictionary-index", type=Path, required=True)
+    tier_a.add_argument("--dictionary-manifest", type=Path, required=True)
+    tier_a.add_argument("--exporter-manifest", type=Path, required=True)
+    tier_a.add_argument("--jawiki-manifest", type=Path, required=True)
+    tier_a.add_argument("--allowed-root", type=Path, required=True)
+    tier_a.add_argument("--report", type=Path, required=True)
 
     return parser
 
@@ -104,6 +129,55 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         return 0
 
+    if arguments.command == "tier-a":
+        tier_a_paths = {
+            "source_spans": arguments.source_spans,
+            "exporter_jsonl": arguments.exporter_jsonl,
+            "dictionary_index": arguments.dictionary_index,
+            "dictionary_manifest": arguments.dictionary_manifest,
+            "exporter_manifest": arguments.exporter_manifest,
+            "jawiki_manifest": arguments.jawiki_manifest,
+            "output": arguments.output,
+            "report": arguments.report,
+        }
+        ensure_distinct_tier_a_paths(tier_a_paths)
+        jawiki_manifest = validate_manifest_document(
+            load_manifest_document(arguments.jawiki_manifest), arguments.allowed_root
+        )
+        require_preprocessing_manifest(jawiki_manifest)
+        dictionary = read_dictionary_index(arguments.dictionary_index)
+        dictionary_manifest = read_dictionary_index_manifest(
+            arguments.dictionary_manifest
+        )
+        validate_dictionary_index_manifest(dictionary_manifest, dictionary)
+        exporter_records, _ = validate_export_file(
+            arguments.exporter_jsonl,
+            manifest_path=arguments.exporter_manifest,
+            require_verified=True,
+        )
+        records, report = generate_tier_a_records(
+            read_source_spans(arguments.source_spans),
+            dictionary,
+            exporter_records,
+            jawiki_manifest=jawiki_manifest,
+            dictionary_manifest=dictionary_manifest,
+        )
+        output_hash, report_hash = publish_tier_a_artifacts(
+            arguments.output, arguments.report, records, report
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "generated",
+                    "record_count": len(records),
+                    "content_sha256": output_hash,
+                    "report_sha256": report_hash,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
     ensure_distinct_paths(arguments.input, arguments.output, arguments.report)
     records = read_jsonl(arguments.input, require_split=False)
     output, report = assign_splits(records, seed=arguments.seed)
@@ -127,12 +201,12 @@ def _run(arguments: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     try:
         return _run(_parser().parse_args(argv))
-    except ManifestBlockedError as error:
+    except (ManifestBlockedError, TierABlockedError) as error:
         print(
             json.dumps(error.report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         )
         return 3
-    except (ContractError, ManifestError, SplitError, OSError) as error:
+    except (ContractError, ManifestError, SplitError, TierAError, OSError) as error:
         print(f"data validation failed: {error}", file=sys.stderr)
         return 2
 
