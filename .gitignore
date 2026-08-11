@@ -1,0 +1,71 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Rust and native build output
+target/
+build/
+out/
+*.pdb
+
+# Editor and OS state
+.vscode/
+.idea/
+.vs/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local Codex scratch files (project memory remains trackable)
+.codex/tmp/
+
+# Downloaded source corpora and generated datasets
+/data/raw/
+/data/downloads/
+/data/extracted/
+/data/generated/
+/data/splits/
+/corpus/generated/
+/corpus/private/
+
+# Model, tokenizer, runtime, and training artifacts
+/artifacts/cache/
+/artifacts/checkpoints/
+/artifacts/models/
+/artifacts/onnx/
+/artifacts/runtime/
+/artifacts/tensorboard/
+/artifacts/tmp/
+/runs/
+
+# Common heavyweight artifact formats
+*.bin
+*.bz2
+*.ckpt
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.tar
+*.tar.gz
+*.xml
+*.xml.gz
+*.zip
+
+# Benchmark traces and crash artifacts; summarized reports are tracked separately
+*.dmp
+*.etl
+*.trace
+
