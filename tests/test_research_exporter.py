@@ -127,6 +127,13 @@ def _manifest(*, status: str = "unverified", sakura_input_head: str = PINNED_SAK
 
 
 class ResearchExporterContractTests(unittest.TestCase):
+    def test_checked_in_verified_manifest_is_allowlisted(self) -> None:
+        manifest_path = (
+            Path(__file__).parents[1] / "manifests" / "research-exporter-verified.json"
+        )
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(validate_exporter_manifest(manifest)["verification_status"], "verified")
+
     def test_unverified_export_is_valid_only_in_explicit_measurement_mode(self) -> None:
         record = _record()
         self.assertEqual(validate_export_records([record], require_verified=False)[0]["stable_id"], "case-001")

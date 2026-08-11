@@ -422,7 +422,17 @@ class ContractValidationTests(unittest.TestCase):
             validate_record(false)
 
     def test_top32_requires_separate_verified_exporter_and_complete_run_evidence(self) -> None:
-        self.assertEqual(VERIFIED_RESEARCH_EXPORTER_IDENTITIES, frozenset())
+        self.assertEqual(
+            VERIFIED_RESEARCH_EXPORTER_IDENTITIES,
+            frozenset(
+                {
+                    (
+                        "e6242eecb33e7872954229d7faafef2950a11740",
+                        "a720f01d763b7129c5a64afdd7e0ac291c7c0efeac63503a0c37ffacddb9a4fd",
+                    )
+                }
+            ),
+        )
 
         base_head_only = production_record(candidate_count=32)
         del base_head_only["candidate_snapshots"]["training_top32"]["exporter_run"]

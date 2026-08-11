@@ -37,12 +37,19 @@ FIXTURE_CANDIDATE_SOURCE = "fixture_full_reading_nbest"
 AUTOMATIC_TIER_A_SOURCE = "sakura_converter_forward_verification"
 SPLITS = ("train", "dev", "final-holdout")
 
-# A later exporter implementation PR must add an independently verified immutable
-# identity here.  The pinned Sakura Input HEAD is deliberately not sufficient:
-# its current converter bound is 18, so no non-fixture top-32 snapshot can pass
-# this contract yet.
+# Only a measured immutable exporter identity may enter this allowlist.  The
+# pinned Sakura Input HEAD is deliberately not sufficient: its production
+# converter bound remains 18, while this research binary is isolated behind the
+# Sakura Input research-top32 feature and patch.
 VERIFIED_RESEARCH_EXPORTER_IDENTITIES: frozenset[tuple[str | None, str | None]] = (
-    frozenset()
+    frozenset(
+        {
+            (
+                "e6242eecb33e7872954229d7faafef2950a11740",
+                "a720f01d763b7129c5a64afdd7e0ac291c7c0efeac63503a0c37ffacddb9a4fd",
+            ),
+        }
+    )
 )
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")

@@ -1,0 +1,18 @@
+{
+    "schema_version": 1,
+    "manifest_kind": "research_top32_exporter",
+    "verification_status": "verified",
+    "exporter_git_sha": "e6242eecb33e7872954229d7faafef2950a11740",
+    "exporter_binary_sha256": "a720f01d763b7129c5a64afdd7e0ac291c7c0efeac63503a0c37ffacddb9a4fd",
+    "sakura_input_head": "8e966dff456e4e7165e025f97c1f73327ff3f550",
+    "dictionary_sha256": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad",
+    "instrumentation_patch_sha256": "4c4089a0c965a4e7cdd71eb25cb7f748d06051c52d944be50da9176fbc804077",
+    "cargo_lock_sha256": "ac5cfc6970c140474175e921f4f7394814ecc17fbfee803172434ab0d3c46f38",
+    "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "cargo_version": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "target_triple": "x86_64-pc-windows-msvc",
+    "profile": "release",
+    "requested_limit": 32,
+    "effective_converter_bound": 32,
+    "user_dictionary_enabled": false
+}
