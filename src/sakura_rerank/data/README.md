@@ -124,6 +124,24 @@ content SHA-256
 No dump, extracted span, dictionary index, exporter JSONL, or generated dataset
 is tracked by Git.
 
+## Verified exporter requests
+
+`exporter-requests` validates the allowlisted source-span and dictionary-index
+manifests, then joins every source `gold_surface` to exactly one indexed system
+dictionary reading. A missing or ambiguous reading rejects the complete batch;
+the command never guesses, normalizes, or partially publishes readings. Output
+contains exactly `stable_id` and `reading`, sorted by stable ID and bounded to
+the research exporter's 4,096-record input limit.
+
+The paired report follows
+`manifests/research-exporter-request-report.schema.json`. It binds the builder,
+source extractor, dictionary indexer, jawiki artifact, Sakura Input, dictionary,
+and request hashes. Its schema is closed and contains no reading, surface, or
+stable ID. Output and report use the transactional pair writer. The measured
+verified batch and double-export result are pinned in
+`manifests/jawiki-research-top32-snapshot-verified.json`; generated JSONL and
+reports remain ignored.
+
 ## Deterministic jawiki source spans
 
 `jawiki-preprocess` streams the pinned bzip2 XML with `iterparse`; it never
@@ -222,6 +240,17 @@ python -m sakura_rerank.data jawiki-preprocess `
   --dictionary-manifest manifests\system-dictionary-index-verified.json `
   --report data\generated\source-spans-measured.json `
   --extractor-git-sha <exact-sakura-rerank-git-sha>
+
+python -m sakura_rerank.data exporter-requests `
+  data\generated\source-spans.jsonl `
+  data\generated\top32-requests.jsonl `
+  --dictionary-index data\generated\system-dictionary-index.jsonl `
+  --dictionary-manifest manifests\system-dictionary-index-verified.json `
+  --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
+  --source-span-manifest manifests\jawiki-tier-a-source-spans-verified.json `
+  --allowed-root . `
+  --report data\generated\top32-requests.report.json `
+  --builder-git-sha a39d9e460ae6f28b73b4dee16fafcbb69e83ed45
 
 python -m sakura_rerank.data tier-a `
   data\generated\source-spans.jsonl data\generated\top32.jsonl `

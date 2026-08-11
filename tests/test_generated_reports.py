@@ -9,6 +9,7 @@ from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
+MANIFESTS = ROOT / "manifests"
 
 
 def load_report(name: str) -> dict[str, Any]:
@@ -29,6 +30,47 @@ def object_keys(value: Any) -> Iterable[str]:
 
 
 class GeneratedReportTests(unittest.TestCase):
+    def test_verified_top32_snapshot_is_pinned_consistent_and_text_free(self) -> None:
+        snapshot = json.loads(
+            (MANIFESTS / "jawiki-research-top32-snapshot-verified.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source = json.loads(
+            (MANIFESTS / "jawiki-tier-a-source-spans-verified.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        dictionary = json.loads(
+            (MANIFESTS / "system-dictionary-index-verified.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        exporter_bytes = (MANIFESTS / "research-exporter-verified.json").read_bytes()
+
+        self.assertEqual(snapshot["verification_status"], "verified")
+        self.assertEqual(snapshot["record_count"], snapshot["request_record_count"])
+        self.assertEqual(
+            snapshot["record_count"],
+            snapshot["search_exhausted_record_count"] + snapshot["truncated_record_count"],
+        )
+        self.assertEqual(snapshot["source_span_content_sha256"], source["content_sha256"])
+        self.assertEqual(snapshot["source_span_extractor_git_sha"], source["extractor_git_sha"])
+        self.assertEqual(
+            snapshot["dictionary_index_content_sha256"], dictionary["content_sha256"]
+        )
+        self.assertEqual(snapshot["dictionary_indexer_git_sha"], dictionary["indexer_git_sha"])
+        self.assertEqual(snapshot["dictionary_sha256"], dictionary["dictionary_sha256"])
+        self.assertEqual(snapshot["sakura_input_head"], dictionary["sakura_input_head"])
+        self.assertEqual(
+            snapshot["exporter_identity_manifest_sha256"],
+            hashlib.sha256(exporter_bytes).hexdigest(),
+        )
+        self.assertGreaterEqual(snapshot["reproduction_run_count"], 2)
+        self.assertFalse(snapshot["raw_text_in_manifest"])
+        forbidden = {"text", "surface", "reading", "candidate", "stable_id", "rows"}
+        self.assertTrue(forbidden.isdisjoint(object_keys(snapshot)))
+
     def test_jawiki_local_artifact_report_is_pinned_and_text_free(self) -> None:
         report = load_report("jawiki-local-artifact-verification.json")
 

@@ -11,8 +11,9 @@ candidate generator.
 ## Status
 
 The repository has completed the current-HEAD audit, current Tiny baseline
-reproduction, deterministic data contracts, and the isolated verified top-32
-research exporter tracked by
+reproduction, deterministic data contracts, fixed jawiki acquisition and
+source-span extraction, and a verified top-32 candidate snapshot produced by
+the isolated research exporter tracked by
 [Issue #1](https://github.com/tsuyoshi-otake/sakura-rerank/issues/1).
 No Gate A/B result has been established, and no production default is approved.
 
@@ -70,12 +71,58 @@ based on the measured accuracy/latency Pareto frontier, not architecture novelty
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned
-JSONL contracts, deterministic Tier A assembly, and leakage-safe splitting. The
+JSONL contracts, deterministic source-span and exporter-request generation,
+verified top-32 export, Tier A assembly, and leakage-safe splitting. The
 standard-library tooling and CLI are documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md). It does
-not download jawiki, invoke the converter, train a model, or alter Sakura Input.
-Real Tier A assembly remains blocked until deterministic jawiki source spans
-are reproduced and their exact extractor/output identity is allowlisted.
+not train a model or alter Sakura Input. The acquisition command may download
+only the pinned jawiki artifact, and converter invocation remains isolated in
+the separately built research exporter. The next data step is Tier A assembly
+and audit from the immutable verified snapshot; the snapshot itself is not Gate
+A/B evidence.
+
+## Verified top-32 snapshot
+
+[`manifests/jawiki-research-top32-snapshot-verified.json`](manifests/jawiki-research-top32-snapshot-verified.json)
+binds the complete aggregate-only result. The verified 2026-08-01 source batch
+contains 1,969 records. Its canonical exporter request SHA-256 is
+`aed057119b2ba07b0d028b9e9040192cd132b93f7129ff1809261852b830a9b7`.
+Two runs of the trusted exporter produced byte-identical 35,414-candidate
+snapshots with SHA-256
+`82bbea56bb1305f335799188a39c829a0aff52825d069744912cb9faa7bdee2d`.
+The Python contract validator independently accepted both results.
+
+Generate the bounded request batch from verified local artifacts:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m sakura_rerank.data exporter-requests `
+  data\generated\source-spans.jsonl `
+  data\generated\top32-requests.jsonl `
+  --dictionary-index data\generated\system-dictionary-index.jsonl `
+  --dictionary-manifest manifests\system-dictionary-index-verified.json `
+  --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
+  --source-span-manifest manifests\jawiki-tier-a-source-spans-verified.json `
+  --allowed-root . `
+  --report data\generated\top32-requests.report.json `
+  --builder-git-sha a39d9e460ae6f28b73b4dee16fafcbb69e83ed45
+```
+
+Build and run the exporter only from the exact clean revisions and dictionary
+described in
+[`research/exporter/README.md`](research/exporter/README.md). Validate its output
+before Tier A assembly:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m sakura_rerank.data contract exporter-validate `
+  data\generated\top32.jsonl `
+  --manifest manifests\research-exporter-verified.json
+```
+
+The dump, extracted spans, dictionary index, request JSONL, exporter output,
+reports, dictionary image, and exporter binary remain ignored local artifacts.
+Only text-free identities, counts, and hashes are tracked.
 
 ## Current-state audit
 
