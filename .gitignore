@@ -49,6 +49,7 @@ desktop.ini
 /artifacts/runtime/
 /artifacts/tensorboard/
 /artifacts/tmp/
+/artifacts/research-exporter/
 /runs/
 
 # Common heavyweight artifact formats
@@ -69,3 +70,7 @@ desktop.ini
 *.dmp
 *.etl
 *.trace
+
+# Research exporter JSONL is an ignored, raw-text artifact; only its metadata
+# manifest and validator belong in the repository.
+*.research-export.jsonl
