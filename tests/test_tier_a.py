@@ -150,15 +150,20 @@ def dictionary_index(readings: list[str] | None = None) -> list[dict[str, object
 def dictionary_manifest(index: list[dict[str, object]]) -> dict[str, object]:
     normalized = validate_dictionary_index(index)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "manifest_kind": "system_dictionary_surface_index",
         "verification_status": "verified",
         "dictionary_sha256": PINNED_DICTIONARY_SHA256,
+        "sakura_input_head": PINNED_SAKURA_INPUT_HEAD,
         "indexer_git_sha": "1" * 40,
         "normalization": "exact_unicode_v1",
         "user_dictionary_enabled": False,
         "record_count": len(index),
         "content_sha256": hashlib.sha256(canonical_jsonl_bytes(normalized)).hexdigest(),
+        "source_audit_sha256": "4" * 64,
+        "category_sources_sha256": "5" * 64,
+        "category_file_count": 1,
+        "source_entry_count": len(index),
     }
 
 

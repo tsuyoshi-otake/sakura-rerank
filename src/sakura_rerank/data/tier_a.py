@@ -20,6 +20,7 @@ from .contracts import (
     MAX_SURFACE_CHARS,
     PINNED_DICTIONARY_SHA256,
     PINNED_JAWIKI_SNAPSHOT_DATE,
+    PINNED_SAKURA_INPUT_HEAD,
     ContractError,
     _require_identifier,
     _validate_source,
@@ -34,6 +35,7 @@ from .research_exporter import validate_export_records
 SOURCE_SPAN_SCHEMA_VERSION = 1
 SOURCE_SPAN_RECORD_TYPE = "jawiki_tier_a_source_span"
 DICTIONARY_INDEX_SCHEMA_VERSION = 1
+DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION = 2
 DICTIONARY_INDEX_RECORD_TYPE = "system_dictionary_surface_index"
 DICTIONARY_INDEX_MANIFEST_KIND = "system_dictionary_surface_index"
 MAX_SOURCE_RECORDS = 1_000_000
@@ -233,14 +235,19 @@ def validate_dictionary_index_manifest(
         "manifest_kind",
         "verification_status",
         "dictionary_sha256",
+        "sakura_input_head",
         "indexer_git_sha",
         "normalization",
         "user_dictionary_enabled",
         "record_count",
         "content_sha256",
+        "source_audit_sha256",
+        "category_sources_sha256",
+        "category_file_count",
+        "source_entry_count",
     }
     manifest = _strict_object(manifest, fields, "dictionary_index_manifest")
-    if manifest["schema_version"] != DICTIONARY_INDEX_SCHEMA_VERSION:
+    if manifest["schema_version"] != DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION:
         raise TierAError("dictionary_index_manifest.schema_version: unsupported schema")
     if manifest["manifest_kind"] != DICTIONARY_INDEX_MANIFEST_KIND:
         raise TierAError("dictionary_index_manifest.manifest_kind: unsupported kind")
@@ -252,6 +259,8 @@ def validate_dictionary_index_manifest(
     )
     if dictionary_sha != PINNED_DICTIONARY_SHA256:
         raise TierAError("dictionary_index_manifest.dictionary_sha256: wrong pinned dictionary")
+    if manifest["sakura_input_head"] != PINNED_SAKURA_INPUT_HEAD:
+        raise TierAError("dictionary_index_manifest.sakura_input_head: wrong pinned HEAD")
     indexer_git_sha = _git_sha(
         manifest["indexer_git_sha"], "dictionary_index_manifest.indexer_git_sha"
     )
@@ -272,16 +281,41 @@ def validate_dictionary_index_manifest(
     expected_sha = hashlib.sha256(canonical_jsonl_bytes(records)).hexdigest()
     if content_sha != expected_sha:
         raise TierAError("dictionary_index_manifest.content_sha256: does not match index")
+    source_audit_sha256 = _sha256(
+        manifest["source_audit_sha256"],
+        "dictionary_index_manifest.source_audit_sha256",
+    )
+    category_sources_sha256 = _sha256(
+        manifest["category_sources_sha256"],
+        "dictionary_index_manifest.category_sources_sha256",
+    )
+    category_file_count = _integer(
+        manifest["category_file_count"],
+        "dictionary_index_manifest.category_file_count",
+        maximum=128,
+    )
+    source_entry_count = _integer(
+        manifest["source_entry_count"],
+        "dictionary_index_manifest.source_entry_count",
+        maximum=MAX_DICTIONARY_RECORDS,
+    )
+    if category_file_count < 1 or source_entry_count < count:
+        raise TierAError("dictionary_index_manifest: invalid source coverage counts")
     return {
-        "schema_version": DICTIONARY_INDEX_SCHEMA_VERSION,
+        "schema_version": DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION,
         "manifest_kind": DICTIONARY_INDEX_MANIFEST_KIND,
         "verification_status": "verified",
         "dictionary_sha256": dictionary_sha,
+        "sakura_input_head": PINNED_SAKURA_INPUT_HEAD,
         "indexer_git_sha": indexer_git_sha,
         "normalization": "exact_unicode_v1",
         "user_dictionary_enabled": False,
         "record_count": count,
         "content_sha256": content_sha,
+        "source_audit_sha256": source_audit_sha256,
+        "category_sources_sha256": category_sources_sha256,
+        "category_file_count": category_file_count,
+        "source_entry_count": source_entry_count,
     }
 
 

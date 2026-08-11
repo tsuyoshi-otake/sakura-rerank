@@ -102,6 +102,24 @@ The committed jawiki manifest is currently only
 reading source/index/exporter payloads. No dump, extracted span, dictionary
 index, exporter JSONL, or generated dataset is tracked by Git.
 
+## Exact dictionary index
+
+The `dictionary-index` command rebuilds the complete surface-to-readings index
+from the 14 category TSVs recorded by the pinned current-state audit. Before
+parsing, it requires the exact audit SHA-256, pinned Sakura Input HEAD, compiled
+dictionary SHA-256, successful dictionary audit checks, and each category
+file's name, byte size, SHA-256, and entry count. Each verified file is read
+once into a bounded byte buffer, so indexing cannot parse bytes different from
+the bytes it hashed.
+
+Aggregation is expected O(N) over source entries, followed by deterministic
+sorting of surfaces and each surface's unique readings. The canonical index and
+its manifest are published as one transaction. The manifest records the audit,
+category-source aggregate, indexer Git SHA, 472,825 source entries, 368,341
+surfaces, and index content hash. The generated 47 MB JSONL remains outside
+Git. A measured manifest does not become trusted Tier A evidence until its
+indexer/output identity is reproduced and pinned separately.
+
 ## Deterministic split
 
 `assign_splits` unions records by article, exact paragraph hash, near-sentence
@@ -140,6 +158,12 @@ python -m sakura_rerank.data manifest validate `
 
 python -m sakura_rerank.data contract validate `
   tests\fixtures\data-contract.fixture.jsonl
+
+python -m sakura_rerank.data dictionary-index `
+  <audited-category-directory> data\generated\system-dictionary-index.jsonl `
+  --audit-report reports\current-state-audit.json `
+  --manifest data\generated\system-dictionary-index-manifest.json `
+  --indexer-git-sha <exact-sakura-rerank-git-sha>
 
 python -m sakura_rerank.data tier-a `
   data\generated\source-spans.jsonl data\generated\top32.jsonl `
