@@ -38,6 +38,26 @@ DICTIONARY_INDEX_SCHEMA_VERSION = 1
 DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION = 2
 DICTIONARY_INDEX_RECORD_TYPE = "system_dictionary_surface_index"
 DICTIONARY_INDEX_MANIFEST_KIND = "system_dictionary_surface_index"
+VERIFIED_DICTIONARY_INDEX_IDENTITIES = frozenset(
+    {
+        (
+            "227ffe8a6b0b515c7f3cdf504b3d98b313360e53",
+            "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072",
+        )
+    }
+)
+VERIFIED_DICTIONARY_INDEX_METADATA = {
+    (
+        "227ffe8a6b0b515c7f3cdf504b3d98b313360e53",
+        "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072",
+    ): {
+        "source_audit_sha256": "da41e32e31956a67dd65d88a4e87ad233dd39039b2230ee2974f1ab2471deb85",
+        "category_sources_sha256": "c6b84bf7cc83252966d9c2e71c82aa880f8f0a5b95b4ca7445cf68cfe5c064b5",
+        "category_file_count": 14,
+        "source_entry_count": 472_825,
+        "record_count": 368_341,
+    }
+}
 MAX_SOURCE_RECORDS = 1_000_000
 MAX_DICTIONARY_RECORDS = 2_000_000
 MAX_INPUT_FILE_BYTES = 256 * 1024 * 1024
@@ -228,7 +248,10 @@ def validate_dictionary_index(records: Sequence[Mapping[str, Any]]) -> list[dict
 
 
 def validate_dictionary_index_manifest(
-    manifest: Mapping[str, Any], records: Sequence[Mapping[str, Any]]
+    manifest: Mapping[str, Any],
+    records: Sequence[Mapping[str, Any]],
+    *,
+    require_verified: bool = True,
 ) -> dict[str, Any]:
     fields = {
         "schema_version",
@@ -251,8 +274,9 @@ def validate_dictionary_index_manifest(
         raise TierAError("dictionary_index_manifest.schema_version: unsupported schema")
     if manifest["manifest_kind"] != DICTIONARY_INDEX_MANIFEST_KIND:
         raise TierAError("dictionary_index_manifest.manifest_kind: unsupported kind")
-    if manifest["verification_status"] != "verified":
-        raise TierABlockedError("dictionary_index", "a verified dictionary index is required")
+    verification_status = manifest["verification_status"]
+    if verification_status not in {"measured", "verified"}:
+        raise TierAError("dictionary_index_manifest.verification_status: unsupported status")
     dictionary_sha = _sha256(
         manifest["dictionary_sha256"],
         "dictionary_index_manifest.dictionary_sha256",
@@ -301,10 +325,10 @@ def validate_dictionary_index_manifest(
     )
     if category_file_count < 1 or source_entry_count < count:
         raise TierAError("dictionary_index_manifest: invalid source coverage counts")
-    return {
+    normalized = {
         "schema_version": DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION,
         "manifest_kind": DICTIONARY_INDEX_MANIFEST_KIND,
-        "verification_status": "verified",
+        "verification_status": verification_status,
         "dictionary_sha256": dictionary_sha,
         "sakura_input_head": PINNED_SAKURA_INPUT_HEAD,
         "indexer_git_sha": indexer_git_sha,
@@ -317,6 +341,18 @@ def validate_dictionary_index_manifest(
         "category_file_count": category_file_count,
         "source_entry_count": source_entry_count,
     }
+    identity = (indexer_git_sha, content_sha)
+    if verification_status == "verified":
+        if identity not in VERIFIED_DICTIONARY_INDEX_IDENTITIES:
+            raise TierAError("dictionary_index_manifest: verified identity is outside the allowlist")
+        trusted_metadata = VERIFIED_DICTIONARY_INDEX_METADATA[identity]
+        if any(normalized[field] != value for field, value in trusted_metadata.items()):
+            raise TierAError("dictionary_index_manifest: verified metadata does not match identity")
+    if require_verified and verification_status != "verified":
+        raise TierABlockedError(
+            "dictionary_index", "an allowlisted verified dictionary index is required"
+        )
+    return normalized
 
 
 def require_preprocessing_manifest(manifest: Mapping[str, Any]) -> None:

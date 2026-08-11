@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "manifest_kind": "system_dictionary_surface_index",
+  "verification_status": "verified",
+  "dictionary_sha256": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad",
+  "sakura_input_head": "8e966dff456e4e7165e025f97c1f73327ff3f550",
+  "indexer_git_sha": "227ffe8a6b0b515c7f3cdf504b3d98b313360e53",
+  "normalization": "exact_unicode_v1",
+  "user_dictionary_enabled": false,
+  "source_audit_sha256": "da41e32e31956a67dd65d88a4e87ad233dd39039b2230ee2974f1ab2471deb85",
+  "category_sources_sha256": "c6b84bf7cc83252966d9c2e71c82aa880f8f0a5b95b4ca7445cf68cfe5c064b5",
+  "category_file_count": 14,
+  "source_entry_count": 472825,
+  "record_count": 368341,
+  "content_sha256": "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072"
+}

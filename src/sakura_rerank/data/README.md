@@ -118,7 +118,12 @@ its manifest are published as one transaction. The manifest records the audit,
 category-source aggregate, indexer Git SHA, 472,825 source entries, 368,341
 surfaces, and index content hash. The generated 47 MB JSONL remains outside
 Git. A measured manifest does not become trusted Tier A evidence until its
-indexer/output identity is reproduced and pinned separately.
+indexer/output identity is reproduced and pinned separately. The trusted
+identity is currently indexer commit
+`227ffe8a6b0b515c7f3cdf504b3d98b313360e53` with index SHA-256
+`4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072`.
+Tier A also requires every measured audit hash, category aggregate, and source
+count to match that identity; changing only provenance metadata fails closed.
 
 ## Deterministic split
 
