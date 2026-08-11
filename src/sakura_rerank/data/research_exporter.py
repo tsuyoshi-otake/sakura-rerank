@@ -212,11 +212,12 @@ def validate_exporter_manifest(
         raise ContractError("exporter_manifest.user_dictionary_enabled: must be false")
 
     identity = (exporter_git_sha, exporter_binary_sha256)
-    if identity not in VERIFIED_RESEARCH_EXPORTER_IDENTITIES:
-        if status == "verified":
-            raise ContractError("exporter_manifest: verified identity is outside the allowlist")
-        if require_verified:
-            raise ContractError("exporter_manifest: an allowlisted verified identity is required")
+    if status == "verified" and identity not in VERIFIED_RESEARCH_EXPORTER_IDENTITIES:
+        raise ContractError("exporter_manifest: verified identity is outside the allowlist")
+    if require_verified and (
+        status != "verified" or identity not in VERIFIED_RESEARCH_EXPORTER_IDENTITIES
+    ):
+        raise ContractError("exporter_manifest: an allowlisted verified identity is required")
 
     normalized = {
         "schema_version": EXPORTER_MANIFEST_SCHEMA_VERSION,

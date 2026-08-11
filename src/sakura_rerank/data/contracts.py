@@ -43,8 +43,52 @@ SPLITS = ("train", "dev", "final-holdout")
 # exporter identity: the production converter bound remains 18, while this
 # research binary is isolated behind the Sakura Input research-top32 feature and
 # patch.
-VERIFIED_RESEARCH_EXPORTER_IDENTITIES: frozenset[tuple[str, str]] = frozenset()
-VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA: dict[tuple[str, str], dict[str, Any]] = {}
+VERIFIED_RESEARCH_EXPORTER_IDENTITIES: frozenset[tuple[str, str]] = frozenset(
+    {
+        (
+            "835c5fcf5f02193474353650ea7b5566a7bb5cb4",
+            "9b59b08e56446f8462f82cb97dbcf090e7b511e7a39c0a9fa7a07541f7cafbd9",
+        ),
+    }
+)
+VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA: dict[tuple[str, str], dict[str, Any]] = {
+    (
+        "835c5fcf5f02193474353650ea7b5566a7bb5cb4",
+        "9b59b08e56446f8462f82cb97dbcf090e7b511e7a39c0a9fa7a07541f7cafbd9",
+    ): {
+        "schema_version": 2,
+        "manifest_kind": "research_top32_exporter",
+        "sakura_input_head": "8e966dff456e4e7165e025f97c1f73327ff3f550",
+        "dictionary_sha256": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad",
+        "instrumentation_patch_sha256": "fc855aecdec606fe244fd1e3035e0e00ec5cfd6efbc4903ea83b8bf2984bf546",
+        "cargo_lock_sha256": "ac5cfc6970c140474175e921f4f7394814ecc17fbfee803172434ab0d3c46f38",
+        "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+        "cargo_version": "cargo 1.96.0 (30a34c682 2026-05-25)",
+        "target_triple": "x86_64-pc-windows-msvc",
+        "profile": "release",
+        "build_flags": [
+            "--remap-path-prefix=<WORKSPACE>=/sakura-input",
+            "-C",
+            "link-arg=/Brepro",
+        ],
+        "build_environment": {
+            "CARGO_BUILD_TARGET": "x86_64-pc-windows-msvc",
+            "CARGO_INCREMENTAL": "0",
+            "CARGO_NET_OFFLINE": "true",
+            "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+            "CARGO_PROFILE_RELEASE_DEBUG": "0",
+            "CARGO_PROFILE_RELEASE_LTO": "fat",
+            "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+            "CARGO_PROFILE_RELEASE_PANIC": "abort",
+            "CARGO_PROFILE_RELEASE_STRIP": "true",
+            "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc",
+            "SOURCE_DATE_EPOCH": "0",
+        },
+        "requested_limit": 32,
+        "effective_converter_bound": 32,
+        "user_dictionary_enabled": False,
+    },
+}
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")

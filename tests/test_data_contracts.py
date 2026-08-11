@@ -422,7 +422,17 @@ class ContractValidationTests(unittest.TestCase):
             validate_record(false)
 
     def test_top32_requires_separate_verified_exporter_and_complete_run_evidence(self) -> None:
-        self.assertEqual(VERIFIED_RESEARCH_EXPORTER_IDENTITIES, frozenset())
+        self.assertEqual(
+            VERIFIED_RESEARCH_EXPORTER_IDENTITIES,
+            frozenset(
+                {
+                    (
+                        "835c5fcf5f02193474353650ea7b5566a7bb5cb4",
+                        "9b59b08e56446f8462f82cb97dbcf090e7b511e7a39c0a9fa7a07541f7cafbd9",
+                    )
+                }
+            ),
+        )
         self.assertNotIn(
             (
                 "e6242eecb33e7872954229d7faafef2950a11740",
