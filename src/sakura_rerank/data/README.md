@@ -117,8 +117,12 @@ The source-span manifest binds the local dump SHA-256, dictionary-index hash,
 extractor Git SHA, cleaner version, every bound/sampling parameter, aggregate
 counts, record count, and canonical JSONL hash. A measured result remains
 blocked until the exact identity and all metadata are reproduced and
-allowlisted. No dump, extracted span, dictionary index, exporter JSONL, or
-generated dataset is tracked by Git.
+allowlisted. The trusted identity is extractor commit
+`7cdb51f77875caab8be25683fc3bf174c0e91325` with 1,969 source spans and
+content SHA-256
+`f06b747dfa4ec1b650696cd04f156071acde8bf543b5ba9fe94f6146123275c9`.
+No dump, extracted span, dictionary index, exporter JSONL, or generated dataset
+is tracked by Git.
 
 ## Deterministic jawiki source spans
 

@@ -61,8 +61,56 @@ VERIFIED_DICTIONARY_INDEX_METADATA = {
         "record_count": 368_341,
     }
 }
-VERIFIED_SOURCE_SPAN_IDENTITIES: frozenset[tuple[str, str]] = frozenset()
-VERIFIED_SOURCE_SPAN_METADATA: dict[tuple[str, str], Mapping[str, Any]] = {}
+VERIFIED_SOURCE_SPAN_IDENTITIES = frozenset(
+    {
+        (
+            "7cdb51f77875caab8be25683fc3bf174c0e91325",
+            "f06b747dfa4ec1b650696cd04f156071acde8bf543b5ba9fe94f6146123275c9",
+        )
+    }
+)
+VERIFIED_SOURCE_SPAN_METADATA: dict[tuple[str, str], Mapping[str, Any]] = {
+    (
+        "7cdb51f77875caab8be25683fc3bf174c0e91325",
+        "f06b747dfa4ec1b650696cd04f156071acde8bf543b5ba9fe94f6146123275c9",
+    ): {
+        "schema_version": 1,
+        "manifest_kind": "jawiki_tier_a_source_spans",
+        "snapshot_date": "2026-08-01",
+        "jawiki_local_sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+        "dictionary_index_sha256": "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072",
+        "cleaner_version": "conservative_wikitext_v1",
+        "config": {
+            "sample_modulus": 1_000_000,
+            "sample_slots": 3,
+            "max_records": 100_000,
+            "max_records_per_page": 8,
+            "max_output_bytes": 251_658_240,
+            "min_sentence_chars": 4,
+            "max_sentence_chars": 512,
+            "min_surface_chars": 1,
+            "max_surface_chars": 64,
+        },
+        "eligible_dictionary_surface_count": 335_218,
+        "record_count": 1_969,
+        "counts": {
+            "dictionary_matches": 673_706_344,
+            "matches_not_sampled": 673_704_375,
+            "pages_non_main": 636_071,
+            "pages_processed": 1_512_214,
+            "pages_redirect": 952_212,
+            "pages_total": 3_100_497,
+            "paragraph_too_long": 290,
+            "paragraphs_accepted": 14_737_408,
+            "residual_markup": 103_086,
+            "sentences_accepted": 32_981_912,
+            "sentences_outside_bounds": 1_768_505,
+            "unbalanced_link": 94_862,
+            "unbalanced_template": 86_558,
+        },
+        "raw_text_in_report": False,
+    }
+}
 MAX_SOURCE_RECORDS = 1_000_000
 MAX_DICTIONARY_RECORDS = 2_000_000
 MAX_INPUT_FILE_BYTES = 256 * 1024 * 1024
