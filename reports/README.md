@@ -16,3 +16,9 @@ shape metadata, never the synthetic candidate surfaces or user text.
 `current-tiny-quality-summary.json` reduces the raw evaluator output to hashes,
 aggregate counts, and per-slice results. Raw evaluator rows contain corpus text
 and must remain outside Git under the task-specific temporary directory.
+
+`jawiki-local-artifact-verification.json` records the fixed dump size and
+digests, acquisition Git SHA, local-only manifest identity, and network-free
+revalidation result. It contains neither the machine-local artifact path nor
+Wikipedia text. The dump and operational local manifest remain under ignored
+`data/` paths and are not committed.
