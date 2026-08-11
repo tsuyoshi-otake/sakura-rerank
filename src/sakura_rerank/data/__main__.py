@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl
+from .dictionary_index import build_dictionary_index, publish_dictionary_index
 from .manifest import (
     ManifestBlockedError,
     ManifestError,
@@ -77,6 +78,15 @@ def _parser() -> argparse.ArgumentParser:
     tier_a.add_argument("--allowed-root", type=Path, required=True)
     tier_a.add_argument("--report", type=Path, required=True)
 
+    dictionary_index = commands.add_parser(
+        "dictionary-index", help="build an exact index from audited category TSVs"
+    )
+    dictionary_index.add_argument("category_directory", type=Path)
+    dictionary_index.add_argument("output", type=Path)
+    dictionary_index.add_argument("--audit-report", type=Path, required=True)
+    dictionary_index.add_argument("--manifest", type=Path, required=True)
+    dictionary_index.add_argument("--indexer-git-sha", required=True)
+
     return parser
 
 
@@ -123,6 +133,41 @@ def _run(arguments: argparse.Namespace) -> int:
                     "status": "validated",
                     "record_count": len(records),
                     "content_sha256": hashlib.sha256(payload).hexdigest(),
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    if arguments.command == "dictionary-index":
+        ensure_distinct_tier_a_paths(
+            {
+                "audit_report": arguments.audit_report,
+                "output": arguments.output,
+                "manifest": arguments.manifest,
+            }
+        )
+        category_root = arguments.category_directory.resolve(strict=True)
+        for destination in (arguments.output, arguments.manifest):
+            if destination.resolve(strict=False).is_relative_to(category_root):
+                raise TierAError(
+                    "paths: index output and manifest must be outside category sources"
+                )
+        records, manifest = build_dictionary_index(
+            arguments.category_directory,
+            arguments.audit_report,
+            indexer_git_sha=arguments.indexer_git_sha,
+        )
+        output_hash, manifest_hash = publish_dictionary_index(
+            arguments.output, arguments.manifest, records, manifest
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "measured",
+                    "record_count": len(records),
+                    "content_sha256": output_hash,
+                    "manifest_sha256": manifest_hash,
                 },
                 sort_keys=True,
             )

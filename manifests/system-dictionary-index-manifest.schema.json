@@ -3,15 +3,20 @@
   "title": "Sakura Rerank exact system-dictionary index manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "manifest_kind", "verification_status", "dictionary_sha256", "indexer_git_sha", "normalization", "user_dictionary_enabled", "record_count", "content_sha256"],
+  "required": ["schema_version", "manifest_kind", "verification_status", "dictionary_sha256", "sakura_input_head", "indexer_git_sha", "normalization", "user_dictionary_enabled", "source_audit_sha256", "category_sources_sha256", "category_file_count", "source_entry_count", "record_count", "content_sha256"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"const": 2},
     "manifest_kind": {"const": "system_dictionary_surface_index"},
-    "verification_status": {"const": "verified"},
+    "verification_status": {"enum": ["measured", "verified"]},
     "dictionary_sha256": {"const": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad"},
+    "sakura_input_head": {"const": "8e966dff456e4e7165e025f97c1f73327ff3f550"},
     "indexer_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "normalization": {"const": "exact_unicode_v1"},
     "user_dictionary_enabled": {"const": false},
+    "source_audit_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "category_sources_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "category_file_count": {"type": "integer", "minimum": 1, "maximum": 128},
+    "source_entry_count": {"type": "integer", "minimum": 1, "maximum": 2000000},
     "record_count": {"type": "integer", "minimum": 1, "maximum": 2000000},
     "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
   }

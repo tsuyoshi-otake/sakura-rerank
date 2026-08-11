@@ -150,15 +150,20 @@ def dictionary_index(readings: list[str] | None = None) -> list[dict[str, object
 def dictionary_manifest(index: list[dict[str, object]]) -> dict[str, object]:
     normalized = validate_dictionary_index(index)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "manifest_kind": "system_dictionary_surface_index",
-        "verification_status": "verified",
+        "verification_status": "measured",
         "dictionary_sha256": PINNED_DICTIONARY_SHA256,
+        "sakura_input_head": PINNED_SAKURA_INPUT_HEAD,
         "indexer_git_sha": "1" * 40,
         "normalization": "exact_unicode_v1",
         "user_dictionary_enabled": False,
         "record_count": len(index),
         "content_sha256": hashlib.sha256(canonical_jsonl_bytes(normalized)).hexdigest(),
+        "source_audit_sha256": "4" * 64,
+        "category_sources_sha256": "5" * 64,
+        "category_file_count": 1,
+        "source_entry_count": len(index),
     }
 
 
@@ -176,13 +181,21 @@ def generate(
     index: list[dict[str, object]],
     exports: list[dict[str, object]],
 ) -> tuple[list[dict[str, object]], dict[str, object]]:
-    return generate_tier_a_records(
-        spans,
-        index,
-        exports,
-        jawiki_manifest=jawiki_manifest(),
-        dictionary_manifest=dictionary_manifest(index),
+    manifest = dictionary_manifest(index)
+    normalized_manifest = validate_dictionary_index_manifest(
+        manifest, validate_dictionary_index(index), require_verified=False
     )
+    with patch(
+        "sakura_rerank.data.tier_a.validate_dictionary_index_manifest",
+        return_value=normalized_manifest,
+    ):
+        return generate_tier_a_records(
+            spans,
+            index,
+            exports,
+            jawiki_manifest=jawiki_manifest(),
+            dictionary_manifest=manifest,
+        )
 
 
 class TierAGeneratorTests(unittest.TestCase):
@@ -230,10 +243,57 @@ class TierAGeneratorTests(unittest.TestCase):
     def test_dictionary_manifest_binds_exact_content(self) -> None:
         index = dictionary_index()
         manifest = dictionary_manifest(index)
-        validate_dictionary_index_manifest(manifest, validate_dictionary_index(index))
+        validate_dictionary_index_manifest(
+            manifest, validate_dictionary_index(index), require_verified=False
+        )
         manifest["content_sha256"] = "0" * 64
         with self.assertRaisesRegex(TierAError, "does not match index"):
-            validate_dictionary_index_manifest(manifest, validate_dictionary_index(index))
+            validate_dictionary_index_manifest(
+                manifest, validate_dictionary_index(index), require_verified=False
+            )
+
+    def test_measured_dictionary_manifest_is_blocked_by_default(self) -> None:
+        index = dictionary_index()
+        with self.assertRaisesRegex(TierABlockedError, "allowlisted verified"):
+            validate_dictionary_index_manifest(
+                dictionary_manifest(index), validate_dictionary_index(index)
+            )
+
+    def test_fake_verified_dictionary_identity_is_rejected(self) -> None:
+        index = dictionary_index()
+        manifest = dictionary_manifest(index)
+        manifest["verification_status"] = "verified"
+        with self.assertRaisesRegex(TierAError, "outside the allowlist"):
+            validate_dictionary_index_manifest(
+                manifest, validate_dictionary_index(index), require_verified=False
+            )
+
+    def test_verified_dictionary_identity_rejects_changed_metadata(self) -> None:
+        index = dictionary_index()
+        manifest = dictionary_manifest(index)
+        manifest["verification_status"] = "verified"
+        identity = (manifest["indexer_git_sha"], manifest["content_sha256"])
+        trusted_metadata = {
+            "source_audit_sha256": manifest["source_audit_sha256"],
+            "category_sources_sha256": "6" * 64,
+            "category_file_count": manifest["category_file_count"],
+            "source_entry_count": manifest["source_entry_count"],
+            "record_count": manifest["record_count"],
+        }
+        with (
+            patch(
+                "sakura_rerank.data.tier_a.VERIFIED_DICTIONARY_INDEX_IDENTITIES",
+                frozenset({identity}),
+            ),
+            patch(
+                "sakura_rerank.data.tier_a.VERIFIED_DICTIONARY_INDEX_METADATA",
+                {identity: trusted_metadata},
+            ),
+            self.assertRaisesRegex(TierAError, "metadata does not match identity"),
+        ):
+            validate_dictionary_index_manifest(
+                manifest, validate_dictionary_index(index), require_verified=False
+            )
 
     def test_pair_publication_is_byte_identical(self) -> None:
         records, report = generate(
