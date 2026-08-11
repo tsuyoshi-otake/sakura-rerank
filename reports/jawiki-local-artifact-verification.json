@@ -1,0 +1,25 @@
+{
+  "acquisition_git_sha": "22f7ce953b6bb3480dbb2f16cb3b9b3089baa23f",
+  "artifact_committed": false,
+  "byte_size": 4827732824,
+  "file_name": "jawiki-20260801-pages-articles-multistream.xml.bz2",
+  "fresh_download_completed": true,
+  "local_manifest": {
+    "byte_size": 1212,
+    "retrieved_at": "2026-08-11T15:19:36Z",
+    "sha256": "32c6c7fc31fde64e08d57eb8e939ea052e553a48d89026730af4020477407d70"
+  },
+  "local_sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+  "network_free_revalidation_passed": true,
+  "official_md5": "b51bab6d1cc23efddc4363e78b5526c6",
+  "official_sha1": "6c917b51d6f6b53a34eaebcb2a675c0769054343",
+  "partial_residue_present": false,
+  "report_kind": "jawiki_local_artifact_verification",
+  "schema_version": 1,
+  "snapshot_date": "2026-08-01",
+  "source_manifest": {
+    "byte_size": 1183,
+    "sha256": "586b85e6b95a6d87ce4384da67d13299841c305deb40401d6778c2d81b22bf18"
+  },
+  "status": "local_artifact_verified"
+}

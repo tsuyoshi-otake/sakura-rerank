@@ -29,6 +29,40 @@ def object_keys(value: Any) -> Iterable[str]:
 
 
 class GeneratedReportTests(unittest.TestCase):
+    def test_jawiki_local_artifact_report_is_pinned_and_text_free(self) -> None:
+        report = load_report("jawiki-local-artifact-verification.json")
+
+        self.assertEqual(report["status"], "local_artifact_verified")
+        self.assertEqual(report["byte_size"], 4_827_732_824)
+        self.assertEqual(report["official_md5"], "b51bab6d1cc23efddc4363e78b5526c6")
+        self.assertEqual(
+            report["official_sha1"], "6c917b51d6f6b53a34eaebcb2a675c0769054343"
+        )
+        self.assertEqual(
+            report["local_sha256"],
+            "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+        )
+        self.assertEqual(
+            report["acquisition_git_sha"],
+            "22f7ce953b6bb3480dbb2f16cb3b9b3089baa23f",
+        )
+        self.assertTrue(report["fresh_download_completed"])
+        self.assertTrue(report["network_free_revalidation_passed"])
+        self.assertFalse(report["partial_residue_present"])
+        self.assertFalse(report["artifact_committed"])
+        source_bytes = (
+            ROOT / "manifests" / "jawiki-20260801-pages-articles-multistream.json"
+        ).read_bytes()
+        self.assertEqual(
+            report["source_manifest"],
+            {
+                "byte_size": len(source_bytes),
+                "sha256": hashlib.sha256(source_bytes).hexdigest(),
+            },
+        )
+        forbidden = {"text", "surface", "reading", "local_path", "article"}
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
     def test_current_state_audit_is_pinned_and_consistent(self) -> None:
         audit = load_report("current-state-audit.json")
 

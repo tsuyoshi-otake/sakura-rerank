@@ -487,11 +487,35 @@ def validate_manifest(
 def hash_file(path: str | Path, algorithm: str, *, chunk_size: int = 1024 * 1024) -> str:
     """Hash a file without loading it into memory."""
 
-    digest = hashlib.new(algorithm)
-    with Path(path).open("rb") as handle:
+    return hash_file_many(path, (algorithm,), chunk_size=chunk_size)[algorithm]
+
+
+def hash_file_many(
+    path: str | Path,
+    algorithms: Sequence[str],
+    *,
+    chunk_size: int = 1024 * 1024,
+) -> dict[str, str]:
+    """Calculate distinct digests together in one stable-size streaming pass."""
+
+    if not algorithms or len(algorithms) != len(set(algorithms)):
+        raise ManifestError("hash algorithms must be non-empty and unique")
+    digests = {algorithm: hashlib.new(algorithm) for algorithm in algorithms}
+    source = Path(path)
+    before = source.stat()
+    observed = 0
+    with source.open("rb") as handle:
         while chunk := handle.read(chunk_size):
-            digest.update(chunk)
-    return digest.hexdigest()
+            observed += len(chunk)
+            for digest in digests.values():
+                digest.update(chunk)
+    after = source.stat()
+    if observed != before.st_size or (before.st_size, before.st_mtime_ns) != (
+        after.st_size,
+        after.st_mtime_ns,
+    ):
+        _error("local_path", "file changed during digest verification")
+    return {algorithm: digest.hexdigest() for algorithm, digest in digests.items()}
 
 
 def sha256_file(path: str | Path, *, chunk_size: int = 1024 * 1024) -> str:
@@ -513,11 +537,12 @@ def _verify_local_artifact(
         _error("local_path", "file does not exist")
     if local_path.stat().st_size != byte_size:
         _error("byte_size", "does not match the local file")
-    if hash_file(local_path, "md5") != official_md5:
+    measured = hash_file_many(local_path, ("md5", "sha1", "sha256"))
+    if measured["md5"] != official_md5:
         _error("official_md5", "does not match the local file")
-    if hash_file(local_path, "sha1") != official_sha1:
+    if measured["sha1"] != official_sha1:
         _error("official_sha1", "does not match the local file")
-    if sha256_file(local_path) != local_sha256:
+    if measured["sha256"] != local_sha256:
         _error("local_sha256", "does not match the local file")
 
 

@@ -29,6 +29,22 @@ If upstream metadata cannot be confirmed, use the blocked-report shape shown in
 evidence, but it is never accepted as a verified manifest and contains no
 invented snapshot values.
 
+## Pinned artifact acquisition
+
+The `jawiki-acquire` command accepts only the already reviewed fixed manifest
+and a destination below its allowed root. It resumes exclusively from the
+adjacent `.part` file, requires an exact HTTP `Content-Range` when resuming,
+rejects redirects outside the pinned Wikimedia HTTPS host, bounds retries, and
+honors bounded `Retry-After` values. The downloader reserves 512 MiB beyond the
+remaining artifact size before starting.
+
+Downloaded bytes become the final `.bz2` only after the official byte size,
+MD5, and SHA-1 match. MD5, SHA-1, and the local SHA-256 are measured together in
+one streaming pass. Only then is a `local_artifact_verified` manifest written
+atomically. A complete existing artifact is revalidated without network access;
+an invalid final artifact is never overwritten automatically. The dump,
+resumable partial, and local manifest all remain under ignored local paths.
+
 ## JSONL contract
 
 Each line is a version-3 `training_example` with source/page/revision
@@ -160,6 +176,12 @@ From the repository root:
 $env:PYTHONPATH = "src"
 python -m sakura_rerank.data manifest validate `
   manifests\jawiki-20260801-pages-articles-multistream.json --allowed-root .
+
+python -m sakura_rerank.data jawiki-acquire `
+  manifests\jawiki-20260801-pages-articles-multistream.json `
+  --allowed-root . `
+  --output data\downloads\jawiki-20260801-pages-articles-multistream.xml.bz2 `
+  --local-manifest data\generated\jawiki-20260801-local-manifest.json
 
 python -m sakura_rerank.data contract validate `
   tests\fixtures\data-contract.fixture.jsonl
