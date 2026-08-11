@@ -11,6 +11,7 @@ from sakura_rerank.data.contracts import (
     PINNED_DICTIONARY_SHA256,
     PINNED_SAKURA_INPUT_HEAD,
     VERIFIED_RESEARCH_EXPORTER_IDENTITIES,
+    VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA,
     ContractError,
     _candidate_snapshot_hash,
     candidate_fingerprint,
@@ -132,7 +133,7 @@ def _manifest(
             "CARGO_BUILD_TARGET": "x86_64-pc-windows-msvc",
             "CARGO_INCREMENTAL": "0",
             "CARGO_NET_OFFLINE": "true",
-            "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc",
+            "RUSTUP_TOOLCHAIN": "1.96.0-x86_64-pc-windows-msvc",
             "SOURCE_DATE_EPOCH": "0",
         },
         "requested_limit": 32,
@@ -142,15 +143,14 @@ def _manifest(
 
 
 class ResearchExporterContractTests(unittest.TestCase):
-    def test_checked_in_commit_d_manifest_is_allowlisted_with_full_metadata(self) -> None:
+    def test_commit_e_has_no_verified_manifest_or_trusted_identity(self) -> None:
         manifest_path = (
             Path(__file__).parents[1] / "manifests" / "research-exporter-verified.json"
         )
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        self.assertEqual(
-            validate_exporter_manifest(manifest)["verification_status"], "verified"
-        )
-        self.assertEqual(len(VERIFIED_RESEARCH_EXPORTER_IDENTITIES), 1)
+        self.assertFalse(manifest_path.exists())
+        self.assertEqual(len(VERIFIED_RESEARCH_EXPORTER_IDENTITIES), 0)
+        with self.assertRaisesRegex(ContractError, "outside the allowlist"):
+            validate_exporter_manifest(_manifest(status="verified"))
         self.assertNotIn(
             (
                 "e6242eecb33e7872954229d7faafef2950a11740",
@@ -158,10 +158,7 @@ class ResearchExporterContractTests(unittest.TestCase):
             ),
             VERIFIED_RESEARCH_EXPORTER_IDENTITIES,
         )
-        unverified = copy.deepcopy(manifest)
-        unverified["verification_status"] = "unverified"
-        with self.assertRaisesRegex(ContractError, "allowlisted verified identity"):
-            validate_exporter_manifest(unverified)
+        self.assertEqual(len(VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA), 0)
 
     def test_old_identity_is_rejected(self) -> None:
         old_manifest = _manifest(
@@ -173,30 +170,6 @@ class ResearchExporterContractTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ContractError, "outside the allowlist"):
             validate_exporter_manifest(old_manifest)
-
-    def test_verified_manifest_rejects_trusted_metadata_tampering(self) -> None:
-        manifest_path = (
-            Path(__file__).parents[1] / "manifests" / "research-exporter-verified.json"
-        )
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        tampered_values: dict[str, object] = {
-            "instrumentation_patch_sha256": "0" * 64,
-            "cargo_lock_sha256": "1" * 64,
-            "rustc_version": "rustc fake",
-            "cargo_version": "cargo fake",
-            "target_triple": "fake-target",
-            "profile": "debug",
-            "build_flags": ["fake-flag"],
-            "build_environment": {"FAKE": "1"},
-            "requested_limit": 18,
-            "effective_converter_bound": 18,
-            "user_dictionary_enabled": True,
-        }
-        for field, value in tampered_values.items():
-            tampered = copy.deepcopy(manifest)
-            tampered[field] = value
-            with self.subTest(field=field), self.assertRaises(ContractError):
-                validate_exporter_manifest(tampered)
 
     def test_unverified_export_is_valid_only_in_explicit_measurement_mode(self) -> None:
         record = _record()

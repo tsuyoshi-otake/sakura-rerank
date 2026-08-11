@@ -41,7 +41,7 @@ const EXPECTED_BUILD_ENVIRONMENT: [(&str, &str); 11] = [
     ("CARGO_PROFILE_RELEASE_OPT_LEVEL", "3"),
     ("CARGO_PROFILE_RELEASE_PANIC", "abort"),
     ("CARGO_PROFILE_RELEASE_STRIP", "true"),
-    ("RUSTUP_TOOLCHAIN", "stable-x86_64-pc-windows-msvc"),
+    ("RUSTUP_TOOLCHAIN", "1.96.0-x86_64-pc-windows-msvc"),
     ("SOURCE_DATE_EPOCH", "0"),
 ];
 
