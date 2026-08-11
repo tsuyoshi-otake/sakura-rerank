@@ -44,6 +44,19 @@ tracked in Git; generated binaries, JSONL, and raw traces remain outside Git. A
 `(exporter_git_sha, exporter_binary_sha256)` pair and every trusted metadata field
 are explicitly allowlisted in the Python contract.
 
+Run the resulting binary with the generated identity and exact dictionary. All
+paths must be distinct; output and report must not already alias an input:
+
+```powershell
+& "$env:USERPROFILE\tmp\sakura-rerank-exporter\sakura-research-top32-exporter.exe" `
+  --input data\generated\top32-requests.jsonl `
+  --dictionary "$env:USERPROFILE\tmp\sakura-input-dictionary\system.dic" `
+  --output data\generated\top32.jsonl `
+  --report data\generated\top32.report.json `
+  --identity-manifest "$env:USERPROFILE\tmp\sakura-rerank-exporter\identity.json" `
+  --limit 32
+```
+
 To regenerate a trusted binary, first make a clean detached checkout at the
 manifest's exact `exporter_git_sha`. Do not build from a moving branch, a dirty
 checkout, or a different source tree. Rebuild that detached commit from two
