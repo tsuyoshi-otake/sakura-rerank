@@ -19,3 +19,10 @@ Each applicable manifest records:
 
 Mutable aliases such as a Wikipedia `latest` URL may be recorded only as the
 discovery source; they are never the reproducible snapshot identity.
+
+The fixed jawiki manifest contract is defined in
+[`jawiki-snapshot.schema.json`](jawiki-snapshot.schema.json) and enforced by
+`sakura_rerank.data.manifest`. The
+[`jawiki-snapshot.blocked.example.json`](jawiki-snapshot.blocked.example.json)
+file demonstrates how to report unconfirmed metadata without filling in
+guesses. It is intentionally not a valid verified manifest.

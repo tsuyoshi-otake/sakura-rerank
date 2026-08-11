@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "jawiki_snapshot",
+  "status": "blocked",
+  "blocked_fields": [
+    {
+      "field": "official_url",
+      "reason": "official fixed-snapshot URL was not independently verified"
+    }
+  ]
+}

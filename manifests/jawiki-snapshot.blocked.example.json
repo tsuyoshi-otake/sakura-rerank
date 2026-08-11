@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "jawiki_snapshot",
+  "status": "blocked",
+  "blocked_fields": [
+    {
+      "field": "byte_size",
+      "reason": "official fixed-snapshot metadata was not independently verified"
+    },
+    {
+      "field": "extractor.name",
+      "reason": "the extraction tool identity was not selected for this PR"
+    },
+    {
+      "field": "extractor.version",
+      "reason": "the extraction tool version was not selected for this PR"
+    },
+    {
+      "field": "file_name",
+      "reason": "official fixed-snapshot filename was not independently verified"
+    },
+    {
+      "field": "license",
+      "reason": "the applicable snapshot license metadata was not independently verified"
+    },
+    {
+      "field": "local_path",
+      "reason": "no local snapshot artifact is included in this PR"
+    },
+    {
+      "field": "local_sha256",
+      "reason": "no local snapshot artifact is included in this PR"
+    },
+    {
+      "field": "official_sha256",
+      "reason": "official fixed-snapshot checksum was not independently verified"
+    },
+    {
+      "field": "official_url",
+      "reason": "official fixed-snapshot URL was not independently verified"
+    },
+    {
+      "field": "preprocessing_git_sha",
+      "reason": "no preprocessing revision is selected in this boundary-only PR"
+    },
+    {
+      "field": "retrieved_at",
+      "reason": "no snapshot artifact was retrieved for this PR"
+    },
+    {
+      "field": "snapshot_date",
+      "reason": "official fixed-snapshot date was not independently verified"
+    }
+  ]
+}

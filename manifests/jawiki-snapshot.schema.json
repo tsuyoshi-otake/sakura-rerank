@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sakura-rerank/jawiki-snapshot-manifest-v1",
+  "title": "Verified fixed jawiki snapshot manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_kind",
+    "status",
+    "snapshot_date",
+    "file_name",
+    "official_url",
+    "byte_size",
+    "official_sha256",
+    "local_path",
+    "local_sha256",
+    "retrieved_at",
+    "license",
+    "extractor",
+    "preprocessing_git_sha"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "manifest_kind": { "const": "jawiki_snapshot" },
+    "status": { "const": "verified" },
+    "snapshot_date": { "type": "string", "format": "date" },
+    "file_name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\.][^/\\\\\\r\\n]*$"
+    },
+    "official_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://dumps\\.wikimedia\\.org/jawiki/"
+    },
+    "byte_size": { "type": "integer", "minimum": 1 },
+    "official_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "local_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.?(?:/|$)).+$"
+    },
+    "local_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "retrieved_at": { "type": "string", "format": "date-time" },
+    "license": { "type": "string", "minLength": 1 },
+    "extractor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "preprocessing_git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  }
+}
