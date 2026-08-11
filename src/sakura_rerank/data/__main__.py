@@ -21,6 +21,7 @@ from .splitter import (
     ensure_distinct_paths,
     publish_split_artifacts,
 )
+from .research_exporter import validate_export_file
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -39,6 +40,11 @@ def _parser() -> argparse.ArgumentParser:
     contract_commands = contract.add_subparsers(dest="contract_command", required=True)
     validate_contract_parser = contract_commands.add_parser("validate")
     validate_contract_parser.add_argument("path", type=Path)
+    validate_export_parser = contract_commands.add_parser(
+        "exporter-validate", help="validate research-only converter snapshots"
+    )
+    validate_export_parser.add_argument("path", type=Path)
+    validate_export_parser.add_argument("--manifest", type=Path)
 
     split = commands.add_parser("split", help="assign unassigned JSONL records")
     split.add_argument("input", type=Path)
@@ -68,6 +74,22 @@ def _run(arguments: argparse.Namespace) -> int:
         return 0
 
     if arguments.command == "contract":
+        if arguments.contract_command == "exporter-validate":
+            records, content_sha256 = validate_export_file(
+                arguments.path,
+                manifest_path=arguments.manifest,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "validated",
+                        "record_count": len(records),
+                        "content_sha256": content_sha256,
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
         records = read_jsonl(arguments.path)
         payload = canonical_jsonl_bytes(records)
         print(

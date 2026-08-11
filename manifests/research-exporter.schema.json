@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sakura-rerank/research-top32-exporter-v1",
+  "title": "Measured research-only Sakura converter top-32 exporter identity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_kind",
+    "verification_status",
+    "exporter_git_sha",
+    "exporter_binary_sha256",
+    "sakura_input_head",
+    "dictionary_sha256",
+    "instrumentation_patch_sha256",
+    "cargo_lock_sha256",
+    "rustc_version",
+    "cargo_version",
+    "target_triple",
+    "profile",
+    "requested_limit",
+    "effective_converter_bound",
+    "user_dictionary_enabled"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "manifest_kind": { "const": "research_top32_exporter" },
+    "verification_status": { "enum": ["unverified", "verified"] },
+    "exporter_git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "exporter_binary_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sakura_input_head": {
+      "const": "8e966dff456e4e7165e025f97c1f73327ff3f550"
+    },
+    "dictionary_sha256": {
+      "const": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad"
+    },
+    "instrumentation_patch_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cargo_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "rustc_version": { "type": "string", "minLength": 1 },
+    "cargo_version": { "type": "string", "minLength": 1 },
+    "target_triple": { "type": "string", "minLength": 1 },
+    "profile": { "const": "release" },
+    "requested_limit": { "const": 32 },
+    "effective_converter_bound": { "const": 32 },
+    "user_dictionary_enabled": { "const": false }
+  }
+}

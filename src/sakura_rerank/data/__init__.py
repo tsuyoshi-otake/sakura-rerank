@@ -51,6 +51,16 @@ from .splitter import (
     publish_split_artifacts,
     split_jsonl,
 )
+from .research_exporter import (
+    EXPORTER_MANIFEST_KIND,
+    EXPORTER_MANIFEST_SCHEMA_VERSION,
+    EXPORT_RECORD_TYPE,
+    read_export_jsonl,
+    read_exporter_manifest,
+    validate_export_file,
+    validate_export_records,
+    validate_exporter_manifest,
+)
 
 __all__ = [
     "BLOCKED_STATUS",
@@ -58,6 +68,9 @@ __all__ = [
     "CONVERTER_FEATURE_CONTRACT_VERSION",
     "DEFAULT_NEAR_DUPLICATE_THRESHOLD",
     "DEFAULT_SPLIT_RATIOS",
+    "EXPORTER_MANIFEST_KIND",
+    "EXPORTER_MANIFEST_SCHEMA_VERSION",
+    "EXPORT_RECORD_TYPE",
     "FIXTURE_CANDIDATE_SOURCE",
     "LOCAL_ARTIFACT_VERIFIED",
     "MANIFEST_SCHEMA_VERSION",
@@ -88,11 +101,16 @@ __all__ = [
     "make_blocked_report",
     "publish_split_artifacts",
     "read_jsonl",
+    "read_export_jsonl",
+    "read_exporter_manifest",
     "sentence_shingle_hashes",
     "sha256_file",
     "split_jsonl",
     "text_sha256",
     "validate_blocked_report",
+    "validate_export_file",
+    "validate_export_records",
+    "validate_exporter_manifest",
     "validate_manifest",
     "validate_manifest_document",
     "validate_record",

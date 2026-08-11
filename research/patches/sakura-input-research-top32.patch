@@ -1,0 +1,245 @@
+diff --git a/crates/sakura-core/Cargo.toml b/crates/sakura-core/Cargo.toml
+index 670a2a6..a0094a7 100644
+--- a/crates/sakura-core/Cargo.toml
++++ b/crates/sakura-core/Cargo.toml
+@@ -20,0 +21,4 @@ simd-assembly-audit = []
++# Research-only converter instrumentation. This feature is never enabled by a
++# shipping Sakura Input target; it raises only the isolated converter bound and
++# exposes exact path-edge provenance/terminal search evidence.
++research-top32 = []
+diff --git a/crates/sakura-core/src/conversion.rs b/crates/sakura-core/src/conversion.rs
+index 96ca606..48518d7 100644
+--- a/crates/sakura-core/src/conversion.rs
++++ b/crates/sakura-core/src/conversion.rs
+@@ -11 +11,3 @@ use std::collections::BinaryHeap;
+-use sakura_proto::{FixedStr, FixedVec, MAX_CANDIDATES, MAX_PREEDIT_BYTES, MAX_SEGMENTS};
++#[cfg(not(feature = "research-top32"))]
++use sakura_proto::MAX_CANDIDATES;
++use sakura_proto::{FixedStr, FixedVec, MAX_PREEDIT_BYTES, MAX_SEGMENTS};
+@@ -21,0 +24,3 @@ const MAX_DICTIONARY_EDGES_PER_READING: usize = 12;
++#[cfg(feature = "research-top32")]
++pub const MAX_CONVERSION_CANDIDATES: usize = 32;
++#[cfg(not(feature = "research-top32"))]
+@@ -99,0 +105,2 @@ pub struct ConversionSegment {
++    #[cfg(feature = "research-top32")]
++    pub source_category: ResearchSegmentSource,
+@@ -119,0 +127,71 @@ impl ConversionCandidate {
++#[cfg(feature = "research-top32")]
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum ResearchSegmentSource {
++    SystemDictionary,
++    UserDictionary,
++    ReadingFallback,
++    KatakanaFallback,
++    GeneratedLiteral,
++}
++
++#[cfg(feature = "research-top32")]
++impl ResearchSegmentSource {
++    pub const fn as_str(self) -> &'static str {
++        match self {
++            Self::SystemDictionary => "system_dictionary",
++            Self::UserDictionary => "user_dictionary",
++            Self::ReadingFallback => "reading_fallback",
++            Self::KatakanaFallback => "katakana_fallback",
++            Self::GeneratedLiteral => "generated_literal",
++        }
++    }
++}
++
++#[cfg(feature = "research-top32")]
++impl Default for ResearchSegmentSource {
++    fn default() -> Self {
++        Self::GeneratedLiteral
++    }
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++enum SearchTerminal {
++    SearchExhausted,
++    Truncated,
++}
++
++#[cfg(feature = "research-top32")]
++#[derive(Debug)]
++pub struct ResearchConversion<'a> {
++    candidates: &'a [ConversionCandidate],
++    result_status: ResearchSearchStatus,
++}
++
++#[cfg(feature = "research-top32")]
++impl ResearchConversion<'_> {
++    pub const fn candidates(&self) -> &[ConversionCandidate] {
++        self.candidates
++    }
++
++    pub const fn result_status(&self) -> ResearchSearchStatus {
++        self.result_status
++    }
++}
++
++#[cfg(feature = "research-top32")]
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum ResearchSearchStatus {
++    SearchExhausted,
++    Truncated,
++}
++
++#[cfg(feature = "research-top32")]
++impl ResearchSearchStatus {
++    pub const fn as_str(self) -> &'static str {
++        match self {
++            Self::SearchExhausted => "search_exhausted",
++            Self::Truncated => "truncated",
++        }
++    }
++}
++
+@@ -212,0 +291 @@ pub struct Converter {
++    search_state_budget_exhausted: bool,
+@@ -228,0 +308 @@ impl Converter {
++            search_state_budget_exhausted: false,
+@@ -251,0 +332,30 @@ impl Converter {
++        self.convert_inner(dictionary, user_dictionary, reading, options, true)?;
++        Ok(&self.candidates)
++    }
++
++    #[cfg(feature = "research-top32")]
++    pub fn convert_research<'a>(
++        &'a mut self,
++        dictionary: &Dictionary<'_>,
++        reading: &str,
++        options: ConversionOptions,
++    ) -> Result<ResearchConversion<'a>, ConversionError> {
++        let terminal = self.convert_inner(dictionary, None, reading, options, false)?;
++        let result_status = match terminal {
++            SearchTerminal::SearchExhausted => ResearchSearchStatus::SearchExhausted,
++            SearchTerminal::Truncated => ResearchSearchStatus::Truncated,
++        };
++        Ok(ResearchConversion {
++            candidates: &self.candidates,
++            result_status,
++        })
++    }
++
++    fn convert_inner(
++        &mut self,
++        dictionary: &Dictionary<'_>,
++        user_dictionary: Option<&UserDictionary>,
++        reading: &str,
++        options: ConversionOptions,
++        include_identifier_variants: bool,
++    ) -> Result<SearchTerminal, ConversionError> {
+@@ -277,3 +387,5 @@ impl Converter {
+-        if self.candidates.len() < options.max_candidates {
+-            self.search_n_best(dictionary, user_dictionary, reading, options.max_candidates)?;
+-        }
++        let search_terminal = if self.candidates.len() < options.max_candidates {
++            self.search_n_best(dictionary, user_dictionary, reading, options.max_candidates)?
++        } else {
++            SearchTerminal::Truncated
++        };
+@@ -281 +393,3 @@ impl Converter {
+-        self.add_identifier_variants(reading)?;
++        if include_identifier_variants {
++            self.add_identifier_variants(reading)?;
++        }
+@@ -284 +398 @@ impl Converter {
+-        Ok(&self.candidates)
++        Ok(search_terminal)
+@@ -377,0 +492,2 @@ impl Converter {
++                        #[cfg(feature = "research-top32")]
++                        source_category: ResearchSegmentSource::GeneratedLiteral,
+@@ -402,0 +519 @@ impl Converter {
++        self.search_state_budget_exhausted = false;
+@@ -756 +873 @@ impl Converter {
+-    ) -> Result<(), ConversionError> {
++    ) -> Result<SearchTerminal, ConversionError> {
+@@ -821 +938 @@ impl Converter {
+-                        break;
++                        return Ok(SearchTerminal::Truncated);
+@@ -841,0 +959,2 @@ impl Converter {
++                    } else {
++                        self.search_state_budget_exhausted = true;
+@@ -847 +966,5 @@ impl Converter {
+-        Ok(())
++        Ok(if self.search_state_budget_exhausted {
++            SearchTerminal::Truncated
++        } else {
++            SearchTerminal::SearchExhausted
++        })
+@@ -851,0 +975 @@ impl Converter {
++            self.search_state_budget_exhausted = true;
+@@ -939,0 +1064,2 @@ fn make_candidate(
++        #[cfg(feature = "research-top32")]
++        let source_category = research_segment_source(node.surface);
+@@ -990,0 +1117,2 @@ fn make_candidate(
++                #[cfg(feature = "research-top32")]
++                source_category,
+@@ -1010,0 +1139,11 @@ fn make_candidate(
++#[cfg(feature = "research-top32")]
++const fn research_segment_source(surface: Surface) -> ResearchSegmentSource {
++    match surface {
++        Surface::Dictionary { .. } => ResearchSegmentSource::SystemDictionary,
++        Surface::User(_) => ResearchSegmentSource::UserDictionary,
++        Surface::Reading => ResearchSegmentSource::ReadingFallback,
++        Surface::Katakana => ResearchSegmentSource::KatakanaFallback,
++        Surface::Literal(_) => ResearchSegmentSource::GeneratedLiteral,
++    }
++}
++
+@@ -1075,0 +1215,54 @@ fn synthetic_run_cost(base: i64, per_character: i64, characters: usize) -> i64 {
++
++
++#[cfg(all(test, not(feature = "research-top32")))]
++#[test]
++fn production_converter_bound_stays_at_eighteen() {
++    assert_eq!(MAX_CONVERSION_CANDIDATES, 18);
++}
++
++#[cfg(all(test, feature = "research-top32"))]
++mod research_tests {
++    use super::*;
++
++    #[test]
++    fn research_converter_bound_is_thirty_two() {
++        assert_eq!(MAX_CONVERSION_CANDIDATES, 32);
++    }
++
++    #[test]
++    fn segment_source_is_mapped_from_the_path_edge() {
++        let dictionary = Surface::Dictionary {
++            entry: Entry::default(),
++            entry_index: 0,
++        };
++        assert_eq!(
++            research_segment_source(dictionary),
++            ResearchSegmentSource::SystemDictionary
++        );
++        assert_eq!(
++            research_segment_source(Surface::User(0)),
++            ResearchSegmentSource::UserDictionary
++        );
++        assert_eq!(
++            research_segment_source(Surface::Reading),
++            ResearchSegmentSource::ReadingFallback
++        );
++        assert_eq!(
++            research_segment_source(Surface::Katakana),
++            ResearchSegmentSource::KatakanaFallback
++        );
++        assert_eq!(
++            research_segment_source(Surface::Literal("literal")),
++            ResearchSegmentSource::GeneratedLiteral
++        );
++    }
++
++    #[test]
++    fn search_status_strings_are_explicit() {
++        assert_eq!(
++            ResearchSearchStatus::SearchExhausted.as_str(),
++            "search_exhausted"
++        );
++        assert_eq!(ResearchSearchStatus::Truncated.as_str(), "truncated");
++    }
++}
