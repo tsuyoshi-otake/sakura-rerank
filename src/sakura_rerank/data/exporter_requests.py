@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
+import shutil
+import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -22,6 +25,9 @@ from .tier_a import (
 REQUEST_REPORT_SCHEMA_VERSION = 1
 REQUEST_REPORT_KIND = "research_top32_request_batch"
 MAX_EXPORTER_REQUESTS = 4_096
+MAX_REQUEST_SHARDS = 256
+REQUEST_SHARD_MANIFEST_SCHEMA_VERSION = 1
+REQUEST_SHARD_MANIFEST_KIND = "research_top32_request_shards"
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 _STABLE_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
 _REPORT_FIELDS = {
@@ -39,6 +45,25 @@ _REPORT_FIELDS = {
     "sakura_input_head",
     "jawiki_local_sha256",
     "raw_text_in_report",
+}
+_SHARD_MANIFEST_FIELDS = {
+    "schema_version",
+    "manifest_kind",
+    "verification_status",
+    "builder_git_sha",
+    "record_count",
+    "shard_size",
+    "shard_count",
+    "content_sha256",
+    "source_span_content_sha256",
+    "source_span_extractor_git_sha",
+    "dictionary_index_content_sha256",
+    "dictionary_indexer_git_sha",
+    "dictionary_sha256",
+    "sakura_input_head",
+    "jawiki_local_sha256",
+    "shards",
+    "raw_text_in_manifest",
 }
 
 
@@ -146,6 +171,39 @@ def generate_exporter_requests(
 ) -> tuple[list[dict[str, str]], dict[str, Any]]:
     """Join every verified source span to one exact system-dictionary reading."""
 
+    requests, provenance = _join_verified_requests(
+        source_records,
+        dictionary_records,
+        jawiki_manifest=jawiki_manifest,
+        dictionary_manifest=dictionary_manifest,
+        source_span_manifest=source_span_manifest,
+        builder_git_sha=builder_git_sha,
+    )
+    if len(requests) > MAX_EXPORTER_REQUESTS:
+        raise TierAError("exporter_requests: record count is outside the exporter bound")
+    requests = validate_exporter_requests(requests)
+    request_payload = canonical_jsonl_bytes(requests)
+    report = {
+        "schema_version": REQUEST_REPORT_SCHEMA_VERSION,
+        "report_kind": REQUEST_REPORT_KIND,
+        "verification_status": "verified_inputs",
+        **provenance,
+        "record_count": len(requests),
+        "content_sha256": hashlib.sha256(request_payload).hexdigest(),
+        "raw_text_in_report": False,
+    }
+    return requests, report
+
+
+def _join_verified_requests(
+    source_records: Sequence[Mapping[str, Any]],
+    dictionary_records: Sequence[Mapping[str, Any]],
+    *,
+    jawiki_manifest: Mapping[str, Any],
+    dictionary_manifest: Mapping[str, Any],
+    source_span_manifest: Mapping[str, Any],
+    builder_git_sha: str,
+) -> tuple[list[dict[str, str]], dict[str, str]]:
     builder_git_sha = _git_sha(builder_git_sha, "builder_git_sha")
     spans = validate_source_spans(source_records)
     dictionary = validate_dictionary_index(dictionary_records)
@@ -159,8 +217,8 @@ def generate_exporter_requests(
         dictionary_manifest=normalized_dictionary_manifest,
         require_verified=True,
     )
-    if not spans or len(spans) > MAX_EXPORTER_REQUESTS:
-        raise TierAError("exporter_requests: record count is outside the exporter bound")
+    if not spans:
+        raise TierAError("exporter_requests: no source records")
 
     readings_by_surface = {
         record["surface"]: record["readings"] for record in dictionary
@@ -174,15 +232,8 @@ def generate_exporter_requests(
             raise TierAError("exporter_requests: source surface does not have exactly one reading")
         requests.append({"stable_id": span["stable_id"], "reading": readings[0]})
 
-    requests = validate_exporter_requests(requests)
-    request_payload = canonical_jsonl_bytes(requests)
-    report = {
-        "schema_version": REQUEST_REPORT_SCHEMA_VERSION,
-        "report_kind": REQUEST_REPORT_KIND,
-        "verification_status": "verified_inputs",
+    provenance = {
         "builder_git_sha": builder_git_sha,
-        "record_count": len(requests),
-        "content_sha256": hashlib.sha256(request_payload).hexdigest(),
         "source_span_content_sha256": normalized_source_manifest["content_sha256"],
         "source_span_extractor_git_sha": normalized_source_manifest["extractor_git_sha"],
         "dictionary_index_content_sha256": normalized_dictionary_manifest["content_sha256"],
@@ -190,9 +241,154 @@ def generate_exporter_requests(
         "dictionary_sha256": normalized_dictionary_manifest["dictionary_sha256"],
         "sakura_input_head": normalized_dictionary_manifest["sakura_input_head"],
         "jawiki_local_sha256": normalized_source_manifest["jawiki_local_sha256"],
-        "raw_text_in_report": False,
     }
-    return requests, report
+    return requests, provenance
+
+
+def generate_exporter_request_shards(
+    source_records: Sequence[Mapping[str, Any]],
+    dictionary_records: Sequence[Mapping[str, Any]],
+    *,
+    jawiki_manifest: Mapping[str, Any],
+    dictionary_manifest: Mapping[str, Any],
+    source_span_manifest: Mapping[str, Any],
+    builder_git_sha: str,
+    shard_size: int = MAX_EXPORTER_REQUESTS,
+) -> tuple[list[list[dict[str, str]]], dict[str, Any]]:
+    """Create globally ordered exporter-sized shards and an aggregate manifest."""
+
+    if type(shard_size) is not int or not 1 <= shard_size <= MAX_EXPORTER_REQUESTS:
+        raise TierAError("shard_size: must be within the exporter record bound")
+    requests, provenance = _join_verified_requests(
+        source_records,
+        dictionary_records,
+        jawiki_manifest=jawiki_manifest,
+        dictionary_manifest=dictionary_manifest,
+        source_span_manifest=source_span_manifest,
+        builder_git_sha=builder_git_sha,
+    )
+    shard_count = (len(requests) + shard_size - 1) // shard_size
+    if shard_count > MAX_REQUEST_SHARDS:
+        raise TierAError("exporter_request_shards: shard count exceeds the bound")
+    shards = [
+        validate_exporter_requests(requests[start : start + shard_size])
+        for start in range(0, len(requests), shard_size)
+    ]
+    shard_records = []
+    for index, shard in enumerate(shards):
+        payload = canonical_jsonl_bytes(shard)
+        shard_records.append(
+            {
+                "file_name": f"requests-{index:05d}.jsonl",
+                "record_count": len(shard),
+                "content_sha256": hashlib.sha256(payload).hexdigest(),
+            }
+        )
+    full_payload = canonical_jsonl_bytes(requests)
+    manifest = {
+        "schema_version": REQUEST_SHARD_MANIFEST_SCHEMA_VERSION,
+        "manifest_kind": REQUEST_SHARD_MANIFEST_KIND,
+        "verification_status": "verified_inputs",
+        **provenance,
+        "record_count": len(requests),
+        "shard_size": shard_size,
+        "shard_count": len(shards),
+        "content_sha256": hashlib.sha256(full_payload).hexdigest(),
+        "shards": shard_records,
+        "raw_text_in_manifest": False,
+    }
+    return shards, manifest
+
+
+def publish_exporter_request_shards(
+    output_directory: str | Path,
+    shards: Sequence[Sequence[Mapping[str, Any]]],
+    manifest: Mapping[str, Any],
+) -> tuple[str, str]:
+    """Atomically publish a new immutable directory of request shards."""
+
+    destination = Path(output_directory)
+    if destination.exists():
+        raise TierAError("output_directory: already exists")
+    if not destination.parent.is_dir():
+        raise TierAError("output_directory: parent directory does not exist")
+    if not shards or len(shards) > MAX_REQUEST_SHARDS:
+        raise TierAError("exporter_request_shards: shard count is outside the bound")
+    if set(manifest) != _SHARD_MANIFEST_FIELDS:
+        raise TierAError("manifest: fields do not match the aggregate-only schema")
+    if manifest["schema_version"] != REQUEST_SHARD_MANIFEST_SCHEMA_VERSION:
+        raise TierAError("manifest.schema_version: unsupported schema")
+    if manifest["manifest_kind"] != REQUEST_SHARD_MANIFEST_KIND:
+        raise TierAError("manifest.manifest_kind: unsupported kind")
+    if manifest["verification_status"] != "verified_inputs":
+        raise TierAError("manifest.verification_status: verified_inputs is required")
+    for field in (
+        "builder_git_sha",
+        "source_span_extractor_git_sha",
+        "dictionary_indexer_git_sha",
+        "sakura_input_head",
+    ):
+        _git_sha(manifest[field], f"manifest.{field}")
+    for field in (
+        "content_sha256",
+        "source_span_content_sha256",
+        "dictionary_index_content_sha256",
+        "dictionary_sha256",
+        "jawiki_local_sha256",
+    ):
+        _sha256(manifest[field], f"manifest.{field}")
+    if type(manifest["shard_size"]) is not int or not 1 <= manifest["shard_size"] <= MAX_EXPORTER_REQUESTS:
+        raise TierAError("manifest.shard_size: outside the exporter bound")
+    if type(manifest["shard_count"]) is not int or manifest["shard_count"] != len(shards):
+        raise TierAError("manifest.shard_count: does not match request shards")
+    expected_shards = manifest["shards"]
+    if not isinstance(expected_shards, list) or len(expected_shards) != len(shards):
+        raise TierAError("manifest.shards: does not match request shards")
+
+    normalized_shards: list[list[dict[str, str]]] = []
+    all_requests: list[dict[str, str]] = []
+    for index, (shard, expected) in enumerate(zip(shards, expected_shards, strict=True)):
+        normalized = validate_exporter_requests(shard)
+        payload = canonical_jsonl_bytes(normalized)
+        expected_record = {
+            "file_name": f"requests-{index:05d}.jsonl",
+            "record_count": len(normalized),
+            "content_sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        if expected != expected_record:
+            raise TierAError("manifest.shards: content identity mismatch")
+        normalized_shards.append(normalized)
+        all_requests.extend(normalized)
+    stable_ids = [record["stable_id"] for record in all_requests]
+    if stable_ids != sorted(stable_ids) or len(stable_ids) != len(set(stable_ids)):
+        raise TierAError("exporter_request_shards: global stable IDs must be sorted and unique")
+    if manifest.get("record_count") != len(all_requests):
+        raise TierAError("manifest.record_count: does not match request shards")
+    combined_sha = hashlib.sha256(canonical_jsonl_bytes(all_requests)).hexdigest()
+    if manifest.get("content_sha256") != combined_sha:
+        raise TierAError("manifest.content_sha256: does not match request shards")
+    if manifest.get("raw_text_in_manifest") is not False:
+        raise TierAError("manifest.raw_text_in_manifest: must be false")
+
+    staged = Path(tempfile.mkdtemp(prefix=f".{destination.name}.", dir=destination.parent))
+    try:
+        for index, shard in enumerate(normalized_shards):
+            path = staged / f"requests-{index:05d}.jsonl"
+            with path.open("wb") as output:
+                output.write(canonical_jsonl_bytes(shard))
+                output.flush()
+                os.fsync(output.fileno())
+        manifest_payload = canonical_json_bytes(manifest) + b"\n"
+        with (staged / "manifest.json").open("wb") as output:
+            output.write(manifest_payload)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(staged, destination)
+    finally:
+        if staged.exists():
+            shutil.rmtree(staged)
+    manifest_sha = hashlib.sha256(canonical_json_bytes(manifest) + b"\n").hexdigest()
+    return combined_sha, manifest_sha
 
 
 def publish_exporter_requests(

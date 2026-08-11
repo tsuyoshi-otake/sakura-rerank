@@ -41,6 +41,38 @@ class DataCliPathTests(unittest.TestCase):
                 ]
             )
 
+    def test_split_cli_records_explicit_ratio_override(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.jsonl"
+            output_path = root / "output.jsonl"
+            report_path = root / "report.json"
+            _write_unassigned_input(input_path)
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                status = main(
+                    [
+                        "split",
+                        os.fspath(input_path),
+                        os.fspath(output_path),
+                        "--seed",
+                        "17",
+                        "--report",
+                        os.fspath(report_path),
+                        "--train-ratio",
+                        "0.75",
+                        "--dev-ratio",
+                        "0.10",
+                        "--final-holdout-ratio",
+                        "0.15",
+                    ]
+                )
+            self.assertEqual(status, 0)
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                report["split_ratios"],
+                {"train": 0.75, "dev": 0.10, "final-holdout": 0.15},
+            )
+
     def _assert_no_transaction_residue(self, root: Path) -> None:
         residue = [
             path

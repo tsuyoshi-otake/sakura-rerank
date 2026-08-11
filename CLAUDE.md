@@ -24,9 +24,12 @@ research boundary.
 - Verified candidate snapshot:
   `manifests/jawiki-research-top32-snapshot-verified.json`
 
-The next research step is deterministic Tier A assembly and audit from these
-immutable inputs. The verified top-32 snapshot is prerequisite evidence, not a
-Gate A/B result and not approval for production integration.
+The 1,969-record chain has produced a 1,643-record automatic Tier A pilot.
+Issue #15 owns expanded deterministic extraction, bounded top-32 request
+sharding, leakage-safe splitting, and the independent human-review gate. The
+verified pilot snapshot is prerequisite evidence, not a Gate A/B result and not
+approval for production integration. No Sakura-Rerank-Tiny-v1 model has been
+selected or exported yet.
 
 ## Data and privacy
 
@@ -40,6 +43,10 @@ Gate A/B result and not approval for production integration.
   converter exporter. Do not infer or guess either value.
 - Missing, ambiguous, stale, mismatched, malformed, late, or failed inputs must
   terminate explicitly and publish no partial trusted artifact.
+- Never fabricate or infer a human-review response. Selected unanswered rows
+  remain pending and training-ineligible; rejected rows are excluded. Gate A
+  requires at least 1,000 completed labels, 3,000 valid final-holdout labels,
+  99.5% point precision, and a 99.0% 95% Wilson lower bound.
 
 ## Working method
 

@@ -432,6 +432,7 @@ def split_jsonl(
     report_path: str,
     *,
     seed: int,
+    split_ratios: Mapping[str, float] | None = None,
     near_duplicate_threshold: float = DEFAULT_NEAR_DUPLICATE_THRESHOLD,
 ) -> tuple[str, str]:
     """CLI helper: split an unassigned JSONL file and write both artifacts."""
@@ -439,6 +440,9 @@ def split_jsonl(
     ensure_distinct_paths(input_path, output_path, report_path)
     records = read_jsonl(input_path, require_split=False)
     output, report = assign_splits(
-        records, seed=seed, near_duplicate_threshold=near_duplicate_threshold
+        records,
+        seed=seed,
+        split_ratios=split_ratios,
+        near_duplicate_threshold=near_duplicate_threshold,
     )
     return publish_split_artifacts(output_path, report_path, output, report)

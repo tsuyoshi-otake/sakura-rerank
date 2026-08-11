@@ -12,7 +12,9 @@ from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
 from .exporter_requests import (
     ensure_paths_under_root,
+    generate_exporter_request_shards,
     generate_exporter_requests,
+    publish_exporter_request_shards,
     publish_exporter_requests,
 )
 from .jawiki_acquisition import AcquisitionError, acquire_jawiki
@@ -21,6 +23,19 @@ from .jawiki_preprocess import (
     PreprocessingError,
     extract_source_spans,
     load_dictionary_inputs,
+)
+from .human_audit import (
+    apply_audit_responses,
+    build_quality_report,
+    build_queue_manifest,
+    publish_audit_queue,
+    publish_audit_application,
+    publish_quality_report,
+    read_audit_queue,
+    read_audit_responses,
+    read_queue_manifest,
+    select_audit_records,
+    validate_queue_manifest,
 )
 from .manifest import (
     ManifestBlockedError,
@@ -76,6 +91,9 @@ def _parser() -> argparse.ArgumentParser:
     split.add_argument("output", type=Path)
     split.add_argument("--seed", type=int, required=True)
     split.add_argument("--report", type=Path, required=True)
+    split.add_argument("--train-ratio", type=float, default=0.8)
+    split.add_argument("--dev-ratio", type=float, default=0.1)
+    split.add_argument("--final-holdout-ratio", type=float, default=0.1)
 
     tier_a = commands.add_parser(
         "tier-a", help="assemble verified Tier A records from immutable inputs"
@@ -140,6 +158,49 @@ def _parser() -> argparse.ArgumentParser:
     exporter_requests.add_argument("--report", type=Path, required=True)
     exporter_requests.add_argument("--builder-git-sha", required=True)
 
+    exporter_request_shards = commands.add_parser(
+        "exporter-request-shards",
+        help="build a verified directory of bounded research top-32 request shards",
+    )
+    exporter_request_shards.add_argument("source_spans", type=Path)
+    exporter_request_shards.add_argument("output_directory", type=Path)
+    exporter_request_shards.add_argument("--dictionary-index", type=Path, required=True)
+    exporter_request_shards.add_argument("--dictionary-manifest", type=Path, required=True)
+    exporter_request_shards.add_argument("--jawiki-manifest", type=Path, required=True)
+    exporter_request_shards.add_argument("--source-span-manifest", type=Path, required=True)
+    exporter_request_shards.add_argument("--allowed-root", type=Path, required=True)
+    exporter_request_shards.add_argument("--builder-git-sha", required=True)
+    exporter_request_shards.add_argument("--shard-size", type=int, default=4096)
+
+    human_audit = commands.add_parser("human-audit", help="create and evaluate Tier A reviews")
+    human_audit_commands = human_audit.add_subparsers(
+        dest="human_audit_command", required=True
+    )
+    audit_queue = human_audit_commands.add_parser("queue", help="create a review queue")
+    audit_queue.add_argument("input", type=Path)
+    audit_queue.add_argument("output", type=Path)
+    audit_queue.add_argument("--manifest", type=Path, required=True)
+    audit_queue.add_argument("--seed", type=int, required=True)
+    audit_queue.add_argument("--minimum-sample-size", type=int, default=1000)
+    audit_report = human_audit_commands.add_parser(
+        "report", help="calculate the human-audit Wilson quality gate"
+    )
+    audit_report.add_argument("queue", type=Path)
+    audit_report.add_argument("responses", type=Path)
+    audit_report.add_argument("output", type=Path)
+    audit_report.add_argument("--queue-manifest", type=Path, required=True)
+    audit_report.add_argument("--minimum-completed", type=int, default=1000)
+    audit_report.add_argument("--minimum-final-holdout-valid", type=int, default=3000)
+    audit_apply = human_audit_commands.add_parser(
+        "apply", help="apply review outcomes to a fail-closed training dataset"
+    )
+    audit_apply.add_argument("input", type=Path)
+    audit_apply.add_argument("queue", type=Path)
+    audit_apply.add_argument("responses", type=Path)
+    audit_apply.add_argument("output", type=Path)
+    audit_apply.add_argument("--queue-manifest", type=Path, required=True)
+    audit_apply.add_argument("--report", type=Path, required=True)
+
     return parser
 
 
@@ -186,6 +247,106 @@ def _run(arguments: argparse.Namespace) -> int:
                     "status": "validated",
                     "record_count": len(records),
                     "content_sha256": hashlib.sha256(payload).hexdigest(),
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    if arguments.command == "human-audit":
+        if arguments.human_audit_command == "queue":
+            ensure_distinct_tier_a_paths(
+                {
+                    "input": arguments.input,
+                    "output": arguments.output,
+                    "manifest": arguments.manifest,
+                }
+            )
+            records = read_jsonl(arguments.input)
+            queue = select_audit_records(
+                records,
+                seed=arguments.seed,
+                minimum_sample_size=arguments.minimum_sample_size,
+            )
+            manifest = build_queue_manifest(
+                records,
+                queue,
+                seed=arguments.seed,
+                minimum_sample_size=arguments.minimum_sample_size,
+            )
+            queue_hash, manifest_hash = publish_audit_queue(
+                arguments.output, arguments.manifest, queue, manifest
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": len(queue),
+                        "final_holdout_count": manifest["final_holdout_count"],
+                        "content_sha256": queue_hash,
+                        "manifest_sha256": manifest_hash,
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+        if arguments.human_audit_command == "apply":
+            ensure_distinct_tier_a_paths(
+                {
+                    "input": arguments.input,
+                    "queue": arguments.queue,
+                    "responses": arguments.responses,
+                    "queue_manifest": arguments.queue_manifest,
+                    "output": arguments.output,
+                    "report": arguments.report,
+                }
+            )
+            queue = read_audit_queue(arguments.queue)
+            validate_queue_manifest(read_queue_manifest(arguments.queue_manifest), queue)
+            responses = read_audit_responses(arguments.responses)
+            records, report = apply_audit_responses(
+                read_jsonl(arguments.input), queue, responses
+            )
+            output_hash, report_hash = publish_audit_application(
+                arguments.output, arguments.report, records, report
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "applied",
+                        "record_count": len(records),
+                        "output_sha256": output_hash,
+                        "report_sha256": report_hash,
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+        ensure_distinct_tier_a_paths(
+            {
+                "queue": arguments.queue,
+                "responses": arguments.responses,
+                "queue_manifest": arguments.queue_manifest,
+                "output": arguments.output,
+            }
+        )
+        queue = read_audit_queue(arguments.queue)
+        validate_queue_manifest(read_queue_manifest(arguments.queue_manifest), queue)
+        responses = read_audit_responses(arguments.responses)
+        report = build_quality_report(
+            queue,
+            responses,
+            minimum_completed=arguments.minimum_completed,
+            minimum_final_holdout_valid=arguments.minimum_final_holdout_valid,
+        )
+        report_hash = publish_quality_report(arguments.output, report)
+        print(
+            json.dumps(
+                {
+                    "status": "evaluated",
+                    "completed_record_count": report["completed_record_count"],
+                    "gate_a_human_audit_pass": report["gate_a_human_audit_pass"],
+                    "report_sha256": report_hash,
                 },
                 sort_keys=True,
             )
@@ -327,16 +488,21 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         return 0
 
-    if arguments.command == "exporter-requests":
+    if arguments.command in {"exporter-requests", "exporter-request-shards"}:
+        output_name = (
+            "output" if arguments.command == "exporter-requests" else "output_directory"
+        )
+        output_path = getattr(arguments, output_name)
         request_paths = {
             "source_spans": arguments.source_spans,
             "dictionary_index": arguments.dictionary_index,
             "dictionary_manifest": arguments.dictionary_manifest,
             "jawiki_manifest": arguments.jawiki_manifest,
             "source_span_manifest": arguments.source_span_manifest,
-            "output": arguments.output,
-            "report": arguments.report,
+            output_name: output_path,
         }
+        if arguments.command == "exporter-requests":
+            request_paths["report"] = arguments.report
         ensure_distinct_tier_a_paths(request_paths)
         ensure_paths_under_root(request_paths, arguments.allowed_root)
         jawiki_manifest = validate_manifest_document(
@@ -344,12 +510,40 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         dictionary = read_dictionary_index(arguments.dictionary_index)
         dictionary_manifest = read_dictionary_index_manifest(arguments.dictionary_manifest)
+        source_records = read_source_spans(arguments.source_spans)
+        source_span_manifest = read_source_span_manifest(arguments.source_span_manifest)
+        if arguments.command == "exporter-request-shards":
+            shards, manifest = generate_exporter_request_shards(
+                source_records,
+                dictionary,
+                jawiki_manifest=jawiki_manifest,
+                dictionary_manifest=dictionary_manifest,
+                source_span_manifest=source_span_manifest,
+                builder_git_sha=arguments.builder_git_sha,
+                shard_size=arguments.shard_size,
+            )
+            content_hash, manifest_hash = publish_exporter_request_shards(
+                arguments.output_directory, shards, manifest
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": manifest["record_count"],
+                        "shard_count": len(shards),
+                        "content_sha256": content_hash,
+                        "manifest_sha256": manifest_hash,
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
         requests, report = generate_exporter_requests(
-            read_source_spans(arguments.source_spans),
+            source_records,
             dictionary,
             jawiki_manifest=jawiki_manifest,
             dictionary_manifest=dictionary_manifest,
-            source_span_manifest=read_source_span_manifest(arguments.source_span_manifest),
+            source_span_manifest=source_span_manifest,
             builder_git_sha=arguments.builder_git_sha,
         )
         output_hash, report_hash = publish_exporter_requests(
@@ -429,7 +623,15 @@ def _run(arguments: argparse.Namespace) -> int:
 
     ensure_distinct_paths(arguments.input, arguments.output, arguments.report)
     records = read_jsonl(arguments.input, require_split=False)
-    output, report = assign_splits(records, seed=arguments.seed)
+    output, report = assign_splits(
+        records,
+        seed=arguments.seed,
+        split_ratios={
+            "train": arguments.train_ratio,
+            "dev": arguments.dev_ratio,
+            "final-holdout": arguments.final_holdout_ratio,
+        },
+    )
     output_hash, report_hash = publish_split_artifacts(
         arguments.output, arguments.report, output, report
     )

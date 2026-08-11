@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import sakura_rerank.atomic_io as atomic_io
+import sakura_rerank.data.exporter_requests as exporter_requests_module
 from sakura_rerank.data.contracts import (
     PINNED_DICTIONARY_SHA256,
     PINNED_SAKURA_INPUT_HEAD,
@@ -19,7 +20,9 @@ from sakura_rerank.data.contracts import (
 from sakura_rerank.data.exporter_requests import (
     TierAError,
     ensure_paths_under_root,
+    generate_exporter_request_shards,
     generate_exporter_requests,
+    publish_exporter_request_shards,
     publish_exporter_requests,
 )
 
@@ -100,6 +103,33 @@ class ExporterRequestTests(unittest.TestCase):
                 dictionary_manifest={},
                 source_span_manifest={},
                 builder_git_sha=BUILDER_SHA,
+            )
+
+    def generate_shards(
+        self,
+        spans: list[dict[str, object]],
+        index: list[dict[str, object]],
+        *,
+        shard_size: int,
+    ) -> tuple[list[list[dict[str, str]]], dict[str, object]]:
+        with (
+            patch(
+                "sakura_rerank.data.exporter_requests.validate_dictionary_index_manifest",
+                return_value=normalized_dictionary_manifest(index),
+            ),
+            patch(
+                "sakura_rerank.data.exporter_requests.validate_source_span_manifest",
+                return_value=normalized_source_manifest(spans),
+            ),
+        ):
+            return generate_exporter_request_shards(
+                spans,
+                index,
+                jawiki_manifest={},
+                dictionary_manifest={},
+                source_span_manifest={},
+                builder_git_sha=BUILDER_SHA,
+                shard_size=shard_size,
             )
 
     def test_generates_exact_bounded_request_and_text_free_report(self) -> None:
@@ -197,6 +227,72 @@ class ExporterRequestTests(unittest.TestCase):
             self.assertEqual(
                 [path for path in root.iterdir() if path.name.endswith((".tmp", ".bak"))], []
             )
+
+    def test_request_shards_are_globally_sorted_bounded_and_deterministic(self) -> None:
+        spans = [
+            source_span("case-001", "gold"),
+            source_span("case-002", "silver"),
+            source_span("case-003", "bronze"),
+        ]
+        index = [
+            {
+                "schema_version": 1,
+                "record_type": "system_dictionary_surface_index",
+                "surface": surface,
+                "readings": [f"reading-{surface}"],
+            }
+            for surface in ("bronze", "gold", "silver")
+        ]
+        shards, manifest = self.generate_shards(spans, index, shard_size=2)
+
+        self.assertEqual([len(shard) for shard in shards], [2, 1])
+        self.assertEqual(manifest["record_count"], 3)
+        self.assertEqual(manifest["shard_count"], 2)
+        self.assertFalse(manifest["raw_text_in_manifest"])
+        self.assertNotIn("reading-gold", canonical_json_bytes(manifest).decode("utf-8"))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first"
+            second = root / "second"
+            first_hashes = publish_exporter_request_shards(first, shards, manifest)
+            second_hashes = publish_exporter_request_shards(second, shards, manifest)
+            self.assertEqual(first_hashes, second_hashes)
+            self.assertEqual(
+                sorted(path.name for path in first.iterdir()),
+                ["manifest.json", "requests-00000.jsonl", "requests-00001.jsonl"],
+            )
+            for name in ("manifest.json", "requests-00000.jsonl", "requests-00001.jsonl"):
+                self.assertEqual((first / name).read_bytes(), (second / name).read_bytes())
+
+    def test_request_shard_publication_rejects_existing_destination(self) -> None:
+        shards, manifest = self.generate_shards([source_span()], dictionary(), shard_size=1)
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "existing"
+            destination.mkdir()
+            marker = destination / "marker"
+            marker.write_bytes(b"keep")
+            with self.assertRaisesRegex(TierAError, "already exists"):
+                publish_exporter_request_shards(destination, shards, manifest)
+            self.assertEqual(marker.read_bytes(), b"keep")
+
+    def test_request_shard_manifest_rejects_unknown_fields(self) -> None:
+        shards, manifest = self.generate_shards([source_span()], dictionary(), shard_size=1)
+        manifest["raw_reading"] = "must not enter aggregate metadata"
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(TierAError, "aggregate-only"):
+                publish_exporter_request_shards(Path(directory) / "output", shards, manifest)
+
+    def test_request_shard_replace_failure_removes_staging_directory(self) -> None:
+        shards, manifest = self.generate_shards([source_span()], dictionary(), shard_size=1)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            destination = root / "output"
+            with patch.object(exporter_requests_module.os, "replace", side_effect=OSError("injected")):
+                with self.assertRaisesRegex(OSError, "injected"):
+                    publish_exporter_request_shards(destination, shards, manifest)
+            self.assertFalse(destination.exists())
+            self.assertEqual(list(root.iterdir()), [])
 
 
 if __name__ == "__main__":

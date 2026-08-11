@@ -16,6 +16,10 @@ source-span extraction, and a verified top-32 candidate snapshot produced by
 the isolated research exporter tracked by
 [Issue #1](https://github.com/tsuyoshi-otake/sakura-rerank/issues/1).
 No Gate A/B result has been established, and no production default is approved.
+The first automatic Tier A pilot retained 1,643 of 1,969 verified source rows;
+the expanded corpus and independent human-review gate are tracked in
+[Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15). A trained
+Sakura-Rerank-Tiny-v1 model has not yet been selected or exported.
 
 The evidence and decision are recorded in
 [`research/current-state-review.md`](research/current-state-review.md) and

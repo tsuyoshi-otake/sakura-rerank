@@ -142,6 +142,31 @@ verified batch and double-export result are pinned in
 `manifests/jawiki-research-top32-snapshot-verified.json`; generated JSONL and
 reports remain ignored.
 
+For batches larger than 4,096 records, `exporter-request-shards` preserves one
+global stable-ID order and publishes a new immutable directory containing
+bounded `requests-NNNNN.jsonl` files plus a closed, aggregate-only manifest.
+Every shard and the concatenated logical request stream have independent
+SHA-256 identities. Existing destinations are rejected, all staged files are
+flushed before the directory rename, and a failed rename removes the complete
+staging directory.
+
+## Human audit gate
+
+`human-audit queue` selects every final-holdout record and fills any remaining
+minimum sample by deterministic round-robin sampling across reading-length,
+candidate-count, and local-correctness strata. The review queue intentionally
+contains the bounded text needed by a reviewer; its paired manifest contains
+only counts, configuration, and hashes. Review responses use a closed verdict
+schema and require a reviewer identity and timezone-qualified timestamp.
+
+`human-audit report` counts only supplied reviews. Gate A passes only when at
+least 1,000 labels are complete, at least 3,000 valid final-holdout labels exist,
+point precision is at least 99.5%, and the two-sided 95% Wilson lower bound is at
+least 99.0%. `human-audit apply` excludes rejected rows, marks unanswered
+selected rows pending and ineligible, and accepts only explicitly valid rows.
+It never invents human responses; output and aggregate report are published as
+one transaction.
+
 ## Deterministic jawiki source spans
 
 `jawiki-preprocess` streams the pinned bzip2 XML with `iterparse`; it never
@@ -252,6 +277,15 @@ python -m sakura_rerank.data exporter-requests `
   --report data\generated\top32-requests.report.json `
   --builder-git-sha a39d9e460ae6f28b73b4dee16fafcbb69e83ed45
 
+python -m sakura_rerank.data exporter-request-shards `
+  data\generated\source-spans-expanded.jsonl `
+  data\generated\top32-request-shards `
+  --dictionary-index data\generated\system-dictionary-index.jsonl `
+  --dictionary-manifest manifests\system-dictionary-index-verified.json `
+  --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
+  --source-span-manifest manifests\jawiki-tier-a-source-spans-expanded-verified.json `
+  --allowed-root . --builder-git-sha <exact-sakura-rerank-git-sha>
+
 python -m sakura_rerank.data tier-a `
   data\generated\source-spans.jsonl data\generated\top32.jsonl `
   data\generated\tier-a.jsonl `
@@ -265,7 +299,18 @@ python -m sakura_rerank.data tier-a `
 # An input JSONL file has the same contract fields with `split: null`.
 python -m sakura_rerank.data split `
   data\generated\examples.jsonl data\splits\examples.jsonl `
-  --seed 20260811 --report reports\split-report.json
+  --seed 20260811 --report reports\split-report.json `
+  --train-ratio 0.75 --dev-ratio 0.10 --final-holdout-ratio 0.15
+
+python -m sakura_rerank.data human-audit queue `
+  data\splits\examples.jsonl data\generated\human-audit-queue.jsonl `
+  --manifest data\generated\human-audit-queue.manifest.json `
+  --seed 20260812 --minimum-sample-size 1000
+
+python -m sakura_rerank.data human-audit report `
+  data\generated\human-audit-queue.jsonl <review-responses.jsonl> `
+  reports\human-audit-quality.json `
+  --queue-manifest data\generated\human-audit-queue.manifest.json
 ```
 
 The manifest command returns status 3 for a structured blocker. The split
