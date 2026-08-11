@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from ..atomic_io import write_bytes_pair_atomic
 from .contracts import (
     SPLITS,
     canonical_json_bytes,
     canonical_jsonl_bytes,
     read_jsonl,
     validate_records,
-    write_jsonl,
 )
 
 
@@ -95,11 +96,12 @@ def _union_near_duplicates(
     *,
     threshold: float,
 ) -> tuple[int, int, int, _UnionFind]:
-    """Union near duplicates without materializing record-pair edges.
+    """Union exact Jaccard matches with length and rarity-prefix filtering.
 
-    Exact shingle signatures are collapsed before the inverted-index join.  A
-    10,000-record identical-signature group therefore takes O(N) unions and one
-    signature entry instead of 49,995,000 stored/computed edges.
+    Identical signatures are collapsed before the join. Distinct signatures are
+    processed in nondecreasing length order and indexed only by a prefix ordered
+    by global shingle rarity. The filters remove only pairs that cannot meet the
+    threshold; every surviving pair is still checked by exact Jaccard.
     """
 
     if not 0.0 < threshold <= 1.0:
@@ -108,8 +110,11 @@ def _union_near_duplicates(
     for index, record in enumerate(records):
         signature = tuple(record["source"]["sentence_shingle_hashes"])
         signature_groups[signature].append(index)
-    signatures = sorted(signature_groups)
-    grouped_indexes = [signature_groups[signature] for signature in signatures]
+    signature_items = sorted(
+        signature_groups.items(), key=lambda item: (len(item[0]), item[0])
+    )
+    signatures = [item[0] for item in signature_items]
+    grouped_indexes = [item[1] for item in signature_items]
     near_union = _UnionFind(len(records))
     matching_record_pair_count = 0
     for indexes in grouped_indexes:
@@ -119,13 +124,38 @@ def _union_near_duplicates(
             near_union.union(first, index)
         matching_record_pair_count += len(indexes) * (len(indexes) - 1) // 2
 
+    global_frequency = Counter(
+        shingle for signature in signatures for shingle in signature
+    )
+    rarity_ordered = [
+        tuple(sorted(signature, key=lambda shingle: (global_frequency[shingle], shingle)))
+        for signature in signatures
+    ]
+    prefix_lengths = []
+    for signature in signatures:
+        # nextafter keeps the filter conservative when a decimal threshold times
+        # a length rounds infinitesimally above an integer (for example 0.07*100).
+        required_overlap = max(
+            1,
+            math.ceil(
+                math.nextafter(threshold * len(signature), -math.inf)
+            ),
+        )
+        prefix_lengths.append(len(signature) - required_overlap + 1)
+
     inverted: dict[str, list[int]] = defaultdict(list)
     signature_comparison_count = 0
     signature_sets = [set(signature) for signature in signatures]
     for signature_index, shingles in enumerate(signature_sets):
         possible: set[int] = set()
-        for shingle in signatures[signature_index]:
-            possible.update(inverted.get(shingle, ()))
+        current_length = len(shingles)
+        for shingle in rarity_ordered[signature_index][
+            : prefix_lengths[signature_index]
+        ]:
+            for previous in inverted.get(shingle, ()):
+                previous_length = len(signature_sets[previous])
+                if previous_length / current_length >= threshold:
+                    possible.add(previous)
         for previous in sorted(possible):
             signature_comparison_count += 1
             if _jaccard(shingles, signature_sets[previous]) >= threshold:
@@ -134,7 +164,9 @@ def _union_near_duplicates(
                 union_find.union(left_indexes[0], right_indexes[0])
                 near_union.union(left_indexes[0], right_indexes[0])
                 matching_record_pair_count += len(left_indexes) * len(right_indexes)
-        for shingle in signatures[signature_index]:
+        for shingle in rarity_ordered[signature_index][
+            : prefix_lengths[signature_index]
+        ]:
             inverted[shingle].append(signature_index)
     return (
         matching_record_pair_count,
@@ -287,7 +319,7 @@ def assign_splits(
         for split in SPLITS
     }
     report: dict[str, Any] = {
-        "schema_version": 2,
+        "schema_version": 3,
         "seed": seed,
         "split_ratios": ratios,
         "record_count": len(output),
@@ -299,7 +331,11 @@ def assign_splits(
         "sentence_near_duplicate_pair_count": near_pair_count,
         "sentence_near_duplicate_cluster_count": len(near_groups),
         "sentence_signature_count": near_signature_count,
+        "sentence_signature_total_pair_count": (
+            near_signature_count * (near_signature_count - 1) // 2
+        ),
         "sentence_signature_comparison_count": near_signature_comparison_count,
+        "sentence_signature_join_algorithm": "exact_length_rarity_prefix_v1",
         "template_cluster_count": template_group_count,
         "leakage_component_count": len(component_records),
         "leakage_component_hashes": component_hashes,
@@ -367,6 +403,29 @@ def ensure_distinct_paths(
                 )
 
 
+def publish_split_artifacts(
+    output_path: str | Path,
+    report_path: str | Path,
+    output: Sequence[Mapping[str, Any]],
+    report: Mapping[str, Any],
+) -> tuple[str, str]:
+    """Build and transactionally publish the canonical output/report pair."""
+
+    normalized_output = validate_records(output)
+    output_payload = canonical_jsonl_bytes(normalized_output)
+    report_payload = canonical_json_bytes(report) + b"\n"
+    write_bytes_pair_atomic(
+        output_path,
+        output_payload,
+        report_path,
+        report_payload,
+    )
+    return (
+        hashlib.sha256(output_payload).hexdigest(),
+        hashlib.sha256(report_payload).hexdigest(),
+    )
+
+
 def split_jsonl(
     input_path: str,
     output_path: str,
@@ -382,7 +441,4 @@ def split_jsonl(
     output, report = assign_splits(
         records, seed=seed, near_duplicate_threshold=near_duplicate_threshold
     )
-    output_hash = write_jsonl(output_path, output)
-    report_payload = canonical_json_bytes(report) + b"\n"
-    Path(report_path).write_bytes(report_payload)
-    return output_hash, hashlib.sha256(report_payload).hexdigest()
+    return publish_split_artifacts(output_path, report_path, output, report)

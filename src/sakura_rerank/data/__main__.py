@@ -8,14 +8,19 @@ import json
 import sys
 from pathlib import Path
 
-from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl, write_jsonl
+from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl
 from .manifest import (
     ManifestBlockedError,
     ManifestError,
     load_manifest_document,
     validate_manifest_document,
 )
-from .splitter import SplitError, assign_splits, ensure_distinct_paths
+from .splitter import (
+    SplitError,
+    assign_splits,
+    ensure_distinct_paths,
+    publish_split_artifacts,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -80,18 +85,16 @@ def _run(arguments: argparse.Namespace) -> int:
     ensure_distinct_paths(arguments.input, arguments.output, arguments.report)
     records = read_jsonl(arguments.input, require_split=False)
     output, report = assign_splits(records, seed=arguments.seed)
-    output_hash = write_jsonl(arguments.output, output)
-    report_payload = json.dumps(
-        report, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8") + b"\n"
-    arguments.report.write_bytes(report_payload)
+    output_hash, report_hash = publish_split_artifacts(
+        arguments.output, arguments.report, output, report
+    )
     print(
         json.dumps(
             {
                 "status": "split",
                 "record_count": len(output),
                 "content_sha256": output_hash,
-                "report_sha256": hashlib.sha256(report_payload).hexdigest(),
+                "report_sha256": report_hash,
             },
             sort_keys=True,
         )

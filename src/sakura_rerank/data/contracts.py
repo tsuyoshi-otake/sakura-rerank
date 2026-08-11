@@ -11,10 +11,13 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from ..atomic_io import write_bytes_atomic
 
-CONTRACT_SCHEMA_VERSION = 2
+
+CONTRACT_SCHEMA_VERSION = 3
 CONVERTER_FEATURE_CONTRACT_VERSION = 1
-TIER_A_VERIFICATION_CONTRACT_VERSION = 1
+TIER_A_VERIFICATION_CONTRACT_VERSION = 2
+RESEARCH_EXPORTER_CONTRACT_VERSION = 1
 RECORD_TYPE = "training_example"
 MAX_LEFT_CONTEXT_CHARS = 64
 MAX_READING_CHARS = 128
@@ -34,6 +37,14 @@ FIXTURE_CANDIDATE_SOURCE = "fixture_full_reading_nbest"
 AUTOMATIC_TIER_A_SOURCE = "sakura_converter_forward_verification"
 SPLITS = ("train", "dev", "final-holdout")
 
+# A later exporter implementation PR must add an independently verified immutable
+# identity here.  The pinned Sakura Input HEAD is deliberately not sufficient:
+# its current converter bound is 18, so no non-fixture top-32 snapshot can pass
+# this contract yet.
+VERIFIED_RESEARCH_EXPORTER_IDENTITIES: frozenset[tuple[str | None, str | None]] = (
+    frozenset()
+)
+
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _FINGERPRINT_RE = re.compile(r"^[0-9a-f]{16}$")
@@ -48,6 +59,9 @@ _SEGMENT_SOURCE_CATEGORIES = frozenset(
     }
 )
 _CANDIDATE_SOURCE_CATEGORIES = _SEGMENT_SOURCE_CATEGORIES | {"mixed"}
+_EXACT_DICTIONARY_SEGMENT_SOURCES = frozenset(
+    {"system_dictionary", "user_dictionary"}
+)
 
 
 class ContractError(ValueError):
@@ -92,6 +106,13 @@ def _require_sha256(value: Any, field: str) -> str:
     value = _require_string(value, field)
     if _SHA256_RE.fullmatch(value) is None:
         _error(field, "must be a lowercase SHA-256 hex digest")
+    return value
+
+
+def _require_git_sha(value: Any, field: str) -> str:
+    value = _require_string(value, field)
+    if _GIT_SHA_RE.fullmatch(value) is None:
+        _error(field, "must be a lowercase Git SHA-1")
     return value
 
 
@@ -148,7 +169,7 @@ def write_jsonl(path: str | Path, records: Sequence[Mapping[str, Any]]) -> str:
 
     validated = validate_records(records)
     payload = canonical_jsonl_bytes(validated)
-    Path(path).write_bytes(payload)
+    write_bytes_atomic(path, payload)
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -533,7 +554,115 @@ def _candidate_snapshot_hash(
         "reading": snapshot["reading"],
         "candidates": snapshot["candidates"],
     }
+    if "exporter_run" in snapshot:
+        payload["exporter_run"] = snapshot["exporter_run"]
     return canonical_json_hash(payload)
+
+
+def _validate_research_exporter_run(
+    value: Any,
+    *,
+    is_fixture: bool,
+    returned_count: int,
+) -> dict[str, Any]:
+    field = "candidate_snapshots.training_top32.exporter_run"
+    if not isinstance(value, Mapping):
+        _error(field, "must be an object")
+    expected = {
+        "contract_version",
+        "verification_status",
+        "exporter_git_sha",
+        "exporter_binary_sha256",
+        "requested_limit",
+        "effective_converter_bound",
+        "returned_count",
+        "result_status",
+    }
+    _reject_unknown_keys(value, expected, field)
+    if set(value) != expected:
+        _error(field, "immutable exporter identity and complete run evidence are required")
+
+    version = _require_integer(value["contract_version"], f"{field}.contract_version")
+    if version != RESEARCH_EXPORTER_CONTRACT_VERSION:
+        _error(f"{field}.contract_version", "unsupported exporter evidence contract")
+    requested_limit = _require_integer(value["requested_limit"], f"{field}.requested_limit")
+    if requested_limit != TRAINING_TOP_K:
+        _error(f"{field}.requested_limit", "must request the top-32 contract bound")
+    recorded_count = _require_integer(value["returned_count"], f"{field}.returned_count")
+    if recorded_count != returned_count:
+        _error(f"{field}.returned_count", "does not match the candidate snapshot")
+    result_status = _require_string(value["result_status"], f"{field}.result_status")
+    if result_status not in {"search_exhausted", "truncated"}:
+        _error(f"{field}.result_status", "must be search_exhausted or truncated")
+    if returned_count < requested_limit and result_status != "search_exhausted":
+        _error(
+            f"{field}.result_status",
+            "a short top-32 result requires explicit search_exhausted evidence",
+        )
+
+    verification_status = _require_string(
+        value["verification_status"], f"{field}.verification_status"
+    )
+    exporter_git_sha = value["exporter_git_sha"]
+    exporter_binary_sha256 = value["exporter_binary_sha256"]
+    effective_bound = value["effective_converter_bound"]
+    if is_fixture:
+        if verification_status != "fixture":
+            _error(f"{field}.verification_status", "fixtures require fixture status")
+        if exporter_git_sha is not None or exporter_binary_sha256 is not None:
+            _error(field, "fixtures cannot claim an immutable research exporter identity")
+        if effective_bound is not None:
+            _error(field, "fixtures cannot claim a converter execution bound")
+    else:
+        if verification_status not in {"unverified", "verified"}:
+            _error(
+                f"{field}.verification_status",
+                "production evidence must be unverified or verified",
+            )
+        if exporter_git_sha is not None:
+            exporter_git_sha = _require_git_sha(
+                exporter_git_sha, f"{field}.exporter_git_sha"
+            )
+        if exporter_binary_sha256 is not None:
+            exporter_binary_sha256 = _require_sha256(
+                exporter_binary_sha256, f"{field}.exporter_binary_sha256"
+            )
+        if verification_status == "verified" and (
+            exporter_git_sha is None and exporter_binary_sha256 is None
+        ):
+            _error(field, "verified evidence requires an exporter Git SHA or binary SHA-256")
+        effective_bound = _require_integer(
+            effective_bound,
+            f"{field}.effective_converter_bound",
+            minimum=1,
+            maximum=2**16,
+        )
+        if effective_bound < requested_limit:
+            _error(
+                f"{field}.effective_converter_bound",
+                "cannot satisfy the top-32 contract bound",
+            )
+        if returned_count > effective_bound:
+            _error(f"{field}.returned_count", "exceeds the effective converter bound")
+
+    return {
+        "contract_version": RESEARCH_EXPORTER_CONTRACT_VERSION,
+        "verification_status": verification_status,
+        "exporter_git_sha": exporter_git_sha,
+        "exporter_binary_sha256": exporter_binary_sha256,
+        "requested_limit": TRAINING_TOP_K,
+        "effective_converter_bound": effective_bound,
+        "returned_count": returned_count,
+        "result_status": result_status,
+    }
+
+
+def _has_verified_research_exporter(value: Mapping[str, Any]) -> bool:
+    identity = (value["exporter_git_sha"], value["exporter_binary_sha256"])
+    return (
+        value["verification_status"] == "verified"
+        and identity in VERIFIED_RESEARCH_EXPORTER_IDENTITIES
+    )
 
 
 def _validate_snapshot(
@@ -544,6 +673,7 @@ def _validate_snapshot(
     reading: str,
     is_fixture: bool,
     converter_provenance: Mapping[str, Any],
+    require_exporter_run: bool = False,
 ) -> dict[str, Any]:
     if not isinstance(snapshot, Mapping):
         _error(field, "must be an object")
@@ -555,6 +685,8 @@ def _validate_snapshot(
         "candidates",
         "content_sha256",
     }
+    if require_exporter_run:
+        expected.add("exporter_run")
     _reject_unknown_keys(snapshot, expected, field)
     if set(snapshot) != expected:
         _error(field, "snapshot identity, features, candidates, and hash are required")
@@ -599,6 +731,12 @@ def _validate_snapshot(
         "candidates": normalized_candidates,
         "content_sha256": content_sha256,
     }
+    if require_exporter_run:
+        normalized["exporter_run"] = _validate_research_exporter_run(
+            snapshot["exporter_run"],
+            is_fixture=is_fixture,
+            returned_count=len(normalized_candidates),
+        )
     if content_sha256 != _candidate_snapshot_hash(normalized, converter_provenance):
         _error(f"{field}.content_sha256", "does not match canonical snapshot content")
     return normalized
@@ -614,6 +752,7 @@ def _validate_tier_a_verification(value: Any, *, is_fixture: bool) -> dict[str, 
         "dictionary_unique_reading",
         "forward_conversion_matches",
         "normalized_gold_matches",
+        "exact_dictionary_path_covers_reading",
     }
     _reject_unknown_keys(value, expected, "tier_a_verification")
     if set(value) != expected:
@@ -633,6 +772,7 @@ def _validate_tier_a_verification(value: Any, *, is_fixture: bool) -> dict[str, 
             "dictionary_unique_reading",
             "forward_conversion_matches",
             "normalized_gold_matches",
+            "exact_dictionary_path_covers_reading",
         )
     }
     if is_fixture:
@@ -762,6 +902,7 @@ def validate_record(record: Mapping[str, Any], *, require_split: bool = True) ->
         reading=reading,
         is_fixture=is_fixture,
         converter_provenance=converter_provenance,
+        require_exporter_run=True,
     )
     top6 = _validate_snapshot(
         snapshots["production_top6"],
@@ -811,10 +952,22 @@ def validate_record(record: Mapping[str, Any], *, require_split: bool = True) ->
     )
     human_audit = _validate_sampled_human_audit(record["sampled_human_audit"])
     training_eligible = _require_bool(record["training_eligible"], "training_eligible")
+    gold_candidate = top32["candidates"][gold_index] if gold_index is not None else None
+    gold_has_exact_dictionary_path = gold_candidate is not None and all(
+        segment["source_category"] in _EXACT_DICTIONARY_SEGMENT_SOURCES
+        for segment in gold_candidate["segments"]
+    )
 
     if tier == "A":
         if is_fixture or automatic["status"] != "passed":
             _error("tier_a_verification", "Tier A requires passed automatic verification")
+        if gold_index is None:
+            _error("gold_index", "Tier A requires a gold candidate in top-32")
+        if not gold_has_exact_dictionary_path:
+            _error(
+                "gold_index",
+                "Tier A gold path must contain only system/user dictionary segments",
+            )
         if human_audit["selection"] == "selected" and human_audit["status"] == "rejected":
             _error("sampled_human_audit", "a rejected sampled audit cannot remain Tier A")
     elif training_eligible:
@@ -829,8 +982,19 @@ def validate_record(record: Mapping[str, Any], *, require_split: bool = True) ->
             _error("training_eligible", "training requires at least two candidates")
         if automatic["status"] != "passed":
             _error("training_eligible", "training requires passed automatic Tier A verification")
+        if not gold_has_exact_dictionary_path:
+            _error(
+                "training_eligible",
+                "training requires an exact system/user dictionary gold path",
+            )
         if human_audit["selection"] == "selected" and human_audit["status"] != "accepted":
             _error("training_eligible", "a selected human audit must be accepted before training")
+
+    if not is_fixture and not _has_verified_research_exporter(top32["exporter_run"]):
+        _error(
+            "candidate_snapshots.training_top32.exporter_run.verification_status",
+            "top-32 remains blocked until an immutable research exporter identity is pinned",
+        )
 
     normalized: dict[str, Any] = {
         "schema_version": CONTRACT_SCHEMA_VERSION,

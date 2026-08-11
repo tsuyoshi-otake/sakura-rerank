@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import random
 import time
 import unittest
 
@@ -121,7 +122,15 @@ class SplitterTests(unittest.TestCase):
             },
         )
         self.assertEqual(report["record_count"], len(output))
-        self.assertEqual(report["schema_version"], 2)
+        self.assertEqual(report["schema_version"], 3)
+        self.assertEqual(
+            report["sentence_signature_join_algorithm"],
+            "exact_length_rarity_prefix_v1",
+        )
+        self.assertLessEqual(
+            report["sentence_signature_comparison_count"],
+            report["sentence_signature_total_pair_count"],
+        )
         self.assertEqual(sum(report["split_counts"].values()), len(output))
         self.assertTrue(
             all(
@@ -176,6 +185,72 @@ class SplitterTests(unittest.TestCase):
         self.assertEqual(signature_count, 1)
         self.assertEqual(comparison_count, 0)
         self.assertEqual(len(near_union.groups()), 1)
+        self.assertLess(elapsed, 5.0)
+
+    def test_exact_prefix_join_matches_brute_force_random_oracle(self) -> None:
+        generator = random.Random(20260811)
+        universe = [f"shingle-{index:03d}" for index in range(80)]
+        signatures: list[list[str]] = []
+        for index in range(30):
+            base = set(generator.sample(universe, generator.randint(5, 12)))
+            signatures.append(sorted(base))
+            signatures.append(sorted(base))
+            removable = sorted(base)[index % len(base)]
+            signatures.append(sorted(base - {removable}))
+            addition = next(item for item in universe if item not in base)
+            signatures.append(sorted(base | {addition}))
+        records = [
+            {"source": {"sentence_shingle_hashes": signature}}
+            for signature in signatures
+        ]
+
+        def partition(union_find: _UnionFind) -> set[frozenset[int]]:
+            return {
+                frozenset(indexes) for indexes in union_find.groups().values()
+            }
+
+        for threshold in (0.5, 0.8, 1.0):
+            with self.subTest(threshold=threshold):
+                actual_union = _UnionFind(len(records))
+                _, _, _, actual_near = _union_near_duplicates(
+                    records, actual_union, threshold=threshold
+                )
+
+                expected = _UnionFind(len(records))
+                sets = [set(signature) for signature in signatures]
+                for right in range(len(sets)):
+                    for left in range(right):
+                        intersection = len(sets[left] & sets[right])
+                        union = len(sets[left] | sets[right])
+                        if intersection / union >= threshold:
+                            expected.union(left, right)
+
+                self.assertEqual(partition(actual_near), partition(expected))
+
+    def test_frequent_shingle_does_not_create_quadratic_candidates(self) -> None:
+        common = "globally-frequent-shingle"
+        records = [
+            {
+                "source": {
+                    "sentence_shingle_hashes": sorted(
+                        [common, *(f"unique-{index:05d}-{part}" for part in range(4))]
+                    )
+                }
+            }
+            for index in range(10_000)
+        ]
+        union_find = _UnionFind(len(records))
+
+        started = time.perf_counter()
+        pair_count, signature_count, comparison_count, near_union = (
+            _union_near_duplicates(records, union_find, threshold=0.8)
+        )
+        elapsed = time.perf_counter() - started
+
+        self.assertEqual(pair_count, 0)
+        self.assertEqual(signature_count, 10_000)
+        self.assertLess(comparison_count, 10_000)
+        self.assertEqual(len(near_union.groups()), 10_000)
         self.assertLess(elapsed, 5.0)
 
     def test_existing_assignment_is_immutable_and_conflicts_fail(self) -> None:

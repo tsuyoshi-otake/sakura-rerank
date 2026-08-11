@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import os
 import tempfile
@@ -9,8 +10,10 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
+import sakura_rerank.atomic_io as atomic_io
 from sakura_rerank.data.__main__ import main
 from sakura_rerank.data.contracts import canonical_json_bytes
+from sakura_rerank.data.splitter import split_jsonl
 
 from tests.test_data_contracts import fixture_record
 
@@ -37,6 +40,14 @@ class DataCliPathTests(unittest.TestCase):
                     os.fspath(report_path),
                 ]
             )
+
+    def _assert_no_transaction_residue(self, root: Path) -> None:
+        residue = [
+            path
+            for path in root.rglob(".*")
+            if path.name.endswith((".tmp", ".bak"))
+        ]
+        self.assertEqual(residue, [])
 
     def test_rejects_input_output_alias_before_mutating_input(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -128,3 +139,117 @@ class DataCliPathTests(unittest.TestCase):
                 set(report["split_content_sha256"]),
                 {"train", "dev", "final-holdout"},
             )
+
+    def test_missing_report_parent_preserves_existing_output(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.jsonl"
+            output_path = root / "output.jsonl"
+            report_path = root / "missing" / "report.json"
+            _write_unassigned_input(input_path)
+            original_output = b"existing output sentinel"
+            output_path.write_bytes(original_output)
+
+            status = self._run_split(input_path, output_path, report_path)
+
+            self.assertEqual(status, 2)
+            self.assertEqual(output_path.read_bytes(), original_output)
+            self.assertFalse(report_path.exists())
+            self._assert_no_transaction_residue(root)
+
+    def test_report_temporary_write_failure_preserves_existing_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.jsonl"
+            output_path = root / "output.jsonl"
+            report_path = root / "report.json"
+            _write_unassigned_input(input_path)
+            original_output = b"existing output sentinel"
+            original_report = b"existing report sentinel"
+            output_path.write_bytes(original_output)
+            report_path.write_bytes(original_report)
+            real_write = atomic_io._write_temporary_bytes
+            call_count = 0
+
+            def fail_second_write(*args: object, **kwargs: object) -> Path:
+                nonlocal call_count
+                call_count += 1
+                if call_count == 2:
+                    raise OSError("injected report write failure")
+                return real_write(*args, **kwargs)
+
+            with patch.object(
+                atomic_io,
+                "_write_temporary_bytes",
+                side_effect=fail_second_write,
+            ):
+                status = self._run_split(input_path, output_path, report_path)
+
+            self.assertEqual(status, 2)
+            self.assertEqual(output_path.read_bytes(), original_output)
+            self.assertEqual(report_path.read_bytes(), original_report)
+            self._assert_no_transaction_residue(root)
+
+    def test_first_replace_failure_preserves_existing_pair(self) -> None:
+        self._assert_replace_failure_preserves_pair(failure_call=1)
+
+    def test_second_replace_failure_rolls_back_existing_pair(self) -> None:
+        self._assert_replace_failure_preserves_pair(failure_call=2)
+
+    def _assert_replace_failure_preserves_pair(self, *, failure_call: int) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.jsonl"
+            output_path = root / "output.jsonl"
+            report_path = root / "report.json"
+            _write_unassigned_input(input_path)
+            original_output = b"existing output sentinel"
+            original_report = b"existing report sentinel"
+            output_path.write_bytes(original_output)
+            report_path.write_bytes(original_report)
+            real_replace = atomic_io.os.replace
+            call_count = 0
+
+            def fail_selected_replace(source: object, destination: object) -> None:
+                nonlocal call_count
+                call_count += 1
+                if call_count == failure_call:
+                    raise OSError(f"injected replace failure {failure_call}")
+                real_replace(source, destination)
+
+            with patch.object(
+                atomic_io.os,
+                "replace",
+                side_effect=fail_selected_replace,
+            ):
+                status = self._run_split(input_path, output_path, report_path)
+
+            self.assertEqual(status, 2)
+            self.assertEqual(output_path.read_bytes(), original_output)
+            self.assertEqual(report_path.read_bytes(), original_report)
+            self._assert_no_transaction_residue(root)
+
+    def test_split_jsonl_success_publishes_matching_pair_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.jsonl"
+            output_path = root / "output.jsonl"
+            report_path = root / "report.json"
+            _write_unassigned_input(input_path)
+
+            output_hash, report_hash = split_jsonl(
+                os.fspath(input_path),
+                os.fspath(output_path),
+                os.fspath(report_path),
+                seed=17,
+            )
+
+            self.assertEqual(
+                output_hash, hashlib.sha256(output_path.read_bytes()).hexdigest()
+            )
+            self.assertEqual(
+                report_hash, hashlib.sha256(report_path.read_bytes()).hexdigest()
+            )
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(report["content_sha256"], output_hash)
+            self._assert_no_transaction_residue(root)

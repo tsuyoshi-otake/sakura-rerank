@@ -7,6 +7,7 @@ from pathlib import Path
 from sakura_rerank.data.contracts import (
     PINNED_DICTIONARY_SHA256,
     PINNED_SAKURA_INPUT_HEAD,
+    VERIFIED_RESEARCH_EXPORTER_IDENTITIES,
     ContractError,
     candidate_fingerprint,
     canonical_json_bytes,
@@ -27,14 +28,14 @@ def _candidate(
 ) -> dict[str, object]:
     surface = f"fixture_surface_{index:02d}"
     local_cost = 100 + index
-    segment_category = "fixture" if is_fixture else "reading_fallback"
+    segment_category = "fixture" if is_fixture else "system_dictionary"
     return {
         "rank": index,
         "surface": surface,
         "local_cost": local_cost,
         "source_category": segment_category,
         "fingerprint": candidate_fingerprint(surface, local_cost),
-        "system_entry_index": None,
+        "system_entry_index": None if is_fixture else index,
         "segments": [
             {
                 "reading_start": 0,
@@ -61,6 +62,8 @@ def _snapshot_hash(
         "reading": snapshot["reading"],
         "candidates": snapshot["candidates"],
     }
+    if "exporter_run" in snapshot:
+        payload["exporter_run"] = snapshot["exporter_run"]
     return canonical_json_hash(payload)
 
 
@@ -88,11 +91,22 @@ def fixture_record(stable_id: str = "fixture-example-001") -> dict[str, object]:
             "reading": reading,
             "candidates": copy.deepcopy(candidates[:limit]),
         }
+        if limit == 32:
+            value["exporter_run"] = {
+                "contract_version": 1,
+                "verification_status": "fixture",
+                "exporter_git_sha": None,
+                "exporter_binary_sha256": None,
+                "requested_limit": 32,
+                "effective_converter_bound": None,
+                "returned_count": len(value["candidates"]),
+                "result_status": "search_exhausted",
+            }
         value["content_sha256"] = _snapshot_hash(value, provenance)
         return value
 
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "record_type": "training_example",
         "stable_id": stable_id,
         "is_fixture": True,
@@ -124,12 +138,13 @@ def fixture_record(stable_id: str = "fixture-example-001") -> dict[str, object]:
         "split": "train",
         "tier": "C",
         "tier_a_verification": {
-            "contract_version": 1,
+            "contract_version": 2,
             "status": "not_applicable",
             "verification_source": "not_applicable",
             "dictionary_unique_reading": False,
             "forward_conversion_matches": False,
             "normalized_gold_matches": False,
+            "exact_dictionary_path_covers_reading": False,
         },
         "sampled_human_audit": {
             "selection": "not_sampled",
@@ -142,8 +157,8 @@ def fixture_record(stable_id: str = "fixture-example-001") -> dict[str, object]:
     }
 
 
-def production_record() -> dict[str, object]:
-    """Build an in-memory validator control, never a persisted production fixture."""
+def production_record(candidate_count: int = 2) -> dict[str, object]:
+    """Build an unverified production counterexample, never exporter evidence."""
 
     record = fixture_record("validator-production-example")
     record["is_fixture"] = False
@@ -155,19 +170,32 @@ def production_record() -> dict[str, object]:
         "dictionary_sha256": PINNED_DICTIONARY_SHA256,
         "feature_contract_version": 1,
     }
+    candidates = [
+        _candidate(index, record["reading"], is_fixture=False)
+        for index in range(candidate_count)
+    ]
     for snapshot in record["candidate_snapshots"].values():
         snapshot["source"] = "sakura_converter_full_reading_nbest"
-        for candidate in snapshot["candidates"]:
-            candidate["source_category"] = "reading_fallback"
-            candidate["segments"][0]["source_category"] = "reading_fallback"
+        snapshot["candidates"] = copy.deepcopy(candidates[: snapshot["limit"]])
+    record["candidate_snapshots"]["training_top32"]["exporter_run"] = {
+        "contract_version": 1,
+        "verification_status": "unverified",
+        "exporter_git_sha": None,
+        "exporter_binary_sha256": None,
+        "requested_limit": 32,
+        "effective_converter_bound": 32,
+        "returned_count": candidate_count,
+        "result_status": "truncated" if candidate_count == 32 else "search_exhausted",
+    }
     record["tier"] = "A"
     record["tier_a_verification"] = {
-        "contract_version": 1,
+        "contract_version": 2,
         "status": "passed",
         "verification_source": "sakura_converter_forward_verification",
         "dictionary_unique_reading": True,
         "forward_conversion_matches": True,
         "normalized_gold_matches": True,
+        "exact_dictionary_path_covers_reading": True,
     }
     record["training_eligible"] = True
     _rehash_snapshots(record)
@@ -184,6 +212,12 @@ class ContractValidationTests(unittest.TestCase):
         self.assertFalse(records[0]["training_eligible"])
         self.assertIsNone(records[0]["converter_provenance"]["sakura_input_head"])
         self.assertIsNone(records[0]["converter_provenance"]["dictionary_sha256"])
+        self.assertEqual(
+            records[0]["candidate_snapshots"]["training_top32"]["exporter_run"][
+                "verification_status"
+            ],
+            "fixture",
+        )
 
     def test_requires_page_revision_and_converter_provenance(self) -> None:
         record = fixture_record()
@@ -208,7 +242,8 @@ class ContractValidationTests(unittest.TestCase):
             validate_record(record)
 
     def test_production_record_is_fail_closed_to_pinned_head_and_dictionary(self) -> None:
-        validate_record(production_record())
+        with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
+            validate_record(production_record())
 
         for field, value in (
             ("sakura_input_head", "a" * 40),
@@ -257,6 +292,9 @@ class ContractValidationTests(unittest.TestCase):
         record = production_record()
         for snapshot in record["candidate_snapshots"].values():
             snapshot["candidates"] = snapshot["candidates"][:1]
+        record["candidate_snapshots"]["training_top32"]["exporter_run"][
+            "returned_count"
+        ] = 1
         _rehash_snapshots(record)
         with self.assertRaisesRegex(ContractError, "at least two"):
             validate_record(record)
@@ -268,10 +306,8 @@ class ContractValidationTests(unittest.TestCase):
 
     def test_tier_a_automatic_verification_is_separate_from_sampled_audit(self) -> None:
         unsampled = production_record()
-        self.assertEqual(
-            validate_record(unsampled)["sampled_human_audit"]["selection"],
-            "not_sampled",
-        )
+        with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
+            validate_record(unsampled)
 
         pending = production_record()
         pending["sampled_human_audit"] = {
@@ -282,9 +318,8 @@ class ContractValidationTests(unittest.TestCase):
             "reviewed_at": None,
         }
         pending["training_eligible"] = False
-        self.assertEqual(
-            validate_record(pending)["tier_a_verification"]["status"], "passed"
-        )
+        with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
+            validate_record(pending)
 
         pending["training_eligible"] = True
         with self.assertRaisesRegex(ContractError, "human audit"):
@@ -298,7 +333,127 @@ class ContractValidationTests(unittest.TestCase):
             "reviewer_id": "reviewer-001",
             "reviewed_at": "2026-08-11T06:00:00Z",
         }
-        self.assertTrue(validate_record(accepted)["training_eligible"])
+        with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
+            validate_record(accepted)
+
+    def test_tier_a_requires_converter_derived_exact_dictionary_gold_path(self) -> None:
+        control = production_record()
+        gold = control["candidate_snapshots"]["training_top32"]["candidates"][0]
+        self.assertEqual(
+            {segment["source_category"] for segment in gold["segments"]},
+            {"system_dictionary"},
+        )
+        self.assertTrue(
+            control["tier_a_verification"]["exact_dictionary_path_covers_reading"]
+        )
+        with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
+            validate_record(control)
+
+        for fallback in (
+            "reading_fallback",
+            "katakana_fallback",
+            "generated_literal",
+        ):
+            with self.subTest(fallback=fallback):
+                record = production_record()
+                for snapshot in record["candidate_snapshots"].values():
+                    candidate = snapshot["candidates"][0]
+                    candidate["source_category"] = fallback
+                    candidate["system_entry_index"] = None
+                    candidate["segments"][0]["source_category"] = fallback
+                _rehash_snapshots(record)
+                with self.assertRaisesRegex(ContractError, "gold path"):
+                    validate_record(record)
+
+    def test_tier_a_rejects_mixed_fallback_but_allows_system_user_mix(self) -> None:
+        def set_mixed_segments(record: dict[str, object], second_source: str) -> None:
+            reading_end = len(record["reading"].encode("utf-8"))
+            text_end = len(record["gold_surface"].encode("utf-8"))
+            reading_midpoint = reading_end // 2
+            text_midpoint = text_end // 2
+            segments = [
+                {
+                    "reading_start": 0,
+                    "reading_end": reading_midpoint,
+                    "text_start": 0,
+                    "text_end": text_midpoint,
+                    "left_id": 1,
+                    "right_id": 1,
+                    "flags": 0,
+                    "source_category": "system_dictionary",
+                },
+                {
+                    "reading_start": reading_midpoint,
+                    "reading_end": reading_end,
+                    "text_start": text_midpoint,
+                    "text_end": text_end,
+                    "left_id": 2,
+                    "right_id": 2,
+                    "flags": 0,
+                    "source_category": second_source,
+                },
+            ]
+            for snapshot in record["candidate_snapshots"].values():
+                candidate = snapshot["candidates"][0]
+                candidate["source_category"] = "mixed"
+                candidate["system_entry_index"] = None
+                candidate["segments"] = copy.deepcopy(segments)
+            _rehash_snapshots(record)
+
+        fallback = production_record()
+        set_mixed_segments(fallback, "reading_fallback")
+        with self.assertRaisesRegex(ContractError, "gold path"):
+            validate_record(fallback)
+
+        exact = production_record()
+        set_mixed_segments(exact, "user_dictionary")
+        with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
+            validate_record(exact)
+
+    def test_tier_a_rejects_missing_or_false_exact_path_coverage(self) -> None:
+        missing = production_record()
+        del missing["tier_a_verification"]["exact_dictionary_path_covers_reading"]
+        with self.assertRaisesRegex(ContractError, "verification fields"):
+            validate_record(missing)
+
+        false = production_record()
+        false["tier_a_verification"]["exact_dictionary_path_covers_reading"] = False
+        with self.assertRaisesRegex(ContractError, "passed requires"):
+            validate_record(false)
+
+    def test_top32_requires_separate_verified_exporter_and_complete_run_evidence(self) -> None:
+        self.assertEqual(VERIFIED_RESEARCH_EXPORTER_IDENTITIES, frozenset())
+
+        base_head_only = production_record(candidate_count=32)
+        del base_head_only["candidate_snapshots"]["training_top32"]["exporter_run"]
+        _rehash_snapshots(base_head_only)
+        with self.assertRaisesRegex(ContractError, "snapshot identity"):
+            validate_record(base_head_only)
+
+        unverified_top32 = production_record(candidate_count=32)
+        with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
+            validate_record(unverified_top32)
+
+        bounded_to_18 = production_record(candidate_count=18)
+        run = bounded_to_18["candidate_snapshots"]["training_top32"]["exporter_run"]
+        run["effective_converter_bound"] = 18
+        _rehash_snapshots(bounded_to_18)
+        with self.assertRaisesRegex(ContractError, "top-32 contract bound"):
+            validate_record(bounded_to_18)
+
+        unexplained_short_result = production_record()
+        run = unexplained_short_result["candidate_snapshots"]["training_top32"]["exporter_run"]
+        run["result_status"] = "truncated"
+        _rehash_snapshots(unexplained_short_result)
+        with self.assertRaisesRegex(ContractError, "search_exhausted"):
+            validate_record(unexplained_short_result)
+
+        claimed_verified_without_identity = production_record()
+        run = claimed_verified_without_identity["candidate_snapshots"]["training_top32"]["exporter_run"]
+        run["verification_status"] = "verified"
+        _rehash_snapshots(claimed_verified_without_identity)
+        with self.assertRaisesRegex(ContractError, "Git SHA or binary SHA-256"):
+            validate_record(claimed_verified_without_identity)
 
     def test_rejects_inconsistent_top6_prefix(self) -> None:
         record = fixture_record()
@@ -324,7 +479,7 @@ class ContractValidationTests(unittest.TestCase):
             validate_record(record)
 
     def test_converter_feature_contract_rejects_guessed_or_inconsistent_values(self) -> None:
-        validated = validate_record(production_record())
+        validated = validate_record(fixture_record())
         snapshot = validated["candidate_snapshots"]["training_top32"]
         self.assertEqual(snapshot["feature_contract_version"], 1)
         self.assertEqual(

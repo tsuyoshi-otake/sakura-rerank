@@ -30,13 +30,23 @@ invented snapshot values.
 
 ## JSONL contract
 
-Each line is a version-2 `training_example` with source/page/revision
+Each line is a version-3 `training_example` with source/page/revision
 provenance, same-session Sakura Input committed left context, reading and gold
 surface, converter candidate snapshots, split assignment, oracle result,
 automatic Tier A verification, and a separately sampled human audit.
 Candidate snapshots carry separate `training_top32` and `production_top6`
 records. The latter must be the canonical prefix of the former, and each
 snapshot has a content hash.
+
+`training_top32.exporter_run` is a separate staged research-exporter contract.
+It records an exporter Git SHA and/or binary SHA-256, requested limit, effective
+converter bound, returned count, and whether a short search was exhausted or a
+result was truncated. The pinned base Sakura Input HEAD is not an exporter
+identity: its recorded converter/UI bound is 18. No bound-32 exporter identity
+is verified in this PR, so the production exporter allowlist is deliberately
+empty and every non-fixture top-32/training claim remains blocked. A later PR
+may transition records to `verified` only by pinning the measured immutable
+exporter identity; this contract contains no invented SHA or run result.
 
 Production records fail closed unless they identify Sakura Input HEAD
 `8e966dff456e4e7165e025f97c1f73327ff3f550` and dictionary SHA-256
@@ -55,7 +65,11 @@ surface in UTF-8 bytes. Production values must come from the pinned converter;
 the contract does not infer or fill them.
 
 `tier_a_verification` contains deterministic checks such as normalized gold,
-unique dictionary reading, and forward-conversion match.
+unique dictionary reading, forward-conversion match, and an explicit
+converter-derived assertion that one exact dictionary path covers the complete
+reading. Tier A and training also cross-check the gold candidate segments:
+every segment must be `system_dictionary` or `user_dictionary`. Any reading,
+katakana, generated-literal, or mixed-with-fallback gold path fails closed.
 `sampled_human_audit` records only independently selected manual review.
 They are intentionally separate: an automatic Tier A pass remains a pass when
 the record was not sampled, while a sampled rejection fails closed. Training
@@ -70,10 +84,19 @@ signatures are collapsed first and unioned as a star; the implementation never
 materializes the quadratic set of record-pair edges. A regression fixture with
 10,000 identical signatures therefore performs bounded work.
 
+Distinct signatures use an exact set-similarity join: a Jaccard length filter
+and prefixes ordered by global shingle rarity produce candidates, then exact
+Jaccard decides every union. This PPJoin/AllPairs-style filter has no LSH false
+negatives. A 10,000-signature regression sharing only one globally frequent
+shingle performs no quadratic candidate expansion. Leakage-report version 3
+names the algorithm, reports total unique-signature pairs separately, and
+defines `sentence_signature_comparison_count` as the number of exact Jaccard
+checks after both filters.
+
 Existing split assignments are immutable; conflicting assignments fail
 closed. New components are assigned by a SHA-256 ordering of the seed and
 stable component ID, so the same input and seed produce byte-identical
-canonical JSONL. The version-2 leakage report includes zero cross-split counts
+canonical JSONL. The version-3 leakage report includes zero cross-split counts
 and separate canonical SHA-256 values for `train`, `dev`, and
 `final-holdout`.
 
@@ -100,7 +123,12 @@ python -m sakura_rerank.data split `
 
 The manifest command returns status 3 for a structured blocker. The split
 command rejects any normalized or filesystem-alias collision among input,
-output, and report before writing. The split and contract commands write only
+output, and report before writing. Output and report payloads are fully staged
+in same-directory temporary files before either is committed. A pre-commit
+failure changes neither target; a failed second replacement restores the prior
+pair from backups, and every path removes temporary/backup residue. The CLI and
+`split_jsonl` use this same transactional publisher. The split and contract
+commands write only
 bounded metadata and content hashes; downloaded dumps, extracted text,
 generated datasets, models, and checkpoints stay under the ignored artifact
 paths in `.gitignore`.
