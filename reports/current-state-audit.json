@@ -1,0 +1,345 @@
+{
+  "all_artifact_checks_passed": true,
+  "checks": {
+    "category_entry_count_matches_compiled_header": true,
+    "category_files_match_checked_report": true,
+    "dictionary_matches_checked_report": true,
+    "model_files_match_manifest": true,
+    "release_report_matches_checked_report": true
+  },
+  "corpora": {
+    "held_out": {
+      "bytes": 2411,
+      "path": "held-out.tsv",
+      "reading_at_least_10_count": 2,
+      "reading_length_counts": {
+        "10_to_30": 2,
+        "31_to_128": 0,
+        "3_to_9": 58,
+        "over_128": 0,
+        "under_3": 0
+      },
+      "row_count": 60,
+      "sha256": "42d0a88158288d60c8beed93f8bee517e3b09a87e234a9fb15d177656fc01d66",
+      "slice_counts": {
+        "general": 30,
+        "it": 30
+      }
+    },
+    "tuning": {
+      "bytes": 901,
+      "path": "tuning.tsv",
+      "reading_at_least_10_count": 0,
+      "reading_length_counts": {
+        "10_to_30": 0,
+        "31_to_128": 0,
+        "3_to_9": 20,
+        "over_128": 0,
+        "under_3": 0
+      },
+      "row_count": 20,
+      "sha256": "240c39568179f2db36ddafbfcd440fbc68f38dc290dd2fa0a06814167d760fe8",
+      "slice_counts": {
+        "general": 10,
+        "it": 10
+      }
+    }
+  },
+  "dictionary": {
+    "categories": {
+      "category_count": 14,
+      "entry_count": 472825,
+      "files": [
+        {
+          "bytes": 1853066,
+          "entry_count": 32881,
+          "path": "01_文法・機能語.tsv",
+          "sha256": "01d9f74f679cb1c4e896785081e88cded502bc6701c4e6521f2a4919ea9ccd7c"
+        },
+        {
+          "bytes": 6845215,
+          "entry_count": 132173,
+          "path": "02_活用語.tsv",
+          "sha256": "35a861d79693a09ddcdf8ee282782a77ce75b32a52cc55ff8ed8b9c0227b48ab"
+        },
+        {
+          "bytes": 6072682,
+          "entry_count": 120312,
+          "path": "03_一般語.tsv",
+          "sha256": "219c829ca00d0fd49f9c3e4e500568956d094068341d5b4f1b6a29ec1660282a"
+        },
+        {
+          "bytes": 97020,
+          "entry_count": 496,
+          "path": "04_慣用句・定型表現.tsv",
+          "sha256": "bbb5be3d4e2a2a4539eca8ea2677afc08a47907835b7ec5c8f4e5824ecaaa82c"
+        },
+        {
+          "bytes": 323074,
+          "entry_count": 6688,
+          "path": "05_数値・日付・単位.tsv",
+          "sha256": "ee4cc10771af23afe1454e3f15e4dc132119c04cdb02ef838f9479753debfc5e"
+        },
+        {
+          "bytes": 3864198,
+          "entry_count": 83863,
+          "path": "06_人名.tsv",
+          "sha256": "d1807c14f6abfe8f7320d6300a03e8b37167585b5d3430beb0e54848e10c9e03"
+        },
+        {
+          "bytes": 76,
+          "entry_count": 0,
+          "path": "07_地名.tsv",
+          "sha256": "cbf0be406bd1ba04397d026db51fe40a2fc3a18b2d6ba4b6c58bb7e6fcb81aaf"
+        },
+        {
+          "bytes": 1327009,
+          "entry_count": 21162,
+          "path": "08_組織名・製品名.tsv",
+          "sha256": "980b6678bca2c5e1389e79e0f77d8985c1b6f3c338be25bea7412d2567de1b8f"
+        },
+        {
+          "bytes": 2468994,
+          "entry_count": 42585,
+          "path": "09_外来語・カタカナ語.tsv",
+          "sha256": "d5f7dd44d179701885a2284d2ebea14db5e21a1a9554a10320ddc8169cc0e789"
+        },
+        {
+          "bytes": 13105,
+          "entry_count": 272,
+          "path": "10_略語・英数字.tsv",
+          "sha256": "bf543dc845256005f83caa95e6481f4da1b53bae1c6098b41719f0512f9f387f"
+        },
+        {
+          "bytes": 2242216,
+          "entry_count": 32242,
+          "path": "11_IT・技術用語.tsv",
+          "sha256": "15a2b9f8d1d857971ca69050dda4cf4761d0d4896e648ff0c49f3983c6a0c34e"
+        },
+        {
+          "bytes": 76,
+          "entry_count": 0,
+          "path": "12_専門用語.tsv",
+          "sha256": "cbf0be406bd1ba04397d026db51fe40a2fc3a18b2d6ba4b6c58bb7e6fcb81aaf"
+        },
+        {
+          "bytes": 4065,
+          "entry_count": 147,
+          "path": "13_記号・絵文字.tsv",
+          "sha256": "4e537307e32251e21e51baad4560161fb27cfbc4891a0a4cafd412107c53ca93"
+        },
+        {
+          "bytes": 350,
+          "entry_count": 4,
+          "path": "14_表記ゆれ.tsv",
+          "sha256": "a74971ed2d9c0796166a01845bfb9868ab56fc1816ff3c3bb5cdf2e58ecc0b6b"
+        }
+      ],
+      "unique_reading_count": 290465,
+      "unique_reading_surface_pair_count": 415214,
+      "unique_surface_count": 368341
+    },
+    "checked_build_report": {
+      "bytes": 9198,
+      "path": "data/dictionary-build.report.json",
+      "sha256": "4a98bfbc9b5f13d3b56bca21750c5eb2f596feeba42c85510f9ebced6bdecd07"
+    },
+    "compiled": {
+      "bytes": 38456565,
+      "path": "system.dic",
+      "sha256": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad"
+    },
+    "header": {
+      "class_count": 2672,
+      "entry_count": 472825,
+      "format_version": 1,
+      "header_bytes": 32,
+      "image_bytes": 38456565,
+      "node_count": 703485,
+      "table_count": 14
+    },
+    "release_build_report": {
+      "bytes": 9198,
+      "path": "artifacts/release/dictionary-build.report.json",
+      "sha256": "4a98bfbc9b5f13d3b56bca21750c5eb2f596feeba42c85510f9ebced6bdecd07"
+    }
+  },
+  "environment": {
+    "machine": "x86_64",
+    "operating_system": "Windows-10-10.0.26200-SP0",
+    "processor": "AMD Ryzen 7 9700X 8-Core Processor",
+    "python": "3.11.14"
+  },
+  "neural": {
+    "manifest": {
+      "files": [
+        {
+          "bytes": 42333503,
+          "path": "model.onnx",
+          "sha256": "59fb798139a2dbb52a093dfb8cb9c59dd0e3633d03089a5802a3f537b302b137"
+        },
+        {
+          "bytes": 88151,
+          "path": "vocab.txt",
+          "sha256": "902cbd7e218aaf23a72955533293ceac12fcc4e010ad98c0c14757b94ce7abb6"
+        }
+      ],
+      "model": {
+        "format": "onnx-fp32-o2",
+        "id": "ku-nlp/deberta-v2-tiny-japanese-char-wwm",
+        "opset": 18,
+        "revision": "41bcb8a393383a039c7ee18ded6893ca82e668b7"
+      },
+      "runtime": {
+        "name": "onnxruntime",
+        "version": "1.28.0"
+      },
+      "schema_version": 1,
+      "tokenizer": {
+        "class": "BertJapaneseTokenizer",
+        "do_lower_case": false,
+        "subword_tokenizer_type": "character",
+        "word_tokenizer_type": "basic"
+      }
+    },
+    "manifest_record": {
+      "bytes": 591,
+      "path": "neural/deberta-v2-tiny-japanese-char-wwm/manifest.json",
+      "sha256": "2f712e47eab6538c2310e94d7ca31da4788517d0c0eeb40c5421bb875131bf4c"
+    },
+    "payload_files": [
+      {
+        "bytes": 412160,
+        "path": "sakura_neural_worker.exe",
+        "sha256": "0f22f2529bb2dc0ded652dd3ef2ed68d64944de916338703f5f2074a901f9229"
+      },
+      {
+        "bytes": 15809848,
+        "path": "onnxruntime.dll",
+        "sha256": "18370c375f07357fa5874344a9d9ac17e6b6fe1eb18b1dd209d79483b4470257"
+      },
+      {
+        "bytes": 42333503,
+        "path": "neural/deberta-v2-tiny-japanese-char-wwm/model.onnx",
+        "sha256": "59fb798139a2dbb52a093dfb8cb9c59dd0e3633d03089a5802a3f537b302b137"
+      },
+      {
+        "bytes": 88151,
+        "path": "neural/deberta-v2-tiny-japanese-char-wwm/vocab.txt",
+        "sha256": "902cbd7e218aaf23a72955533293ceac12fcc4e010ad98c0c14757b94ce7abb6"
+      },
+      {
+        "bytes": 591,
+        "path": "neural/deberta-v2-tiny-japanese-char-wwm/manifest.json",
+        "sha256": "2f712e47eab6538c2310e94d7ca31da4788517d0c0eeb40c5421bb875131bf4c"
+      }
+    ],
+    "vocabulary_size": 22012
+  },
+  "sakura_input": {
+    "dirty": true,
+    "dirty_path_count": 31,
+    "dirty_paths": [
+      "corpus/neural-eval-communication-draft.tsv",
+      "corpus/neural-eval.md",
+      "crates/dictc/Cargo.toml",
+      "crates/dictc/src/bin/neural_eval.rs",
+      "crates/sakura-core/src/lib.rs",
+      "crates/sakura-core/src/preferences.rs",
+      "crates/sakura-engine/src/configuration.rs",
+      "crates/sakura-engine/src/dispatch.rs",
+      "crates/sakura-engine/src/learning.rs",
+      "crates/sakura-engine/src/long_conversion.rs",
+      "crates/sakura-engine/src/main.rs",
+      "crates/sakura-engine/src/prediction.rs",
+      "crates/sakura-engine/src/server.rs",
+      "crates/sakura-engine/src/ui.rs",
+      "crates/sakura-proto/src/lib.rs",
+      "crates/sakura-proto/src/message.rs",
+      "crates/sakura-proto/src/types.rs",
+      "crates/sakura-proto/tests/roundtrip.rs",
+      "crates/sakura-renderer/Cargo.toml",
+      "crates/sakura-renderer/src/candidate.rs",
+      "crates/sakura-renderer/src/main.rs",
+      "crates/sakura-renderer/src/watch.rs",
+      "crates/sakura-renderer/tests/candidate_detail_uia.rs",
+      "crates/sakura-settings/Cargo.toml",
+      "crates/sakura-settings/src/cli.rs",
+      "crates/sakura-settings/src/configuration.rs",
+      "crates/sakura-settings/src/ui.rs",
+      "crates/sakura-settings/tests/settings_topic_user32.rs",
+      "crates/sakura-tsf/src/mode_item.rs",
+      "crates/sakura-tsf/src/text_service.rs",
+      "docs/settings-user32-e2e.md"
+    ],
+    "head": "8e966dff456e4e7165e025f97c1f73327ff3f550",
+    "remote_origin": "https://github.com/tsuyoshi-otake/sakura-input.git"
+  },
+  "schema_version": "sakura-rerank.current-state-audit.v1",
+  "source_fingerprints": [
+    {
+      "head_bytes": 22413,
+      "head_sha256": "ea2cab42b832529f1a9d5f5286c40a5701c031fb0cdb1711f6f971ddfbd7d39c",
+      "path": "crates/sakura-engine/src/long_conversion.rs",
+      "worktree_bytes": 23313,
+      "worktree_matches_head": false,
+      "worktree_sha256": "4c8f102d93d56b18712c07bc85a1376873ffc1026b7879af394f62cb8171c98e"
+    },
+    {
+      "head_bytes": 412599,
+      "head_sha256": "57801436da18db59526004fec5a508c7abfa383183d56e0fa631bf721df99a20",
+      "path": "crates/sakura-engine/src/dispatch.rs",
+      "worktree_bytes": 413327,
+      "worktree_matches_head": false,
+      "worktree_sha256": "56228f433482367634e6c1f19d485bd7f070295232b868979b9b901c6b366d1f"
+    },
+    {
+      "head_bytes": 8326,
+      "head_sha256": "4d2fbb64711ccea1448079cf71a99f7d328e8924745463ddc319bbcb4a49570d",
+      "path": "crates/sakura-neural-worker/src/protocol.rs",
+      "worktree_bytes": 8326,
+      "worktree_matches_head": true,
+      "worktree_sha256": "4d2fbb64711ccea1448079cf71a99f7d328e8924745463ddc319bbcb4a49570d"
+    },
+    {
+      "head_bytes": 18297,
+      "head_sha256": "1bbc13e20488a045793ddfc9c6810f484c7a858a40ec63541287e7f54f2b12ea",
+      "path": "crates/sakura-neural-worker/src/scorer.rs",
+      "worktree_bytes": 18297,
+      "worktree_matches_head": true,
+      "worktree_sha256": "1bbc13e20488a045793ddfc9c6810f484c7a858a40ec63541287e7f54f2b12ea"
+    },
+    {
+      "head_bytes": 18472,
+      "head_sha256": "b04cb2c512a73f51aec78a2cea57c28c185aa994d2e5178ff1de60c9a0c8cf25",
+      "path": "crates/sakura-neural-worker/src/runtime.rs",
+      "worktree_bytes": 18472,
+      "worktree_matches_head": true,
+      "worktree_sha256": "b04cb2c512a73f51aec78a2cea57c28c185aa994d2e5178ff1de60c9a0c8cf25"
+    },
+    {
+      "head_bytes": 12767,
+      "head_sha256": "851a1d1e81dbd96082e33281629e299737e28ac5b51d7a680284b9e08659e453",
+      "path": "crates/sakura-neural-worker/src/tokenizer.rs",
+      "worktree_bytes": 12767,
+      "worktree_matches_head": true,
+      "worktree_sha256": "851a1d1e81dbd96082e33281629e299737e28ac5b51d7a680284b9e08659e453"
+    },
+    {
+      "head_bytes": 13324,
+      "head_sha256": "3ea06bd02799bd0b7b74e9db11dd9399fc17e318cb8d5581932d8a2edb90d68e",
+      "path": "scripts/build-neural-reranker.ps1",
+      "worktree_bytes": 13324,
+      "worktree_matches_head": true,
+      "worktree_sha256": "3ea06bd02799bd0b7b74e9db11dd9399fc17e318cb8d5581932d8a2edb90d68e"
+    },
+    {
+      "head_bytes": 5669,
+      "head_sha256": "652fea8e5e927aa56bcede235b3795f5822159478e6b2366870e272aff7667f6",
+      "path": "scripts/export-neural-model.py",
+      "worktree_bytes": 5669,
+      "worktree_matches_head": true,
+      "worktree_sha256": "652fea8e5e927aa56bcede235b3795f5822159478e6b2366870e272aff7667f6"
+    }
+  ]
+}

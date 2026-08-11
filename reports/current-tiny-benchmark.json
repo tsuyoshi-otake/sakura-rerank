@@ -1,0 +1,271 @@
+{
+  "artifacts": {
+    "manifest": {
+      "bytes": 591,
+      "path": "manifest.json",
+      "sha256": "2f712e47eab6538c2310e94d7ca31da4788517d0c0eeb40c5421bb875131bf4c"
+    },
+    "model": {
+      "bytes": 42333503,
+      "path": "model.onnx",
+      "sha256": "59fb798139a2dbb52a093dfb8cb9c59dd0e3633d03089a5802a3f537b302b137"
+    },
+    "vocabulary": {
+      "bytes": 88151,
+      "path": "vocab.txt",
+      "sha256": "902cbd7e218aaf23a72955533293ceac12fcc4e010ad98c0c14757b94ce7abb6"
+    },
+    "worker": {
+      "bytes": 412160,
+      "path": "sakura_neural_worker.exe",
+      "sha256": "0f22f2529bb2dc0ded652dd3ef2ed68d64944de916338703f5f2074a901f9229"
+    }
+  },
+  "cold_process_to_first_response": {
+    "latency": {
+      "count": 5,
+      "max_ms": 164.8233,
+      "mean_ms": 157.49676,
+      "min_ms": 153.4712,
+      "p50_ms": 155.2544,
+      "p95_ms": 164.8233,
+      "p99_ms": 164.8233
+    },
+    "memory": {
+      "max_peak_working_set_bytes": 97640448,
+      "max_private_commit_bytes": 85557248,
+      "max_private_working_set_bytes": 75644928,
+      "max_working_set_bytes": 92356608,
+      "private_working_set_method": "QueryWorkingSet non-shared resident pages",
+      "sample_count": 5,
+      "supported": true
+    },
+    "outcomes": {
+      "success": 5
+    },
+    "tiers": [
+      2
+    ]
+  },
+  "configuration": {
+    "cold_samples": 5,
+    "measured_warm_runs": 10000,
+    "probe_samples": 5,
+    "response_timeout_seconds": 10.0,
+    "warmup_per_bucket": 10
+  },
+  "constraints": {
+    "concurrent_request_batch": 1,
+    "gpu_visible_to_child": false,
+    "ort_inter_threads_from_source_contract": 1,
+    "ort_intra_threads_from_source_contract": 1,
+    "ort_mask_row_batch_max_from_source_contract": 6,
+    "percentile_method": "nearest-rank",
+    "production_device": "Windows CPU",
+    "raw_candidate_text_recorded": false,
+    "request_processing": "sequential"
+  },
+  "environment": {
+    "architecture": "64bit",
+    "logical_processor_count": 8,
+    "machine": "x86_64",
+    "operating_system": "Windows-10-10.0.26200-SP0",
+    "processor": "AMD Ryzen 7 9700X 8-Core Processor",
+    "python": "3.11.14"
+  },
+  "fixture": {
+    "groups": [
+      {
+        "candidate_count": 6,
+        "candidate_utf8_bytes": [
+          24,
+          24,
+          24,
+          24,
+          24,
+          24
+        ],
+        "character_length": 8,
+        "differing_position_count": 1,
+        "expected_max_ort_calls_from_source_contract": 1,
+        "name": "chars-3-to-9"
+      },
+      {
+        "candidate_count": 6,
+        "candidate_utf8_bytes": [
+          48,
+          48,
+          48,
+          48,
+          48,
+          48
+        ],
+        "character_length": 16,
+        "differing_position_count": 4,
+        "expected_max_ort_calls_from_source_contract": 4,
+        "name": "chars-10-to-30"
+      },
+      {
+        "candidate_count": 6,
+        "candidate_utf8_bytes": [
+          96,
+          96,
+          96,
+          96,
+          96,
+          96
+        ],
+        "character_length": 32,
+        "differing_position_count": 8,
+        "expected_max_ort_calls_from_source_contract": 8,
+        "name": "chars-31-to-128"
+      }
+    ],
+    "kind": "fixed-synthetic-no-user-data",
+    "sha256": "7799a10cc4c7fe7084237d0095d6d38dfb7ced871a9c045a7216c0d78cab1e83"
+  },
+  "limitations": [
+    "Black-box protocol v1 cannot separate tokenization, ORT inference, score fusion, and IPC latency.",
+    "Synthetic fixed surfaces characterize bounded worker workloads; they are not a quality corpus or live-user trace.",
+    "Expected ORT call counts are inferred from the exact current scorer source and one-character tokenizer contract."
+  ],
+  "measured_at_utc": "2026-08-11T03:51:16.990360+00:00",
+  "probe_startup": {
+    "latency": {
+      "count": 5,
+      "max_ms": 166.6601,
+      "mean_ms": 162.49942,
+      "min_ms": 158.5819,
+      "p50_ms": 162.437,
+      "p95_ms": 166.6601,
+      "p99_ms": 166.6601
+    },
+    "metadata": {
+      "model_sha256": "59fb798139a2dbb52a093dfb8cb9c59dd0e3633d03089a5802a3f537b302b137",
+      "runtime": "onnxruntime",
+      "tier": "avx2-fma"
+    }
+  },
+  "protocol": {
+    "candidate_count": 6,
+    "context_bytes": 0,
+    "reading_field_present": false,
+    "version": 1
+  },
+  "schema_version": "sakura-rerank.current-tiny-benchmark.v1",
+  "warm_worker_roundtrip": {
+    "aggregate_latency": {
+      "count": 10000,
+      "max_ms": 222.317,
+      "mean_ms": 61.117428,
+      "min_ms": 5.8736,
+      "p50_ms": 39.3405,
+      "p95_ms": 138.7404,
+      "p99_ms": 143.0656
+    },
+    "buckets": {
+      "chars-10-to-30": {
+        "fixture": {
+          "candidate_count": 6,
+          "candidate_utf8_bytes": [
+            48,
+            48,
+            48,
+            48,
+            48,
+            48
+          ],
+          "character_length": 16,
+          "differing_position_count": 4,
+          "expected_max_ort_calls_from_source_contract": 4,
+          "name": "chars-10-to-30"
+        },
+        "latency": {
+          "count": 3333,
+          "max_ms": 63.2085,
+          "mean_ms": 39.472733,
+          "min_ms": 36.9425,
+          "p50_ms": 39.3408,
+          "p95_ms": 40.9978,
+          "p99_ms": 42.9347
+        },
+        "outcomes": {
+          "success": 3333
+        },
+        "request_payload_bytes": 412
+      },
+      "chars-3-to-9": {
+        "fixture": {
+          "candidate_count": 6,
+          "candidate_utf8_bytes": [
+            24,
+            24,
+            24,
+            24,
+            24,
+            24
+          ],
+          "character_length": 8,
+          "differing_position_count": 1,
+          "expected_max_ort_calls_from_source_contract": 1,
+          "name": "chars-3-to-9"
+        },
+        "latency": {
+          "count": 3334,
+          "max_ms": 20.704,
+          "mean_ms": 6.591516,
+          "min_ms": 5.8736,
+          "p50_ms": 6.5334,
+          "p95_ms": 7.2144,
+          "p99_ms": 7.5674
+        },
+        "outcomes": {
+          "success": 3334
+        },
+        "request_payload_bytes": 268
+      },
+      "chars-31-to-128": {
+        "fixture": {
+          "candidate_count": 6,
+          "candidate_utf8_bytes": [
+            96,
+            96,
+            96,
+            96,
+            96,
+            96
+          ],
+          "character_length": 32,
+          "differing_position_count": 8,
+          "expected_max_ort_calls_from_source_contract": 8,
+          "name": "chars-31-to-128"
+        },
+        "latency": {
+          "count": 3333,
+          "max_ms": 222.317,
+          "mean_ms": 137.304396,
+          "min_ms": 130.7588,
+          "p50_ms": 136.7174,
+          "p95_ms": 140.9678,
+          "p99_ms": 154.3574
+        },
+        "outcomes": {
+          "success": 3333
+        },
+        "request_payload_bytes": 700
+      }
+    },
+    "memory": {
+      "max_peak_working_set_bytes": 160264192,
+      "max_private_commit_bytes": 207233024,
+      "max_private_working_set_bytes": 125452288,
+      "max_working_set_bytes": 142299136,
+      "private_working_set_method": "QueryWorkingSet non-shared resident pages",
+      "sample_count": 11,
+      "supported": true
+    },
+    "tiers": [
+      2
+    ]
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "gate_status": {
+    "gate_a_b_eligible": false,
+    "production_change_authorized": false,
+    "reason": "The 600-row authored regression corpus is a draft and is not the independently reviewed, provenance-complete frozen holdout."
+  },
+  "inputs": {
+    "corpus": {
+      "bytes": 74674,
+      "path": "neural-eval-communication-draft.tsv",
+      "sha256": "5e7ba4822b4272881692dab57bd4d5a6240a9ec71ef15d43f37f7a4766196a5c"
+    },
+    "corpus_review_status": "authored-regression-draft-not-independent-holdout",
+    "current_state_audit": {
+      "bytes": 11961,
+      "path": "current-state-audit.json",
+      "sha256": "da41e32e31956a67dd65d88a4e87ad233dd39039b2230ee2974f1ab2471deb85"
+    },
+    "evaluator_executable": {
+      "bytes": 348672,
+      "path": "neural-eval.exe",
+      "sha256": "fc00eca30ac9c5ce6195bfa8f97ea4d4d93c7bdb8d8f4a51ee2bb87309a1849f"
+    },
+    "evaluator_source": {
+      "bytes": 28855,
+      "path": "neural_eval.rs",
+      "sha256": "8c9a253affbedca2c6cf618ea7cc9c7c57a5aab905ceb7a5942d1bc331c0dad9"
+    }
+  },
+  "limitations": [
+    "The corpus is authored and templated, not independently reviewed or provenance-complete.",
+    "The evaluator exists only in the inspected dirty Sakura Input working tree, not at the pinned HEAD.",
+    "A worker failure preserves local Top-1, so fallback rows are not evidence of neural quality.",
+    "The evaluator reports Top-1 only; it does not establish oracle recall, MRR, NDCG, calibration, confidence intervals, or leakage safety."
+  ],
+  "runs": [
+    {
+      "baseline": {
+        "correct": 545,
+        "evaluated": 600
+      },
+      "cases": 600,
+      "comparisons": {
+        "losses": 0,
+        "ties": 600,
+        "wins": 0
+      },
+      "eligibility_counts": {
+        "eligible": 600
+      },
+      "evaluator_structural_acceptance_eligible": true,
+      "exploratory": false,
+      "mode": "all-normal",
+      "neural": {
+        "applied": 192,
+        "attempted": 600,
+        "correct": 545,
+        "eligible": 600,
+        "fallback": 408
+      },
+      "neural_status_counts": {
+        "applied": 192,
+        "worker-fallback": 408
+      },
+      "raw_report": {
+        "bytes": 355495,
+        "path": "sakura-rerank-neural-all-normal-draft.json",
+        "sha256": "f906ad9a64601c505bf745629d2b333ba811b50a5892258578e90ad0779bbee5"
+      },
+      "raw_row_text_recorded_in_summary": false,
+      "slice_counts": {
+        "chat": 200,
+        "email": 200,
+        "general": 200
+      },
+      "slices": {
+        "chat": {
+          "applied": 37,
+          "baseline_correct": 185,
+          "cases": 200,
+          "eligible": 200,
+          "fallback": 163,
+          "losses": 0,
+          "neural_correct": 185,
+          "ties": 200,
+          "wins": 0
+        },
+        "email": {
+          "applied": 57,
+          "baseline_correct": 170,
+          "cases": 200,
+          "eligible": 200,
+          "fallback": 143,
+          "losses": 0,
+          "neural_correct": 170,
+          "ties": 200,
+          "wins": 0
+        },
+        "general": {
+          "applied": 98,
+          "baseline_correct": 190,
+          "cases": 200,
+          "eligible": 200,
+          "fallback": 102,
+          "losses": 0,
+          "neural_correct": 190,
+          "ties": 200,
+          "wins": 0
+        }
+      },
+      "worker_error_counts": {
+        "none": 192,
+        "worker-status-2": 408
+      }
+    },
+    {
+      "baseline": {
+        "correct": 545,
+        "evaluated": 600
+      },
+      "cases": 600,
+      "comparisons": {
+        "losses": 0,
+        "ties": 600,
+        "wins": 0
+      },
+      "eligibility_counts": {
+        "eligible": 600
+      },
+      "evaluator_structural_acceptance_eligible": true,
+      "exploratory": false,
+      "mode": "long",
+      "neural": {
+        "applied": 192,
+        "attempted": 600,
+        "correct": 545,
+        "eligible": 600,
+        "fallback": 408
+      },
+      "neural_status_counts": {
+        "applied": 192,
+        "worker-fallback": 408
+      },
+      "raw_report": {
+        "bytes": 355489,
+        "path": "sakura-rerank-neural-long-draft.json",
+        "sha256": "6b6283323c9ac4b2c4acc424f98d30dd94db5ec6f9c74e6df761a26a2aa423dd"
+      },
+      "raw_row_text_recorded_in_summary": false,
+      "slice_counts": {
+        "chat": 200,
+        "email": 200,
+        "general": 200
+      },
+      "slices": {
+        "chat": {
+          "applied": 37,
+          "baseline_correct": 185,
+          "cases": 200,
+          "eligible": 200,
+          "fallback": 163,
+          "losses": 0,
+          "neural_correct": 185,
+          "ties": 200,
+          "wins": 0
+        },
+        "email": {
+          "applied": 57,
+          "baseline_correct": 170,
+          "cases": 200,
+          "eligible": 200,
+          "fallback": 143,
+          "losses": 0,
+          "neural_correct": 170,
+          "ties": 200,
+          "wins": 0
+        },
+        "general": {
+          "applied": 98,
+          "baseline_correct": 190,
+          "cases": 200,
+          "eligible": 200,
+          "fallback": 102,
+          "losses": 0,
+          "neural_correct": 190,
+          "ties": 200,
+          "wins": 0
+        }
+      },
+      "worker_error_counts": {
+        "none": 192,
+        "worker-status-2": 408
+      }
+    }
+  ],
+  "sakura_input": {
+    "dirty": true,
+    "dirty_path_count": 31,
+    "head": "8e966dff456e4e7165e025f97c1f73327ff3f550"
+  },
+  "schema_version": "sakura-rerank.current-tiny-quality-summary.v1"
+}

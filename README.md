@@ -10,14 +10,16 @@ candidate generator.
 
 ## Status
 
-The repository is in the baseline-reproduction phase tracked by
+The repository has completed the current-HEAD audit and current Tiny baseline
+reproduction tracked by
 [Issue #1](https://github.com/tsuyoshi-otake/sakura-rerank/issues/1).
 No Gate A/B result has been established, and no production default is approved.
 
-The first required result is an adversarial review of the current Sakura Input
-reranker at an exact Git revision, followed by reproduction of the current Tiny
-baseline. Production protocol or integration changes must wait until that work
-is complete and the relevant quality gates pass.
+The evidence and decision are recorded in
+[`research/current-state-review.md`](research/current-state-review.md) and
+[`research/current-tiny-baseline.md`](research/current-tiny-baseline.md).
+Production protocol or integration changes must wait until independently
+reviewed data satisfies the relevant quality gates.
 
 ## Intended production boundary
 
@@ -64,9 +66,49 @@ exact hashes and provenance belong in tracked manifests.
 The target and verification rubric are maintained in Issue #1. Adoption is
 based on the measured accuracy/latency Pareto frontier, not architecture novelty.
 
+## Current-state audit
+
+The first audit command uses only the Python 3.11 standard library. Run it from
+an isolated environment outside this repository and pin the expected Sakura
+Input revision:
+
+```powershell
+$env:PYTHONPATH = "src"
+& "$env:USERPROFILE\tmp\sakura-rerank-audit-venv\Scripts\python.exe" `
+  -m sakura_rerank.audit `
+  --sakura-input-root ..\sakura-input `
+  --expect-head <exact-sakura-input-sha> `
+  --output reports\current-state-audit.json
+```
+
+The command is read-only with respect to Sakura Input. It records the dirty
+state separately, hashes source and release artifacts, validates the compiled
+dictionary header and manifests, counts entries/readings/surfaces from the
+canonical category exports, and records corpus sizes without copying row text.
+
+The released Tiny worker can then be measured through its exact protocol v1
+stdio boundary. The default is the required 10,000 warm requests, split across
+fixed 8-, 16-, and 32-character synthetic workloads; no candidate text is
+written to the report:
+
+```powershell
+$env:PYTHONPATH = "src"
+& "$env:USERPROFILE\tmp\sakura-rerank-audit-venv\Scripts\python.exe" `
+  -m sakura_rerank.current_tiny_benchmark `
+  --worker ..\sakura-input\artifacts\release\sakura_neural_worker.exe `
+  --model-dir ..\sakura-input\artifacts\release\neural\deberta-v2-tiny-japanese-char-wwm `
+  --expect-worker-sha256 <worker-sha256> `
+  --expect-model-sha256 <model-sha256> `
+  --output reports\current-tiny-benchmark.json
+```
+
+Every launched worker has a response timeout and explicit close/terminate/kill
+ownership. The report separates cold process-to-first-response latency, warm
+roundtrip percentiles by workload, probe startup, response failures, payload
+size, and Windows private working set.
+
 ## Licensing
 
 No repository license has been selected yet. Model, corpus, tokenizer, runtime,
 and extraction-tool licenses and provenance must be reviewed and recorded before
 redistribution.
-
