@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sakura Rerank exact system-dictionary index manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_kind", "verification_status", "dictionary_sha256", "indexer_git_sha", "normalization", "user_dictionary_enabled", "record_count", "content_sha256"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "manifest_kind": {"const": "system_dictionary_surface_index"},
+    "verification_status": {"const": "verified"},
+    "dictionary_sha256": {"const": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad"},
+    "indexer_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "normalization": {"const": "exact_unicode_v1"},
+    "user_dictionary_enabled": {"const": false},
+    "record_count": {"type": "integer", "minimum": 1, "maximum": 2000000},
+    "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

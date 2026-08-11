@@ -1,8 +1,9 @@
 # Data boundary tooling
 
-This package defines the provenance and split boundary for Issue #1. It does
-not download jawiki, extract articles, invoke Sakura Input, generate training
-examples, or train a model.
+This package defines the provenance, Tier A assembly, and split boundary. It
+does not download jawiki, extract articles, invoke Sakura Input, or train a
+model. Tier A assembly consumes already generated immutable external artifacts;
+it does not infer readings or candidates.
 
 ## Fixed snapshot manifest
 
@@ -42,9 +43,9 @@ snapshot has a content hash.
 It records an exporter Git SHA and/or binary SHA-256, requested limit, effective
 converter bound, returned count, and whether a short search was exhausted or a
 result was truncated. The pinned base Sakura Input HEAD is not an exporter
-identity: its production converter/UI bound is 18. Commit D pins only the
-measured Commit C Git-tree `835c5fcf5f02193474353650ea7b5566a7bb5cb4` with binary
-SHA-256 `9b59b08e56446f8462f82cb97dbcf090e7b511e7a39c0a9fa7a07541f7cafbd9`.
+identity: its production converter/UI bound is 18. Commit F pins only the
+measured Commit E Git-tree `06ff8c34417fb7dbc24e41d786dfb6434cdd6aa1` with binary
+SHA-256 `0b26990a153df06c8e870b7e44abca386ada2ffd6f649c0232cea6a79960acbf`.
 The validator also requires the exact patch, Cargo.lock, rustc/cargo, target,
 profile, flags, environment, dictionary, Sakura Input HEAD, bound, and
 user-dictionary state recorded in the verified manifest. Unverified measurement
@@ -77,6 +78,29 @@ They are intentionally separate: an automatic Tier A pass remains a pass when
 the record was not sampled, while a sampled rejection fails closed. Training
 also requires a gold label and at least two candidates, so fixture provenance,
 missing gold, and singleton examples are rejected.
+
+## Tier A assembly
+
+The `tier-a` command joins three external, bounded inputs: jawiki source spans
+from a `preprocessing_verified` fixed-snapshot manifest, an exact system
+dictionary surface index bound to the pinned compiled dictionary SHA-256, and
+allowlisted research top-32 snapshots. A source span contains no reading. The
+reading comes only from an exact surface lookup with exactly one indexed
+reading, then the forward converter output must contain exactly one NFKC-equal
+gold candidate whose full path consists only of `system_dictionary` segments.
+
+Expected exclusions (missing/ambiguous dictionary evidence, missing snapshots,
+reading mismatch, missing/ambiguous gold, fallback paths, and singleton
+candidate sets) appear only as aggregate counts. Reports contain hashes and
+counts, never raw text or stable IDs. If no row passes, or any prerequisite is
+unverified, generation returns a structured blocker and publishes neither
+artifact. Successful output and report use the same transactional pair writer
+as the splitter.
+
+The committed jawiki manifest is currently only
+`official_metadata_verified`, so a real invocation intentionally stops before
+reading source/index/exporter payloads. No dump, extracted span, dictionary
+index, exporter JSONL, or generated dataset is tracked by Git.
 
 ## Deterministic split
 
@@ -116,6 +140,15 @@ python -m sakura_rerank.data manifest validate `
 
 python -m sakura_rerank.data contract validate `
   tests\fixtures\data-contract.fixture.jsonl
+
+python -m sakura_rerank.data tier-a `
+  data\generated\source-spans.jsonl data\generated\top32.jsonl `
+  data\generated\tier-a.jsonl `
+  --dictionary-index data\generated\system-dictionary-index.jsonl `
+  --dictionary-manifest data\generated\system-dictionary-index-manifest.json `
+  --exporter-manifest manifests\research-exporter-verified.json `
+  --jawiki-manifest manifests\jawiki-20260801-pages-articles-multistream.json `
+  --allowed-root data --report reports\tier-a-generation.json
 
 # An input JSONL file has the same contract fields with `split: null`.
 python -m sakura_rerank.data split `

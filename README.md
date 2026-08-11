@@ -10,8 +10,9 @@ candidate generator.
 
 ## Status
 
-The repository has completed the current-HEAD audit and current Tiny baseline
-reproduction tracked by
+The repository has completed the current-HEAD audit, current Tiny baseline
+reproduction, deterministic data contracts, and the isolated verified top-32
+research exporter tracked by
 [Issue #1](https://github.com/tsuyoshi-otake/sakura-rerank/issues/1).
 No Gate A/B result has been established, and no production default is approved.
 
@@ -68,12 +69,14 @@ based on the measured accuracy/latency Pareto frontier, not architecture novelty
 
 ## Data contract boundary
 
-The current dataset-contract PR adds only fixed-source manifest validation,
-versioned JSONL contracts, and deterministic leakage-safe splitting. The
+The current data boundary includes fixed-source manifest validation, versioned
+JSONL contracts, deterministic Tier A assembly, and leakage-safe splitting. The
 standard-library tooling and CLI are documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md). It does
-not download jawiki, generate production-labelled data, train a model, or alter
-Sakura Input.
+not download jawiki, invoke the converter, train a model, or alter Sakura Input.
+Real Tier A assembly remains blocked until the fixed jawiki manifest reaches
+`preprocessing_verified` with external source-span and dictionary-index
+artifacts.
 
 ## Current-state audit
 
