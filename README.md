@@ -66,6 +66,15 @@ exact hashes and provenance belong in tracked manifests.
 The target and verification rubric are maintained in Issue #1. Adoption is
 based on the measured accuracy/latency Pareto frontier, not architecture novelty.
 
+## Data contract boundary
+
+The current dataset-contract PR adds only fixed-source manifest validation,
+versioned JSONL contracts, and deterministic leakage-safe splitting. The
+standard-library tooling and CLI are documented in
+[`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md). It does
+not download jawiki, generate production-labelled data, train a model, or alter
+Sakura Input.
+
 ## Current-state audit
 
 The first audit command uses only the Python 3.11 standard library. Run it from

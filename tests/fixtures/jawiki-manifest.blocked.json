@@ -1,0 +1,11 @@
+{
+  "schema_version": 2,
+  "manifest_kind": "jawiki_snapshot",
+  "status": "blocked",
+  "blocked_fields": [
+    {
+      "field": "official_url",
+      "reason": "fixture blocker that is intentionally separate from the confirmed 2026-08-01 manifest"
+    }
+  ]
+}

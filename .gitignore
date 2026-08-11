@@ -30,6 +30,7 @@ desktop.ini
 
 # Local Codex scratch files (project memory remains trackable)
 .codex/tmp/
+.codex/goal-loop/
 
 # Downloaded source corpora and generated datasets
 /data/raw/
@@ -68,4 +69,3 @@ desktop.ini
 *.dmp
 *.etl
 *.trace
-

@@ -16,10 +16,11 @@ import platform
 import struct
 import subprocess
 import sys
-import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
+
+from .atomic_io import write_bytes_atomic
 
 
 SCHEMA_VERSION = "sakura-rerank.current-state-audit.v1"
@@ -448,18 +449,10 @@ def collect_audit(root: Path, *, expected_head: str | None = None) -> dict[str, 
 
 
 def write_json_atomic(path: Path, value: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as output:
-            json.dump(value, output, ensure_ascii=False, indent=2, sort_keys=True)
-            output.write("\n")
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    payload = (
+        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    write_bytes_atomic(path, payload, create_parent=True)
 
 
 def _parser() -> argparse.ArgumentParser:

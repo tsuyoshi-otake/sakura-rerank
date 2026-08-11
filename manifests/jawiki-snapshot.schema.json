@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sakura-rerank/jawiki-snapshot-manifest-v2",
+  "title": "Staged fixed jawiki multistream snapshot manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_kind",
+    "status",
+    "artifact_kind",
+    "snapshot_date",
+    "file_name",
+    "official_url",
+    "byte_size",
+    "official_md5",
+    "official_sha1",
+    "metadata_sources",
+    "local_path",
+    "local_sha256",
+    "retrieved_at",
+    "license",
+    "extractor",
+    "preprocessing_git_sha"
+  ],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "manifest_kind": { "const": "jawiki_snapshot" },
+    "status": {
+      "enum": [
+        "official_metadata_verified",
+        "local_artifact_verified",
+        "preprocessing_verified"
+      ]
+    },
+    "artifact_kind": { "const": "pages_articles_multistream_xml_bz2" },
+    "snapshot_date": { "const": "2026-08-01" },
+    "file_name": {
+      "const": "jawiki-20260801-pages-articles-multistream.xml.bz2"
+    },
+    "official_url": {
+      "const": "https://dumps.wikimedia.org/jawiki/20260801/jawiki-20260801-pages-articles-multistream.xml.bz2"
+    },
+    "byte_size": { "const": 4827732824 },
+    "official_md5": { "const": "b51bab6d1cc23efddc4363e78b5526c6" },
+    "official_sha1": { "const": "6c917b51d6f6b53a34eaebcb2a675c0769054343" },
+    "metadata_sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dump_status_url", "md5_url", "sha1_url", "confirmed_at"],
+      "properties": {
+        "dump_status_url": {
+          "const": "https://dumps.wikimedia.org/jawiki/20260801/dumpstatus.json"
+        },
+        "md5_url": {
+          "const": "https://dumps.wikimedia.org/jawiki/20260801/jawiki-20260801-md5sums.txt"
+        },
+        "sha1_url": {
+          "const": "https://dumps.wikimedia.org/jawiki/20260801/jawiki-20260801-sha1sums.txt"
+        },
+        "confirmed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "local_path": {
+      "type": ["string", "null"],
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.?(?:/|$)).+$"
+    },
+    "local_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "retrieved_at": { "type": ["string", "null"], "format": "date-time" },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "url"],
+      "properties": {
+        "summary": { "type": "string", "minLength": 1 },
+        "url": { "const": "https://dumps.wikimedia.org/legal.html" }
+      }
+    },
+    "extractor": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "preprocessing_git_sha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "official_metadata_verified" } } },
+      "then": {
+        "properties": {
+          "local_path": { "const": null },
+          "local_sha256": { "const": null },
+          "retrieved_at": { "const": null },
+          "extractor": { "const": null },
+          "preprocessing_git_sha": { "const": null }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "local_artifact_verified" } } },
+      "then": {
+        "properties": {
+          "local_path": { "type": "string" },
+          "local_sha256": { "type": "string" },
+          "retrieved_at": { "type": "string" },
+          "extractor": { "const": null },
+          "preprocessing_git_sha": { "const": null }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "preprocessing_verified" } } },
+      "then": {
+        "properties": {
+          "local_path": { "type": "string" },
+          "local_sha256": { "type": "string" },
+          "retrieved_at": { "type": "string" },
+          "extractor": { "type": "object" },
+          "preprocessing_git_sha": { "type": "string" }
+        }
+      }
+    }
+  ]
+}
