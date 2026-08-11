@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sakura Rerank deterministic jawiki Tier A source-span manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_kind", "verification_status", "snapshot_date", "jawiki_local_sha256", "dictionary_index_sha256", "extractor_git_sha", "cleaner_version", "config", "eligible_dictionary_surface_count", "record_count", "content_sha256", "counts", "raw_text_in_report"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "manifest_kind": {"const": "jawiki_tier_a_source_spans"},
+    "verification_status": {"enum": ["measured", "verified"]},
+    "snapshot_date": {"const": "2026-08-01"},
+    "jawiki_local_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "dictionary_index_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "extractor_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "cleaner_version": {"const": "conservative_wikitext_v1"},
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sample_modulus", "sample_slots", "max_records", "max_records_per_page", "max_output_bytes", "min_sentence_chars", "max_sentence_chars", "min_surface_chars", "max_surface_chars"],
+      "properties": {
+        "sample_modulus": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "sample_slots": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "max_records": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "max_records_per_page": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "max_output_bytes": {"type": "integer", "minimum": 1, "maximum": 268435456},
+        "min_sentence_chars": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "max_sentence_chars": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "min_surface_chars": {"type": "integer", "minimum": 1, "maximum": 256},
+        "max_surface_chars": {"type": "integer", "minimum": 1, "maximum": 256}
+      }
+    },
+    "eligible_dictionary_surface_count": {"type": "integer", "minimum": 1, "maximum": 2000000},
+    "record_count": {"type": "integer", "minimum": 1, "maximum": 1000000},
+    "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "counts": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]{0,63}$"},
+      "additionalProperties": {"type": "integer", "minimum": 0, "maximum": 10000000000}
+    },
+    "raw_text_in_report": {"const": false}
+  }
+}

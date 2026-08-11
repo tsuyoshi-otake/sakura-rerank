@@ -11,6 +11,12 @@ from pathlib import Path
 from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
 from .jawiki_acquisition import AcquisitionError, acquire_jawiki
+from .jawiki_preprocess import (
+    ExtractorConfig,
+    PreprocessingError,
+    extract_source_spans,
+    load_dictionary_inputs,
+)
 from .manifest import (
     ManifestBlockedError,
     ManifestError,
@@ -32,8 +38,8 @@ from .tier_a import (
     publish_tier_a_artifacts,
     read_dictionary_index,
     read_dictionary_index_manifest,
+    read_source_span_manifest,
     read_source_spans,
-    require_preprocessing_manifest,
     validate_dictionary_index_manifest,
 )
 
@@ -76,6 +82,7 @@ def _parser() -> argparse.ArgumentParser:
     tier_a.add_argument("--dictionary-manifest", type=Path, required=True)
     tier_a.add_argument("--exporter-manifest", type=Path, required=True)
     tier_a.add_argument("--jawiki-manifest", type=Path, required=True)
+    tier_a.add_argument("--source-span-manifest", type=Path, required=True)
     tier_a.add_argument("--allowed-root", type=Path, required=True)
     tier_a.add_argument("--report", type=Path, required=True)
 
@@ -97,6 +104,23 @@ def _parser() -> argparse.ArgumentParser:
     acquire.add_argument("--local-manifest", type=Path, required=True)
     acquire.add_argument("--max-attempts", type=int, default=5)
     acquire.add_argument("--timeout-seconds", type=float, default=60.0)
+
+    preprocess = commands.add_parser(
+        "jawiki-preprocess", help="extract deterministic Tier A source spans"
+    )
+    preprocess.add_argument("dump", type=Path)
+    preprocess.add_argument("output", type=Path)
+    preprocess.add_argument("--jawiki-manifest", type=Path, required=True)
+    preprocess.add_argument("--allowed-root", type=Path, required=True)
+    preprocess.add_argument("--dictionary-index", type=Path, required=True)
+    preprocess.add_argument("--dictionary-manifest", type=Path, required=True)
+    preprocess.add_argument("--report", type=Path, required=True)
+    preprocess.add_argument("--extractor-git-sha", required=True)
+    preprocess.add_argument("--sample-modulus", type=int, default=1_000)
+    preprocess.add_argument("--sample-slots", type=int, default=10)
+    preprocess.add_argument("--max-records", type=int, default=200_000)
+    preprocess.add_argument("--max-records-per-page", type=int, default=32)
+    preprocess.add_argument("--max-output-bytes", type=int, default=240 * 1024 * 1024)
 
     return parser
 
@@ -224,6 +248,67 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         return 0
 
+    if arguments.command == "jawiki-preprocess":
+        root = arguments.allowed_root.resolve(strict=True)
+        jawiki_manifest = validate_manifest_document(
+            load_manifest_document(arguments.jawiki_manifest), root
+        )
+        if (
+            jawiki_manifest.get("status") != "local_artifact_verified"
+            or not isinstance(jawiki_manifest.get("local_path"), str)
+        ):
+            raise PreprocessingError(
+                "a local_artifact_verified jawiki manifest with local_path is required"
+            )
+        expected_dump = (root / jawiki_manifest["local_path"]).resolve(strict=True)
+        supplied_dump = arguments.dump.resolve(strict=True)
+        try:
+            if not supplied_dump.samefile(expected_dump):
+                raise PreprocessingError("dump does not match the local jawiki manifest")
+        except OSError as error:
+            raise PreprocessingError("dump path identity could not be verified") from error
+        dictionary, dictionary_manifest = load_dictionary_inputs(
+            arguments.dictionary_index, arguments.dictionary_manifest
+        )
+        ensure_distinct_tier_a_paths(
+            {
+                "dump": supplied_dump,
+                "jawiki_manifest": arguments.jawiki_manifest,
+                "dictionary_index": arguments.dictionary_index,
+                "dictionary_manifest": arguments.dictionary_manifest,
+                "output": arguments.output,
+                "report": arguments.report,
+            }
+        )
+        output_hash, report_hash, count = extract_source_spans(
+            supplied_dump,
+            arguments.output,
+            arguments.report,
+            jawiki_manifest=jawiki_manifest,
+            dictionary_records=dictionary,
+            dictionary_manifest=dictionary_manifest,
+            extractor_git_sha=arguments.extractor_git_sha,
+            config=ExtractorConfig(
+                sample_modulus=arguments.sample_modulus,
+                sample_slots=arguments.sample_slots,
+                max_records=arguments.max_records,
+                max_records_per_page=arguments.max_records_per_page,
+                max_output_bytes=arguments.max_output_bytes,
+            ),
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "measured",
+                    "record_count": count,
+                    "content_sha256": output_hash,
+                    "report_sha256": report_hash,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
     if arguments.command == "tier-a":
         tier_a_paths = {
             "source_spans": arguments.source_spans,
@@ -232,6 +317,7 @@ def _run(arguments: argparse.Namespace) -> int:
             "dictionary_manifest": arguments.dictionary_manifest,
             "exporter_manifest": arguments.exporter_manifest,
             "jawiki_manifest": arguments.jawiki_manifest,
+            "source_span_manifest": arguments.source_span_manifest,
             "output": arguments.output,
             "report": arguments.report,
         }
@@ -239,7 +325,13 @@ def _run(arguments: argparse.Namespace) -> int:
         jawiki_manifest = validate_manifest_document(
             load_manifest_document(arguments.jawiki_manifest), arguments.allowed_root
         )
-        require_preprocessing_manifest(jawiki_manifest)
+        if jawiki_manifest.get("status") not in {
+            "local_artifact_verified",
+            "preprocessing_verified",
+        }:
+            raise TierABlockedError(
+                "jawiki_artifact", "a verified local jawiki artifact is required"
+            )
         dictionary = read_dictionary_index(arguments.dictionary_index)
         dictionary_manifest = read_dictionary_index_manifest(
             arguments.dictionary_manifest
@@ -256,6 +348,9 @@ def _run(arguments: argparse.Namespace) -> int:
             exporter_records,
             jawiki_manifest=jawiki_manifest,
             dictionary_manifest=dictionary_manifest,
+            source_span_manifest=read_source_span_manifest(
+                arguments.source_span_manifest
+            ),
         )
         output_hash, report_hash = publish_tier_a_artifacts(
             arguments.output, arguments.report, records, report
@@ -305,6 +400,7 @@ def main(argv: list[str] | None = None) -> int:
         AcquisitionError,
         ContractError,
         ManifestError,
+        PreprocessingError,
         SplitError,
         TierAError,
         OSError,

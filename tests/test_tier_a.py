@@ -176,6 +176,10 @@ def jawiki_manifest() -> dict[str, object]:
     }
 
 
+def source_span_manifest() -> dict[str, object]:
+    return {"verification_status": "verified"}
+
+
 def generate(
     spans: list[dict[str, object]],
     index: list[dict[str, object]],
@@ -185,9 +189,18 @@ def generate(
     normalized_manifest = validate_dictionary_index_manifest(
         manifest, validate_dictionary_index(index), require_verified=False
     )
-    with patch(
-        "sakura_rerank.data.tier_a.validate_dictionary_index_manifest",
-        return_value=normalized_manifest,
+    with (
+        patch(
+            "sakura_rerank.data.tier_a.validate_dictionary_index_manifest",
+            return_value=normalized_manifest,
+        ),
+        patch(
+            "sakura_rerank.data.tier_a.validate_source_span_manifest",
+            return_value={
+                "extractor_git_sha": "3" * 40,
+                "manifest_kind": "jawiki_tier_a_source_spans",
+            },
+        ),
     ):
         return generate_tier_a_records(
             spans,
@@ -195,6 +208,7 @@ def generate(
             exports,
             jawiki_manifest=jawiki_manifest(),
             dictionary_manifest=manifest,
+            source_span_manifest=source_span_manifest(),
         )
 
 
@@ -363,6 +377,8 @@ class TierAGeneratorTests(unittest.TestCase):
                         str(root / "exporter-manifest.json"),
                         "--jawiki-manifest",
                         "manifests/jawiki-20260801-pages-articles-multistream.json",
+                        "--source-span-manifest",
+                        str(root / "source-manifest.json"),
                         "--allowed-root",
                         str(root),
                         "--report",

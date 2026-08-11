@@ -74,9 +74,8 @@ JSONL contracts, deterministic Tier A assembly, and leakage-safe splitting. The
 standard-library tooling and CLI are documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md). It does
 not download jawiki, invoke the converter, train a model, or alter Sakura Input.
-Real Tier A assembly remains blocked until the fixed jawiki manifest reaches
-`preprocessing_verified` with external source-span and dictionary-index
-artifacts.
+Real Tier A assembly remains blocked until deterministic jawiki source spans
+are reproduced and their exact extractor/output identity is allowlisted.
 
 ## Current-state audit
 

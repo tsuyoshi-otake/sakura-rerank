@@ -139,3 +139,52 @@ def write_bytes_pair_atomic(
         _remove_if_present(second_temporary)
         _remove_if_present(first_backup)
         _remove_if_present(second_backup)
+
+
+def commit_staged_file_and_bytes_atomic(
+    first_path: str | Path,
+    staged_first_path: str | Path,
+    second_path: str | Path,
+    second_payload: bytes,
+) -> None:
+    """Commit a caller-streamed file and a small related payload as one pair."""
+
+    first = Path(first_path)
+    staged_first = Path(staged_first_path)
+    second = Path(second_path)
+    if staged_first.parent.resolve() != first.parent.resolve():
+        raise OSError("staged file must share the destination directory")
+    second_temporary: Path | None = None
+    first_backup: Path | None = None
+    second_backup: Path | None = None
+    first_existed = False
+    first_committed = False
+    try:
+        second_temporary = _write_temporary_bytes(second, second_payload)
+        first_backup = _backup_existing_file(first)
+        second_backup = _backup_existing_file(second)
+        first_existed = first_backup is not None
+        try:
+            os.replace(staged_first, first)
+            first_committed = True
+            os.replace(second_temporary, second)
+            second_temporary = None
+        except BaseException as commit_error:
+            if first_committed:
+                try:
+                    if first_existed:
+                        assert first_backup is not None
+                        os.replace(first_backup, first)
+                        first_backup = None
+                    else:
+                        first.unlink(missing_ok=True)
+                except BaseException as rollback_error:
+                    raise AtomicWriteError(
+                        "pair publication failed and the streamed artifact could not be restored"
+                    ) from rollback_error
+            raise commit_error
+    finally:
+        _remove_if_present(staged_first)
+        _remove_if_present(second_temporary)
+        _remove_if_present(first_backup)
+        _remove_if_present(second_backup)

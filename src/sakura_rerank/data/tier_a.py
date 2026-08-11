@@ -28,12 +28,15 @@ from .contracts import (
     canonical_jsonl_bytes,
     validate_records,
 )
-from .manifest import PREPROCESSING_VERIFIED
+from .manifest import LOCAL_ARTIFACT_VERIFIED, PREPROCESSING_VERIFIED
 from .research_exporter import validate_export_records
 
 
 SOURCE_SPAN_SCHEMA_VERSION = 1
 SOURCE_SPAN_RECORD_TYPE = "jawiki_tier_a_source_span"
+SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 1
+SOURCE_SPAN_MANIFEST_KIND = "jawiki_tier_a_source_spans"
+SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v1"
 DICTIONARY_INDEX_SCHEMA_VERSION = 1
 DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION = 2
 DICTIONARY_INDEX_RECORD_TYPE = "system_dictionary_surface_index"
@@ -56,6 +59,56 @@ VERIFIED_DICTIONARY_INDEX_METADATA = {
         "category_file_count": 14,
         "source_entry_count": 472_825,
         "record_count": 368_341,
+    }
+}
+VERIFIED_SOURCE_SPAN_IDENTITIES = frozenset(
+    {
+        (
+            "7cdb51f77875caab8be25683fc3bf174c0e91325",
+            "f06b747dfa4ec1b650696cd04f156071acde8bf543b5ba9fe94f6146123275c9",
+        )
+    }
+)
+VERIFIED_SOURCE_SPAN_METADATA: dict[tuple[str, str], Mapping[str, Any]] = {
+    (
+        "7cdb51f77875caab8be25683fc3bf174c0e91325",
+        "f06b747dfa4ec1b650696cd04f156071acde8bf543b5ba9fe94f6146123275c9",
+    ): {
+        "schema_version": 1,
+        "manifest_kind": "jawiki_tier_a_source_spans",
+        "snapshot_date": "2026-08-01",
+        "jawiki_local_sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+        "dictionary_index_sha256": "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072",
+        "cleaner_version": "conservative_wikitext_v1",
+        "config": {
+            "sample_modulus": 1_000_000,
+            "sample_slots": 3,
+            "max_records": 100_000,
+            "max_records_per_page": 8,
+            "max_output_bytes": 251_658_240,
+            "min_sentence_chars": 4,
+            "max_sentence_chars": 512,
+            "min_surface_chars": 1,
+            "max_surface_chars": 64,
+        },
+        "eligible_dictionary_surface_count": 335_218,
+        "record_count": 1_969,
+        "counts": {
+            "dictionary_matches": 673_706_344,
+            "matches_not_sampled": 673_704_375,
+            "pages_non_main": 636_071,
+            "pages_processed": 1_512_214,
+            "pages_redirect": 952_212,
+            "pages_total": 3_100_497,
+            "paragraph_too_long": 290,
+            "paragraphs_accepted": 14_737_408,
+            "residual_markup": 103_086,
+            "sentences_accepted": 32_981_912,
+            "sentences_outside_bounds": 1_768_505,
+            "unbalanced_link": 94_862,
+            "unbalanced_template": 86_558,
+        },
+        "raw_text_in_report": False,
     }
 }
 MAX_SOURCE_RECORDS = 1_000_000
@@ -367,6 +420,179 @@ def require_preprocessing_manifest(manifest: Mapping[str, Any]) -> None:
     _sha256(manifest.get("local_sha256"), "jawiki_manifest.local_sha256")
 
 
+def validate_source_span_manifest(
+    manifest: Mapping[str, Any],
+    records: Sequence[Mapping[str, Any]],
+    *,
+    jawiki_manifest: Mapping[str, Any],
+    dictionary_manifest: Mapping[str, Any],
+    require_verified: bool = True,
+) -> dict[str, Any]:
+    """Bind source spans to the exact dump, dictionary index, code and config."""
+
+    fields = {
+        "schema_version",
+        "manifest_kind",
+        "verification_status",
+        "snapshot_date",
+        "jawiki_local_sha256",
+        "dictionary_index_sha256",
+        "extractor_git_sha",
+        "cleaner_version",
+        "config",
+        "eligible_dictionary_surface_count",
+        "record_count",
+        "content_sha256",
+        "counts",
+        "raw_text_in_report",
+    }
+    manifest = _strict_object(manifest, fields, "source_span_manifest")
+    if manifest["schema_version"] != SOURCE_SPAN_MANIFEST_SCHEMA_VERSION:
+        raise TierAError("source_span_manifest.schema_version: unsupported schema")
+    if manifest["manifest_kind"] != SOURCE_SPAN_MANIFEST_KIND:
+        raise TierAError("source_span_manifest.manifest_kind: unsupported kind")
+    status = manifest["verification_status"]
+    if status not in {"measured", "verified"}:
+        raise TierAError("source_span_manifest.verification_status: unsupported status")
+    if manifest["snapshot_date"] != PINNED_JAWIKI_SNAPSHOT_DATE:
+        raise TierAError("source_span_manifest.snapshot_date: wrong pinned snapshot")
+    if jawiki_manifest.get("status") not in {
+        LOCAL_ARTIFACT_VERIFIED,
+        PREPROCESSING_VERIFIED,
+    }:
+        raise TierABlockedError(
+            "jawiki_artifact", "a verified local jawiki artifact is required"
+        )
+    if jawiki_manifest.get("snapshot_date") != PINNED_JAWIKI_SNAPSHOT_DATE:
+        raise TierAError("jawiki_manifest.snapshot_date: wrong pinned snapshot")
+    jawiki_sha = _sha256(
+        manifest["jawiki_local_sha256"], "source_span_manifest.jawiki_local_sha256"
+    )
+    if jawiki_sha != jawiki_manifest.get("local_sha256"):
+        raise TierAError("source_span_manifest.jawiki_local_sha256: does not match dump")
+    dictionary_sha = _sha256(
+        manifest["dictionary_index_sha256"],
+        "source_span_manifest.dictionary_index_sha256",
+    )
+    if dictionary_sha != dictionary_manifest.get("content_sha256"):
+        raise TierAError(
+            "source_span_manifest.dictionary_index_sha256: does not match dictionary index"
+        )
+    extractor_git_sha = _git_sha(
+        manifest["extractor_git_sha"], "source_span_manifest.extractor_git_sha"
+    )
+    if manifest["cleaner_version"] != SOURCE_SPAN_CLEANER_VERSION:
+        raise TierAError("source_span_manifest.cleaner_version: unsupported cleaner")
+    config = _strict_object(
+        manifest["config"],
+        {
+            "sample_modulus",
+            "sample_slots",
+            "max_records",
+            "max_records_per_page",
+            "max_output_bytes",
+            "min_sentence_chars",
+            "max_sentence_chars",
+            "min_surface_chars",
+            "max_surface_chars",
+        },
+        "source_span_manifest.config",
+    )
+    integer_bounds = {
+        "sample_modulus": 1_000_000,
+        "sample_slots": 1_000_000,
+        "max_records": MAX_SOURCE_RECORDS,
+        "max_records_per_page": 1_000,
+        "max_output_bytes": MAX_INPUT_FILE_BYTES,
+        "min_sentence_chars": 4_096,
+        "max_sentence_chars": 4_096,
+        "min_surface_chars": 256,
+        "max_surface_chars": 256,
+    }
+    normalized_config = {
+        field: _integer(config[field], f"source_span_manifest.config.{field}", maximum=bound)
+        for field, bound in integer_bounds.items()
+    }
+    if not (
+        1 <= normalized_config["sample_slots"] <= normalized_config["sample_modulus"]
+        and 1 <= normalized_config["max_records"]
+        and 1 <= normalized_config["max_records_per_page"]
+        and 1 <= normalized_config["max_output_bytes"]
+        and 1
+        <= normalized_config["min_sentence_chars"]
+        <= normalized_config["max_sentence_chars"]
+        and 1
+        <= normalized_config["min_surface_chars"]
+        <= normalized_config["max_surface_chars"]
+    ):
+        raise TierAError("source_span_manifest.config: invalid bounds")
+    surface_count = _integer(
+        manifest["eligible_dictionary_surface_count"],
+        "source_span_manifest.eligible_dictionary_surface_count",
+        maximum=MAX_DICTIONARY_RECORDS,
+    )
+    if surface_count < 1:
+        raise TierAError(
+            "source_span_manifest.eligible_dictionary_surface_count: must be positive"
+        )
+    record_count = _integer(
+        manifest["record_count"],
+        "source_span_manifest.record_count",
+        maximum=MAX_SOURCE_RECORDS,
+    )
+    if record_count < 1 or record_count != len(records):
+        raise TierAError("source_span_manifest.record_count: does not match source spans")
+    content_sha = _sha256(
+        manifest["content_sha256"], "source_span_manifest.content_sha256"
+    )
+    if content_sha != hashlib.sha256(canonical_jsonl_bytes(records)).hexdigest():
+        raise TierAError("source_span_manifest.content_sha256: does not match source spans")
+    counts = manifest["counts"]
+    if not isinstance(counts, Mapping) or not counts:
+        raise TierAError("source_span_manifest.counts: must be a non-empty object")
+    normalized_counts: dict[str, int] = {}
+    for key, value in counts.items():
+        key = _string(key, "source_span_manifest.counts key", maximum=64)
+        if re.fullmatch(r"[a-z][a-z0-9_]*", key) is None:
+            raise TierAError("source_span_manifest.counts: invalid key")
+        normalized_counts[key] = _integer(
+            value, f"source_span_manifest.counts.{key}", maximum=10_000_000_000
+        )
+    if manifest["raw_text_in_report"] is not False:
+        raise TierAError("source_span_manifest.raw_text_in_report: must be false")
+    normalized = {
+        "schema_version": SOURCE_SPAN_MANIFEST_SCHEMA_VERSION,
+        "manifest_kind": SOURCE_SPAN_MANIFEST_KIND,
+        "verification_status": status,
+        "snapshot_date": PINNED_JAWIKI_SNAPSHOT_DATE,
+        "jawiki_local_sha256": jawiki_sha,
+        "dictionary_index_sha256": dictionary_sha,
+        "extractor_git_sha": extractor_git_sha,
+        "cleaner_version": SOURCE_SPAN_CLEANER_VERSION,
+        "config": normalized_config,
+        "eligible_dictionary_surface_count": surface_count,
+        "record_count": record_count,
+        "content_sha256": content_sha,
+        "counts": dict(sorted(normalized_counts.items())),
+        "raw_text_in_report": False,
+    }
+    identity = (extractor_git_sha, content_sha)
+    if status == "verified":
+        if identity not in VERIFIED_SOURCE_SPAN_IDENTITIES:
+            raise TierAError("source_span_manifest: verified identity is outside the allowlist")
+        if VERIFIED_SOURCE_SPAN_METADATA.get(identity) != {
+            field: value
+            for field, value in normalized.items()
+            if field not in {"verification_status", "extractor_git_sha", "content_sha256"}
+        }:
+            raise TierAError("source_span_manifest: verified metadata does not match identity")
+    if require_verified and status != "verified":
+        raise TierABlockedError(
+            "jawiki_source_spans", "an allowlisted verified source-span manifest is required"
+        )
+    return normalized
+
+
 def generate_tier_a_records(
     source_spans: Sequence[Mapping[str, Any]],
     dictionary_index: Sequence[Mapping[str, Any]],
@@ -374,10 +600,10 @@ def generate_tier_a_records(
     *,
     jawiki_manifest: Mapping[str, Any],
     dictionary_manifest: Mapping[str, Any],
+    source_span_manifest: Mapping[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Join validated immutable inputs and retain only automatic Tier A passes."""
 
-    require_preprocessing_manifest(jawiki_manifest)
     source_content_sha256 = hashlib.sha256(
         canonical_jsonl_bytes(source_spans)
     ).hexdigest()
@@ -385,6 +611,12 @@ def generate_tier_a_records(
     dictionary = validate_dictionary_index(dictionary_index)
     normalized_dictionary_manifest = validate_dictionary_index_manifest(
         dictionary_manifest, dictionary
+    )
+    normalized_source_manifest = validate_source_span_manifest(
+        source_span_manifest,
+        source_spans,
+        jawiki_manifest=jawiki_manifest,
+        dictionary_manifest=normalized_dictionary_manifest,
     )
     dictionary_by_surface = {record["surface"]: record["readings"] for record in dictionary}
     try:
@@ -511,9 +743,10 @@ def generate_tier_a_records(
         "rejection_counts": dict(sorted(rejected.items())),
         "unused_exporter_snapshot_count": len(set(exporter_by_id) - source_ids),
         "jawiki_local_sha256": jawiki_manifest["local_sha256"],
-        "jawiki_preprocessing_git_sha": jawiki_manifest["preprocessing_git_sha"],
+        "jawiki_preprocessing_git_sha": normalized_source_manifest["extractor_git_sha"],
         "dictionary_indexer_git_sha": normalized_dictionary_manifest["indexer_git_sha"],
         "source_content_sha256": source_content_sha256,
+        "source_span_manifest_kind": normalized_source_manifest["manifest_kind"],
         "dictionary_index_content_sha256": hashlib.sha256(
             canonical_jsonl_bytes(dictionary)
         ).hexdigest(),
@@ -584,4 +817,17 @@ def read_dictionary_index_manifest(path: str | Path) -> Mapping[str, Any]:
         raise TierAError(f"dictionary index manifest: cannot read ({type(error).__name__})") from error
     if not isinstance(value, Mapping):
         raise TierAError("dictionary index manifest: must be an object")
+    return value
+
+
+def read_source_span_manifest(path: str | Path) -> Mapping[str, Any]:
+    try:
+        manifest_path = Path(path)
+        if manifest_path.stat().st_size > MAX_MANIFEST_FILE_BYTES:
+            raise TierAError("source span manifest: exceeds bounded size")
+        value = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise TierAError(f"source span manifest: cannot read ({type(error).__name__})") from error
+    if not isinstance(value, Mapping):
+        raise TierAError("source span manifest: must be an object")
     return value
