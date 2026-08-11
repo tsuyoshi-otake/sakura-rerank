@@ -23,6 +23,19 @@ from sakura_rerank.data.research_exporter import (
     validate_exporter_manifest,
 )
 
+VERIFIED_EXPORTER_IDENTITY = (
+    "06ff8c34417fb7dbc24e41d786dfb6434cdd6aa1",
+    "0b26990a153df06c8e870b7e44abca386ada2ffd6f649c0232cea6a79960acbf",
+)
+COMMIT_C_IDENTITY = (
+    "835c5fcf5f02193474353650ea7b5566a7bb5cb4",
+    "9b59b08e56446f8462f82cb97dbcf090e7b511e7a39c0a9fa7a07541f7cafbd9",
+)
+COMMIT_A_IDENTITY = (
+    "e6242eecb33e7872954229d7faafef2950a11740",
+    "a720f01d763b7129c5a64afdd7e0ac291c7c0efeac63503a0c37ffacddb9a4fd",
+)
+
 
 def _candidate() -> dict[str, object]:
     surface = "kana"
@@ -143,33 +156,72 @@ def _manifest(
 
 
 class ResearchExporterContractTests(unittest.TestCase):
-    def test_commit_e_has_no_verified_manifest_or_trusted_identity(self) -> None:
+    def test_commit_f_pins_only_the_measured_commit_e_identity(self) -> None:
         manifest_path = (
             Path(__file__).parents[1] / "manifests" / "research-exporter-verified.json"
         )
-        self.assertFalse(manifest_path.exists())
-        self.assertEqual(len(VERIFIED_RESEARCH_EXPORTER_IDENTITIES), 0)
-        with self.assertRaisesRegex(ContractError, "outside the allowlist"):
-            validate_exporter_manifest(_manifest(status="verified"))
-        self.assertNotIn(
-            (
-                "e6242eecb33e7872954229d7faafef2950a11740",
-                "a720f01d763b7129c5a64afdd7e0ac291c7c0efeac63503a0c37ffacddb9a4fd",
-            ),
+        self.assertTrue(manifest_path.is_file())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        normalized = validate_exporter_manifest(manifest)
+        self.assertEqual(normalized, manifest)
+        self.assertEqual(
             VERIFIED_RESEARCH_EXPORTER_IDENTITIES,
+            frozenset({VERIFIED_EXPORTER_IDENTITY}),
         )
-        self.assertEqual(len(VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA), 0)
+        self.assertEqual(
+            set(VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA), {VERIFIED_EXPORTER_IDENTITY}
+        )
+        trusted_metadata = {
+            key: value
+            for key, value in normalized.items()
+            if key not in {"exporter_git_sha", "exporter_binary_sha256", "verification_status"}
+        }
+        self.assertEqual(
+            VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA[VERIFIED_EXPORTER_IDENTITY],
+            trusted_metadata,
+        )
+        self.assertNotIn(COMMIT_C_IDENTITY, VERIFIED_RESEARCH_EXPORTER_IDENTITIES)
+        self.assertNotIn(COMMIT_A_IDENTITY, VERIFIED_RESEARCH_EXPORTER_IDENTITIES)
 
-    def test_old_identity_is_rejected(self) -> None:
-        old_manifest = _manifest(
-            status="verified",
-            exporter_git_sha="e6242eecb33e7872954229d7faafef2950a11740",
-            exporter_binary_sha256=(
-                "a720f01d763b7129c5a64afdd7e0ac291c7c0efeac63503a0c37ffacddb9a4fd"
-            ),
+    def test_old_and_fake_identities_are_rejected(self) -> None:
+        for identity in (COMMIT_C_IDENTITY, COMMIT_A_IDENTITY, ("f" * 40, "e" * 64)):
+            with self.subTest(identity=identity):
+                manifest = _manifest(
+                    status="verified",
+                    exporter_git_sha=identity[0],
+                    exporter_binary_sha256=identity[1],
+                )
+                with self.assertRaisesRegex(ContractError, "outside the allowlist"):
+                    validate_exporter_manifest(manifest)
+
+    def test_every_trusted_metadata_field_is_fail_closed(self) -> None:
+        manifest_path = (
+            Path(__file__).parents[1] / "manifests" / "research-exporter-verified.json"
         )
-        with self.assertRaisesRegex(ContractError, "outside the allowlist"):
-            validate_exporter_manifest(old_manifest)
+        original = json.loads(manifest_path.read_text(encoding="utf-8"))
+        metadata_fields = set(
+            VERIFIED_RESEARCH_EXPORTER_TRUSTED_METADATA[VERIFIED_EXPORTER_IDENTITY]
+        )
+        self.assertEqual(
+            metadata_fields,
+            set(original) - {"exporter_git_sha", "exporter_binary_sha256", "verification_status"},
+        )
+        for field in sorted(metadata_fields):
+            with self.subTest(field=field):
+                tampered = copy.deepcopy(original)
+                value = tampered[field]
+                if isinstance(value, bool):
+                    tampered[field] = not value
+                elif isinstance(value, int):
+                    tampered[field] = value + 1
+                elif isinstance(value, list):
+                    tampered[field] = [*value, "tampered"]
+                elif isinstance(value, dict):
+                    tampered[field] = {**value, "TAMPERED": "1"}
+                else:
+                    tampered[field] = "tampered"
+                with self.assertRaises(ContractError):
+                    validate_exporter_manifest(tampered)
 
     def test_unverified_export_is_valid_only_in_explicit_measurement_mode(self) -> None:
         record = _record()
