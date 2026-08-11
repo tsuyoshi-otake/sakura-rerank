@@ -10,6 +10,11 @@ from pathlib import Path
 
 from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
+from .exporter_requests import (
+    ensure_paths_under_root,
+    generate_exporter_requests,
+    publish_exporter_requests,
+)
 from .jawiki_acquisition import AcquisitionError, acquire_jawiki
 from .jawiki_preprocess import (
     ExtractorConfig,
@@ -121,6 +126,19 @@ def _parser() -> argparse.ArgumentParser:
     preprocess.add_argument("--max-records", type=int, default=200_000)
     preprocess.add_argument("--max-records-per-page", type=int, default=32)
     preprocess.add_argument("--max-output-bytes", type=int, default=240 * 1024 * 1024)
+
+    exporter_requests = commands.add_parser(
+        "exporter-requests", help="build a verified research top-32 request batch"
+    )
+    exporter_requests.add_argument("source_spans", type=Path)
+    exporter_requests.add_argument("output", type=Path)
+    exporter_requests.add_argument("--dictionary-index", type=Path, required=True)
+    exporter_requests.add_argument("--dictionary-manifest", type=Path, required=True)
+    exporter_requests.add_argument("--jawiki-manifest", type=Path, required=True)
+    exporter_requests.add_argument("--source-span-manifest", type=Path, required=True)
+    exporter_requests.add_argument("--allowed-root", type=Path, required=True)
+    exporter_requests.add_argument("--report", type=Path, required=True)
+    exporter_requests.add_argument("--builder-git-sha", required=True)
 
     return parser
 
@@ -301,6 +319,47 @@ def _run(arguments: argparse.Namespace) -> int:
                 {
                     "status": "measured",
                     "record_count": count,
+                    "content_sha256": output_hash,
+                    "report_sha256": report_hash,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    if arguments.command == "exporter-requests":
+        request_paths = {
+            "source_spans": arguments.source_spans,
+            "dictionary_index": arguments.dictionary_index,
+            "dictionary_manifest": arguments.dictionary_manifest,
+            "jawiki_manifest": arguments.jawiki_manifest,
+            "source_span_manifest": arguments.source_span_manifest,
+            "output": arguments.output,
+            "report": arguments.report,
+        }
+        ensure_distinct_tier_a_paths(request_paths)
+        ensure_paths_under_root(request_paths, arguments.allowed_root)
+        jawiki_manifest = validate_manifest_document(
+            load_manifest_document(arguments.jawiki_manifest), arguments.allowed_root
+        )
+        dictionary = read_dictionary_index(arguments.dictionary_index)
+        dictionary_manifest = read_dictionary_index_manifest(arguments.dictionary_manifest)
+        requests, report = generate_exporter_requests(
+            read_source_spans(arguments.source_spans),
+            dictionary,
+            jawiki_manifest=jawiki_manifest,
+            dictionary_manifest=dictionary_manifest,
+            source_span_manifest=read_source_span_manifest(arguments.source_span_manifest),
+            builder_git_sha=arguments.builder_git_sha,
+        )
+        output_hash, report_hash = publish_exporter_requests(
+            arguments.output, arguments.report, requests, report
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "generated",
+                    "record_count": len(requests),
                     "content_sha256": output_hash,
                     "report_sha256": report_hash,
                 },

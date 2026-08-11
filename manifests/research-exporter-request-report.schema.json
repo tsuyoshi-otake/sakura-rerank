@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tsuyoshi-otake/sakura-rerank/manifests/research-exporter-request-report.schema.json",
+  "title": "Research top-32 exporter request batch report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_kind",
+    "verification_status",
+    "builder_git_sha",
+    "record_count",
+    "content_sha256",
+    "source_span_content_sha256",
+    "source_span_extractor_git_sha",
+    "dictionary_index_content_sha256",
+    "dictionary_indexer_git_sha",
+    "dictionary_sha256",
+    "sakura_input_head",
+    "jawiki_local_sha256",
+    "raw_text_in_report"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "report_kind": { "const": "research_top32_request_batch" },
+    "verification_status": { "const": "verified_inputs" },
+    "builder_git_sha": { "$ref": "#/$defs/gitSha" },
+    "record_count": { "type": "integer", "minimum": 1, "maximum": 4096 },
+    "content_sha256": { "$ref": "#/$defs/sha256" },
+    "source_span_content_sha256": { "$ref": "#/$defs/sha256" },
+    "source_span_extractor_git_sha": { "$ref": "#/$defs/gitSha" },
+    "dictionary_index_content_sha256": { "$ref": "#/$defs/sha256" },
+    "dictionary_indexer_git_sha": { "$ref": "#/$defs/gitSha" },
+    "dictionary_sha256": { "$ref": "#/$defs/sha256" },
+    "sakura_input_head": { "$ref": "#/$defs/gitSha" },
+    "jawiki_local_sha256": { "$ref": "#/$defs/sha256" },
+    "raw_text_in_report": { "const": false }
+  },
+  "$defs": {
+    "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
