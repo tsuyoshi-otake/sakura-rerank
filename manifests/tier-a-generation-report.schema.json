@@ -3,7 +3,7 @@
   "title": "Sakura Rerank Tier A generation aggregate report",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "report_kind", "status", "input_record_count", "accepted_record_count", "rejected_record_count", "rejection_counts", "unused_exporter_snapshot_count", "jawiki_local_sha256", "jawiki_preprocessing_git_sha", "dictionary_indexer_git_sha", "source_content_sha256", "dictionary_index_content_sha256", "exporter_content_sha256", "content_sha256"],
+  "required": ["schema_version", "report_kind", "status", "input_record_count", "accepted_record_count", "rejected_record_count", "rejection_counts", "unused_exporter_snapshot_count", "jawiki_local_sha256", "jawiki_preprocessing_git_sha", "dictionary_indexer_git_sha", "source_content_sha256", "source_span_manifest_kind", "dictionary_index_content_sha256", "exporter_content_sha256", "content_sha256"],
   "properties": {
     "schema_version": {"const": 1},
     "report_kind": {"const": "tier_a_generation"},
@@ -17,6 +17,7 @@
     "jawiki_preprocessing_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "dictionary_indexer_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "source_content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_span_manifest_kind": {"const": "jawiki_tier_a_source_spans"},
     "dictionary_index_content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "exporter_content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}

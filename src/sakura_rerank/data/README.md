@@ -1,9 +1,9 @@
 # Data boundary tooling
 
-This package defines the provenance, Tier A assembly, and split boundary. It
-does not download jawiki, extract articles, invoke Sakura Input, or train a
-model. Tier A assembly consumes already generated immutable external artifacts;
-it does not infer readings or candidates.
+This package defines acquisition, deterministic source-span preprocessing,
+provenance, Tier A assembly, and splitting. It never invokes Sakura Input or
+trains a model. Tier A assembly consumes immutable external artifacts and does
+not infer readings or candidates.
 
 ## Fixed snapshot manifest
 
@@ -98,7 +98,7 @@ missing gold, and singleton examples are rejected.
 ## Tier A assembly
 
 The `tier-a` command joins three external, bounded inputs: jawiki source spans
-from a `preprocessing_verified` fixed-snapshot manifest, an exact system
+bound to an allowlisted source-span manifest, an exact system
 dictionary surface index bound to the pinned compiled dictionary SHA-256, and
 allowlisted research top-32 snapshots. A source span contains no reading. The
 reading comes only from an exact surface lookup with exactly one indexed
@@ -113,10 +113,27 @@ unverified, generation returns a structured blocker and publishes neither
 artifact. Successful output and report use the same transactional pair writer
 as the splitter.
 
-The committed jawiki manifest is currently only
-`official_metadata_verified`, so a real invocation intentionally stops before
-reading source/index/exporter payloads. No dump, extracted span, dictionary
-index, exporter JSONL, or generated dataset is tracked by Git.
+The source-span manifest binds the local dump SHA-256, dictionary-index hash,
+extractor Git SHA, cleaner version, every bound/sampling parameter, aggregate
+counts, record count, and canonical JSONL hash. A measured result remains
+blocked until the exact identity and all metadata are reproduced and
+allowlisted. No dump, extracted span, dictionary index, exporter JSONL, or
+generated dataset is tracked by Git.
+
+## Deterministic jawiki source spans
+
+`jawiki-preprocess` streams the pinned bzip2 XML with `iterparse`; it never
+writes raw XML or an intermediate article corpus. It accepts namespace-zero,
+non-redirect pages with numeric page and revision identities. The versioned
+conservative cleaner removes balanced templates, tables, references, supported
+links and tags, and rejects paragraphs with ambiguous or residual markup.
+
+The matcher indexes only system-dictionary surfaces that have exactly one
+reading. Two-character prefix buckets and descending surface lengths select the
+longest non-overlapping exact match without materializing article-by-dictionary
+pairs. Hash sampling and per-page/global record bounds are deterministic. The
+canonical JSONL and text-free manifest are staged and committed as one
+transaction; a failed second replacement restores the prior pair.
 
 ## Exact dictionary index
 
@@ -192,13 +209,24 @@ python -m sakura_rerank.data dictionary-index `
   --manifest data\generated\system-dictionary-index-manifest.json `
   --indexer-git-sha <exact-sakura-rerank-git-sha>
 
+python -m sakura_rerank.data jawiki-preprocess `
+  data\downloads\jawiki-20260801-pages-articles-multistream.xml.bz2 `
+  data\generated\source-spans.jsonl `
+  --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
+  --allowed-root . `
+  --dictionary-index data\generated\system-dictionary-index.jsonl `
+  --dictionary-manifest manifests\system-dictionary-index-verified.json `
+  --report data\generated\source-spans-measured.json `
+  --extractor-git-sha <exact-sakura-rerank-git-sha>
+
 python -m sakura_rerank.data tier-a `
   data\generated\source-spans.jsonl data\generated\top32.jsonl `
   data\generated\tier-a.jsonl `
   --dictionary-index data\generated\system-dictionary-index.jsonl `
   --dictionary-manifest data\generated\system-dictionary-index-manifest.json `
   --exporter-manifest manifests\research-exporter-verified.json `
-  --jawiki-manifest manifests\jawiki-20260801-pages-articles-multistream.json `
+  --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
+  --source-span-manifest manifests\jawiki-tier-a-source-spans-verified.json `
   --allowed-root data --report reports\tier-a-generation.json
 
 # An input JSONL file has the same contract fields with `split: null`.
