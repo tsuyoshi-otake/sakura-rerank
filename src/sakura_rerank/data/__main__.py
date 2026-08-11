@@ -15,7 +15,7 @@ from .manifest import (
     load_manifest_document,
     validate_manifest_document,
 )
-from .splitter import SplitError, assign_splits
+from .splitter import SplitError, assign_splits, ensure_distinct_paths
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -51,7 +51,7 @@ def _run(arguments: argparse.Namespace) -> int:
         print(
             json.dumps(
                 {
-                    "status": "validated",
+                    "status": validated["status"],
                     "manifest_kind": validated["manifest_kind"],
                     "snapshot_date": validated["snapshot_date"],
                     "local_sha256": validated["local_sha256"],
@@ -77,6 +77,7 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         return 0
 
+    ensure_distinct_paths(arguments.input, arguments.output, arguments.report)
     records = read_jsonl(arguments.input, require_split=False)
     output, report = assign_splits(records, seed=arguments.seed)
     output_hash = write_jsonl(arguments.output, output)

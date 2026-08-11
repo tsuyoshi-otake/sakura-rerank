@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from .contracts import (
@@ -87,32 +89,59 @@ def _jaccard(left: set[str], right: set[str]) -> float:
     return len(left & right) / len(union)
 
 
-def _near_duplicate_edges(
+def _union_near_duplicates(
     records: Sequence[Mapping[str, Any]],
+    union_find: _UnionFind,
     *,
     threshold: float,
-) -> tuple[list[tuple[int, int]], _UnionFind]:
-    """Find near duplicates using a shingle inverted index, not all-pairs scans."""
+) -> tuple[int, int, int, _UnionFind]:
+    """Union near duplicates without materializing record-pair edges.
+
+    Exact shingle signatures are collapsed before the inverted-index join.  A
+    10,000-record identical-signature group therefore takes O(N) unions and one
+    signature entry instead of 49,995,000 stored/computed edges.
+    """
 
     if not 0.0 < threshold <= 1.0:
         raise SplitError("near_duplicate_threshold: must be in (0, 1]")
-    shingle_sets = [
-        set(record["source"]["sentence_shingle_hashes"]) for record in records
-    ]
-    inverted: dict[str, list[int]] = defaultdict(list)
-    edges: list[tuple[int, int]] = []
+    signature_groups: dict[tuple[str, ...], list[int]] = defaultdict(list)
+    for index, record in enumerate(records):
+        signature = tuple(record["source"]["sentence_shingle_hashes"])
+        signature_groups[signature].append(index)
+    signatures = sorted(signature_groups)
+    grouped_indexes = [signature_groups[signature] for signature in signatures]
     near_union = _UnionFind(len(records))
-    for index, shingles in enumerate(shingle_sets):
+    matching_record_pair_count = 0
+    for indexes in grouped_indexes:
+        first = indexes[0]
+        for index in indexes[1:]:
+            union_find.union(first, index)
+            near_union.union(first, index)
+        matching_record_pair_count += len(indexes) * (len(indexes) - 1) // 2
+
+    inverted: dict[str, list[int]] = defaultdict(list)
+    signature_comparison_count = 0
+    signature_sets = [set(signature) for signature in signatures]
+    for signature_index, shingles in enumerate(signature_sets):
         possible: set[int] = set()
-        for shingle in sorted(shingles):
+        for shingle in signatures[signature_index]:
             possible.update(inverted.get(shingle, ()))
         for previous in sorted(possible):
-            if _jaccard(shingles, shingle_sets[previous]) >= threshold:
-                edges.append((previous, index))
-                near_union.union(previous, index)
-        for shingle in sorted(shingles):
-            inverted[shingle].append(index)
-    return edges, near_union
+            signature_comparison_count += 1
+            if _jaccard(shingles, signature_sets[previous]) >= threshold:
+                left_indexes = grouped_indexes[previous]
+                right_indexes = grouped_indexes[signature_index]
+                union_find.union(left_indexes[0], right_indexes[0])
+                near_union.union(left_indexes[0], right_indexes[0])
+                matching_record_pair_count += len(left_indexes) * len(right_indexes)
+        for shingle in signatures[signature_index]:
+            inverted[shingle].append(signature_index)
+    return (
+        matching_record_pair_count,
+        len(signatures),
+        signature_comparison_count,
+        near_union,
+    )
 
 
 def _cross_split_group_count(
@@ -169,11 +198,14 @@ def assign_splits(
     article_group_count = _union_groups(union_find, article_groups)
     paragraph_group_count = _union_groups(union_find, paragraph_groups)
     template_group_count = _union_groups(union_find, template_groups)
-    near_edges, near_union = _near_duplicate_edges(
-        normalized, threshold=near_duplicate_threshold
+    (
+        near_pair_count,
+        near_signature_count,
+        near_signature_comparison_count,
+        near_union,
+    ) = _union_near_duplicates(
+        normalized, union_find, threshold=near_duplicate_threshold
     )
-    for left, right in near_edges:
-        union_find.union(left, right)
 
     components = union_find.groups()
     component_records = [
@@ -246,8 +278,16 @@ def assign_splits(
         for indexes in component_records
     )
     output_bytes = canonical_jsonl_bytes(output)
+    split_content_sha256 = {
+        split: hashlib.sha256(
+            canonical_jsonl_bytes(
+                [record for record in output if record["split"] == split]
+            )
+        ).hexdigest()
+        for split in SPLITS
+    }
     report: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "seed": seed,
         "split_ratios": ratios,
         "record_count": len(output),
@@ -256,8 +296,10 @@ def assign_splits(
         },
         "article_group_count": article_group_count,
         "paragraph_exact_group_count": paragraph_group_count,
-        "sentence_near_duplicate_edge_count": len(near_edges),
+        "sentence_near_duplicate_pair_count": near_pair_count,
         "sentence_near_duplicate_cluster_count": len(near_groups),
+        "sentence_signature_count": near_signature_count,
+        "sentence_signature_comparison_count": near_signature_comparison_count,
         "template_cluster_count": template_group_count,
         "leakage_component_count": len(component_records),
         "leakage_component_hashes": component_hashes,
@@ -275,6 +317,7 @@ def assign_splits(
             ),
         },
         "content_sha256": hashlib.sha256(output_bytes).hexdigest(),
+        "split_content_sha256": split_content_sha256,
     }
     if any(value != 0 for value in report["cross_split_leakage"].values()):
         raise SplitError("splitter produced cross-split leakage")
@@ -282,6 +325,46 @@ def assign_splits(
     # also rejects accidental non-deterministic values before the caller writes.
     canonical_json_bytes(report)
     return output, report
+
+
+def ensure_distinct_paths(
+    input_path: str | Path,
+    output_path: str | Path,
+    report_path: str | Path,
+) -> None:
+    """Reject aliases/hardlinks before a split command reads or writes data."""
+
+    named_paths = {
+        "input": Path(input_path),
+        "output": Path(output_path),
+        "report": Path(report_path),
+    }
+    resolved: dict[str, str] = {}
+    try:
+        for name, path in named_paths.items():
+            resolved[name] = os.path.normcase(os.fspath(path.resolve(strict=False)))
+    except OSError as error:
+        raise SplitError(f"paths: cannot resolve ({type(error).__name__})") from error
+
+    names = tuple(named_paths)
+    for left_index, left_name in enumerate(names):
+        for right_name in names[left_index + 1 :]:
+            same_resolved_path = resolved[left_name] == resolved[right_name]
+            same_existing_file = False
+            left_path = named_paths[left_name]
+            right_path = named_paths[right_name]
+            if left_path.exists() and right_path.exists():
+                try:
+                    same_existing_file = left_path.samefile(right_path)
+                except OSError as error:
+                    raise SplitError(
+                        f"paths: cannot compare {left_name} and {right_name} "
+                        f"({type(error).__name__})"
+                    ) from error
+            if same_resolved_path or same_existing_file:
+                raise SplitError(
+                    f"paths: {left_name} and {right_name} must be distinct"
+                )
 
 
 def split_jsonl(
@@ -294,13 +377,12 @@ def split_jsonl(
 ) -> tuple[str, str]:
     """CLI helper: split an unassigned JSONL file and write both artifacts."""
 
+    ensure_distinct_paths(input_path, output_path, report_path)
     records = read_jsonl(input_path, require_split=False)
     output, report = assign_splits(
         records, seed=seed, near_duplicate_threshold=near_duplicate_threshold
     )
     output_hash = write_jsonl(output_path, output)
     report_payload = canonical_json_bytes(report) + b"\n"
-    from pathlib import Path
-
     Path(report_path).write_bytes(report_payload)
     return output_hash, hashlib.sha256(report_payload).hexdigest()

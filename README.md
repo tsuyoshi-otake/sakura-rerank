@@ -68,7 +68,7 @@ based on the measured accuracy/latency Pareto frontier, not architecture novelty
 
 ## Data contract boundary
 
-The first Luna implementation PR adds only fixed-source manifest validation,
+The current dataset-contract PR adds only fixed-source manifest validation,
 versioned JSONL contracts, and deterministic leakage-safe splitting. The
 standard-library tooling and CLI are documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md). It does

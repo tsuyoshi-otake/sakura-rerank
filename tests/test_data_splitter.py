@@ -1,9 +1,21 @@
 from __future__ import annotations
 
+import hashlib
+import time
 import unittest
 
-from sakura_rerank.data.contracts import canonical_json_bytes, canonical_jsonl_bytes, sentence_shingle_hashes, text_sha256
-from sakura_rerank.data.splitter import SplitError, assign_splits
+from sakura_rerank.data.contracts import (
+    canonical_json_bytes,
+    canonical_jsonl_bytes,
+    sentence_shingle_hashes,
+    text_sha256,
+)
+from sakura_rerank.data.splitter import (
+    SplitError,
+    _UnionFind,
+    _union_near_duplicates,
+    assign_splits,
+)
 
 from tests.test_data_contracts import fixture_record
 
@@ -83,7 +95,7 @@ def leakage_fixture() -> list[dict[str, object]]:
                 f"fixture-{index:03d}",
                 article_id=f"article-{index}",
                 paragraph=f"independent paragraph {index}",
-                sentence=f"independent sentence {index}",
+                sentence=chr(ord("a") + index) * 16,
             )
         )
     return records
@@ -109,14 +121,62 @@ class SplitterTests(unittest.TestCase):
             },
         )
         self.assertEqual(report["record_count"], len(output))
+        self.assertEqual(report["schema_version"], 2)
         self.assertEqual(sum(report["split_counts"].values()), len(output))
+        self.assertTrue(
+            all(
+                report["split_counts"][split] > 0
+                for split in ("train", "dev", "final-holdout")
+            )
+        )
+        self.assertEqual(
+            set(report["split_content_sha256"]),
+            {"train", "dev", "final-holdout"},
+        )
+        for split in ("train", "dev", "final-holdout"):
+            expected = hashlib.sha256(
+                canonical_jsonl_bytes(
+                    [record for record in output if record["split"] == split]
+                )
+            ).hexdigest()
+            self.assertEqual(report["split_content_sha256"][split], expected)
 
     def test_same_input_and_seed_are_byte_identical(self) -> None:
         first_output, first_report = assign_splits(leakage_fixture(), seed=17)
         second_output, second_report = assign_splits(leakage_fixture(), seed=17)
 
-        self.assertEqual(canonical_jsonl_bytes(first_output), canonical_jsonl_bytes(second_output))
-        self.assertEqual(canonical_json_bytes(first_report), canonical_json_bytes(second_report))
+        self.assertEqual(
+            canonical_jsonl_bytes(first_output),
+            canonical_jsonl_bytes(second_output),
+        )
+        self.assertEqual(
+            canonical_json_bytes(first_report),
+            canonical_json_bytes(second_report),
+        )
+        self.assertEqual(
+            first_report["split_content_sha256"],
+            second_report["split_content_sha256"],
+        )
+
+    def test_identical_signature_join_is_bounded_for_10000_records(self) -> None:
+        signature = ["a" * 64, "b" * 64, "c" * 64]
+        records = [
+            {"source": {"sentence_shingle_hashes": signature}}
+            for _ in range(10_000)
+        ]
+        union_find = _UnionFind(len(records))
+
+        started = time.perf_counter()
+        pair_count, signature_count, comparison_count, near_union = (
+            _union_near_duplicates(records, union_find, threshold=0.8)
+        )
+        elapsed = time.perf_counter() - started
+
+        self.assertEqual(pair_count, 10_000 * 9_999 // 2)
+        self.assertEqual(signature_count, 1)
+        self.assertEqual(comparison_count, 0)
+        self.assertEqual(len(near_union.groups()), 1)
+        self.assertLess(elapsed, 5.0)
 
     def test_existing_assignment_is_immutable_and_conflicts_fail(self) -> None:
         records = leakage_fixture()

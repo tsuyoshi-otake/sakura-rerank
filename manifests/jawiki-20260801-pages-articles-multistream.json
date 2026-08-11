@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "manifest_kind": "jawiki_snapshot",
+  "status": "official_metadata_verified",
+  "artifact_kind": "pages_articles_multistream_xml_bz2",
+  "snapshot_date": "2026-08-01",
+  "file_name": "jawiki-20260801-pages-articles-multistream.xml.bz2",
+  "official_url": "https://dumps.wikimedia.org/jawiki/20260801/jawiki-20260801-pages-articles-multistream.xml.bz2",
+  "byte_size": 4827732824,
+  "official_md5": "b51bab6d1cc23efddc4363e78b5526c6",
+  "official_sha1": "6c917b51d6f6b53a34eaebcb2a675c0769054343",
+  "metadata_sources": {
+    "dump_status_url": "https://dumps.wikimedia.org/jawiki/20260801/dumpstatus.json",
+    "md5_url": "https://dumps.wikimedia.org/jawiki/20260801/jawiki-20260801-md5sums.txt",
+    "sha1_url": "https://dumps.wikimedia.org/jawiki/20260801/jawiki-20260801-sha1sums.txt",
+    "confirmed_at": "2026-08-11T05:15:00Z"
+  },
+  "local_path": null,
+  "local_sha256": null,
+  "retrieved_at": null,
+  "license": {
+    "summary": "Wikimedia text is generally available under CC BY-SA 4.0 and GFDL; source-specific exceptions may apply",
+    "url": "https://dumps.wikimedia.org/legal.html"
+  },
+  "extractor": null,
+  "preprocessing_git_sha": null
+}
