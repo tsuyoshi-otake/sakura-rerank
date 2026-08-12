@@ -158,6 +158,13 @@ recomputes every per-shard report, and requires global sorted uniqueness before
 Tier A assembly. Unexpected files, missing shards, and aggregate mismatches fail
 closed.
 
+`scripts/run_research_top32_shards.ps1` invokes the trusted binary once per
+canonical request shard with a bounded timeout. It captures no exporter output
+in the final directory, kills the owned process on timeout, removes the entire
+staging directory on any failure, and renames the directory only after every
+shard completes. Invoke it twice with different destinations and compare every
+file hash before treating a large export as deterministic evidence.
+
 ## Human audit gate
 
 `human-audit queue` selects every final-holdout record and fills any remaining
@@ -296,6 +303,14 @@ python -m sakura_rerank.data exporter-request-shards `
   --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
   --source-span-manifest manifests\jawiki-tier-a-source-spans-expanded-verified.json `
   --allowed-root . --builder-git-sha <exact-sakura-rerank-git-sha>
+
+pwsh -NoProfile -ExecutionPolicy Bypass `
+  -File scripts\run_research_top32_shards.ps1 `
+  -ExporterBinary <trusted-exporter.exe> `
+  -DictionaryPath <pinned-system.dic> `
+  -IdentityManifest <generated-verified-identity.json> `
+  -RequestDirectory data\generated\top32-request-shards `
+  -OutputDirectory data\generated\top32-output-shards
 
 python -m sakura_rerank.data tier-a `
   data\generated\source-spans.jsonl data\generated\top32.jsonl `

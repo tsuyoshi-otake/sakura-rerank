@@ -16,6 +16,7 @@ from .exporter_requests import (
     generate_exporter_requests,
     publish_exporter_request_shards,
     publish_exporter_requests,
+    verify_builder_checkout,
 )
 from .exporter_shards import read_exporter_output_shards, read_request_shard_directory
 from .jawiki_acquisition import AcquisitionError, acquire_jawiki
@@ -505,6 +506,7 @@ def _run(arguments: argparse.Namespace) -> int:
         return 0
 
     if arguments.command in {"exporter-requests", "exporter-request-shards"}:
+        verify_builder_checkout(arguments.builder_git_sha, Path(__file__).resolve().parents[3])
         output_name = (
             "output" if arguments.command == "exporter-requests" else "output_directory"
         )

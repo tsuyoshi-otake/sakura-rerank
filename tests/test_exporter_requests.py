@@ -24,6 +24,7 @@ from sakura_rerank.data.exporter_requests import (
     generate_exporter_requests,
     publish_exporter_request_shards,
     publish_exporter_requests,
+    verify_builder_checkout,
 )
 
 
@@ -81,6 +82,31 @@ def normalized_source_manifest(records: list[dict[str, object]]) -> dict[str, ob
 
 
 class ExporterRequestTests(unittest.TestCase):
+    def test_builder_checkout_requires_matching_clean_head(self) -> None:
+        completed_head = type("Result", (), {"stdout": "1" * 40 + "\n"})()
+        completed_clean = type("Result", (), {"stdout": ""})()
+        with patch.object(
+            exporter_requests_module.subprocess,
+            "run",
+            side_effect=[completed_head, completed_clean],
+        ):
+            verify_builder_checkout("1" * 40, Path("."))
+        completed_dirty = type("Result", (), {"stdout": " M README.md\n"})()
+        with patch.object(
+            exporter_requests_module.subprocess,
+            "run",
+            side_effect=[completed_head, completed_dirty],
+        ):
+            with self.assertRaisesRegex(TierAError, "clean"):
+                verify_builder_checkout("1" * 40, Path("."))
+        with patch.object(
+            exporter_requests_module.subprocess,
+            "run",
+            side_effect=[completed_head, completed_clean],
+        ):
+            with self.assertRaisesRegex(TierAError, "checkout HEAD"):
+                verify_builder_checkout("2" * 40, Path("."))
+
     def generate(
         self,
         spans: list[dict[str, object]],

@@ -6,6 +6,7 @@ import hashlib
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -158,6 +159,34 @@ def ensure_paths_under_root(
                 raise TierAError(f"paths: {name} must remain below allowed_root")
     except OSError as error:
         raise TierAError(f"paths: cannot resolve ({type(error).__name__})") from error
+
+
+def verify_builder_checkout(builder_git_sha: str, repository_root: str | Path) -> None:
+    """Require the builder identity to be the exact clean checkout HEAD."""
+
+    expected = _git_sha(builder_git_sha, "builder_git_sha")
+    root = Path(repository_root).resolve(strict=True)
+    try:
+        head = subprocess.run(
+            ["git", "-C", os.fspath(root), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        ).stdout.strip()
+        status = subprocess.run(
+            ["git", "-C", os.fspath(root), "status", "--porcelain=v1", "--untracked-files=no"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        ).stdout
+    except (OSError, subprocess.SubprocessError) as error:
+        raise TierAError("builder checkout: Git identity cannot be established") from error
+    if head != expected:
+        raise TierAError("builder_git_sha: does not match the checkout HEAD")
+    if status:
+        raise TierAError("builder checkout: tracked worktree must be clean")
 
 
 def generate_exporter_requests(
