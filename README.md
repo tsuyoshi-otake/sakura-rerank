@@ -12,16 +12,18 @@ candidate generator.
 
 The repository has completed the current-HEAD audit, current Tiny baseline
 reproduction, deterministic data contracts, fixed jawiki acquisition, and a
-reproducible expanded Tier A candidate snapshot produced by the isolated
-research exporter. The expanded run retained 33,553 of 40,703 verified source
-rows, assigned 5,033 rows to the final holdout with zero measured cross-split
-leakage, and measured Oracle Recall@6 at 99.064%.
+reproducible research-only top-32 exporter. The first expanded Tier A snapshot
+retained 33,553 of 40,703 source rows, assigned 5,033 rows to the final holdout
+with zero measured cross-split leakage, and measured Oracle Recall@6 at 99.064%.
 
 Gate A is still pending. At the owner's direction, Codex inspected the first 120
 queue rows as an explicitly identified `ai_teacher`: 115 were valid and five
 were rejected (95.83% point precision, 90.62% Wilson lower bound). This is not
-reported as human review and fails the quality thresholds, so the source-span
-pipeline is being repaired before any model training. The queue, aggregate
+reported as human review and fails the quality thresholds. Cleaner v2 rejects
+the observed unsafe source boundaries and has now reproduced 30,003 corrected
+source spans twice with byte-identical output and report pairs. Its downstream
+candidate snapshot and teacher queue must still be regenerated before model
+training. The queue, aggregate
 evidence, and remaining quality gate are tracked in
 [Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15) and
 [`reports/issue-15-tier-a-pre-review.json`](reports/issue-15-tier-a-pre-review.json).

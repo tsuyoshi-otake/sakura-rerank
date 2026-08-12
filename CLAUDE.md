@@ -21,16 +21,18 @@ research boundary.
 - Dictionary index: `manifests/system-dictionary-index-verified.json`
 - Jawiki source spans: `manifests/jawiki-tier-a-source-spans-verified.json`
 - Expanded jawiki source spans:
-  `manifests/jawiki-tier-a-source-spans-expanded-verified.json`
+  `manifests/jawiki-tier-a-source-spans-expanded-v2-verified.json`
 - Research exporter identity: `manifests/research-exporter-verified.json`
 - Verified candidate snapshot:
   `manifests/jawiki-research-top32-snapshot-verified.json`
 - Expanded pre-review evidence: `reports/issue-15-tier-a-pre-review.json`
 
-The expanded chain produced 33,553 automatic Tier A records and a 5,033-row
-final holdout with zero measured article, exact-paragraph, near-sentence, or
-template leakage. An owner-authorized Codex teacher audit rejected five of its
-first 120 rows, so Issue #15 now owns a fail-closed source-span pipeline repair.
+The old expanded-v1 chain produced 33,553 automatic Tier A records and a
+5,033-row final holdout with zero measured article, exact-paragraph,
+near-sentence, or template leakage. An owner-authorized Codex teacher audit
+rejected five of its first 120 rows. Cleaner v2 repairs those source-boundary
+classes and its 30,003 corrected source spans reproduced twice byte-identically;
+Issue #15 owns regeneration and review of the downstream v2 chain.
 The teacher result is explicitly not human review. Automatic verification is
 prerequisite evidence, not a Gate A/B result and not approval for production
 integration. No Sakura-Rerank-Tiny-v1 model has been selected or exported yet.

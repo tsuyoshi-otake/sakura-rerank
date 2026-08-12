@@ -246,6 +246,7 @@ class SourceSpanManifestTests(unittest.TestCase):
         paths = (
             Path("manifests/jawiki-tier-a-source-spans-verified.json"),
             Path("manifests/jawiki-tier-a-source-spans-expanded-verified.json"),
+            Path("manifests/jawiki-tier-a-source-spans-expanded-v2-verified.json"),
         )
         manifests = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
         identities = {
@@ -321,6 +322,20 @@ class SourceSpanManifestTests(unittest.TestCase):
                 jawiki_manifest=jawiki_manifest(),
                 dictionary_manifest=dictionary_manifest(),
             )
+
+    def test_manifest_preserves_each_supported_cleaner_version(self) -> None:
+        records = self.records()
+        for cleaner_version in ("conservative_wikitext_v1", "conservative_wikitext_v2"):
+            manifest = self.measured_manifest(records)
+            manifest["cleaner_version"] = cleaner_version
+            normalized = validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+            self.assertEqual(normalized["cleaner_version"], cleaner_version)
 
     def test_content_or_metadata_tampering_is_rejected(self) -> None:
         records = self.records()

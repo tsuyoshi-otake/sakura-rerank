@@ -74,6 +74,10 @@ VERIFIED_SOURCE_SPAN_IDENTITIES = frozenset(
             "7cdb51f77875caab8be25683fc3bf174c0e91325",
             "8b3067836e894b93142f502157d1a65bcb34da277b81111388d8b18220fad727",
         ),
+        (
+            "776e9f108bf891c6b44f0391a65370c279f95f64",
+            "9338d38c0a8589b8ec78d7c14fc4d3cdd4598b8fc1f5641549f932599903fa66",
+        ),
     }
 )
 VERIFIED_SOURCE_SPAN_METADATA: dict[tuple[str, str], Mapping[str, Any]] = {
@@ -153,6 +157,47 @@ VERIFIED_SOURCE_SPAN_METADATA: dict[tuple[str, str], Mapping[str, Any]] = {
             "residual_markup": 103_086,
             "sentences_accepted": 32_980_716,
             "sentences_outside_bounds": 1_768_487,
+            "unbalanced_link": 94_862,
+            "unbalanced_template": 86_558,
+        },
+        "raw_text_in_report": False,
+    },
+    (
+        "776e9f108bf891c6b44f0391a65370c279f95f64",
+        "9338d38c0a8589b8ec78d7c14fc4d3cdd4598b8fc1f5641549f932599903fa66",
+    ): {
+        "schema_version": 1,
+        "manifest_kind": "jawiki_tier_a_source_spans",
+        "snapshot_date": "2026-08-01",
+        "jawiki_local_sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+        "dictionary_index_sha256": "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072",
+        "cleaner_version": "conservative_wikitext_v2",
+        "config": {
+            "sample_modulus": 1_000_000,
+            "sample_slots": 60,
+            "max_records": 100_000,
+            "max_records_per_page": 8,
+            "max_output_bytes": 268_435_456,
+            "min_sentence_chars": 4,
+            "max_sentence_chars": 512,
+            "min_surface_chars": 1,
+            "max_surface_chars": 64,
+        },
+        "eligible_dictionary_surface_count": 335_218,
+        "record_count": 30_003,
+        "counts": {
+            "dictionary_matches": 500_010_510,
+            "matches_not_sampled": 499_980_507,
+            "matches_unsafe_boundary": 398_742_386,
+            "pages_hit_record_bound": 1,
+            "pages_non_main": 636_071,
+            "pages_processed": 1_512_214,
+            "pages_redirect": 952_212,
+            "pages_total": 3_100_497,
+            "paragraphs_accepted": 48_097_996,
+            "residual_markup": 143_031,
+            "sentences_accepted": 57_242_129,
+            "sentences_outside_bounds": 5_856_114,
             "unbalanced_link": 94_862,
             "unbalanced_template": 86_558,
         },
@@ -529,7 +574,8 @@ def validate_source_span_manifest(
     extractor_git_sha = _git_sha(
         manifest["extractor_git_sha"], "source_span_manifest.extractor_git_sha"
     )
-    if manifest["cleaner_version"] not in SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS:
+    cleaner_version = manifest["cleaner_version"]
+    if cleaner_version not in SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS:
         raise TierAError("source_span_manifest.cleaner_version: unsupported cleaner")
     config = _strict_object(
         manifest["config"],
@@ -616,7 +662,7 @@ def validate_source_span_manifest(
         "jawiki_local_sha256": jawiki_sha,
         "dictionary_index_sha256": dictionary_sha,
         "extractor_git_sha": extractor_git_sha,
-        "cleaner_version": SOURCE_SPAN_CLEANER_VERSION,
+        "cleaner_version": cleaner_version,
         "config": normalized_config,
         "eligible_dictionary_surface_count": surface_count,
         "record_count": record_count,
