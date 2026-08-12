@@ -949,8 +949,11 @@ def partition_stage2(
 
     Exclusion is the union of (a) rows rejected by both fresh passes, excluding
     ambiguous outcomes, (b) trusted prior Opus/dev and v3-holdout rejections,
-    and (c) the adopted deterministic cleaner hits.  Any ambiguous outcome in
-    any supplied pass wins and moves the row to quarantine.
+    and (c) the adopted deterministic cleaner hits.  The owner-approved
+    precision-first policy quarantines both any ambiguous outcome and every row
+    flagged by Stage 1 but returned to valid by Stage 2.  Quarantine wins over
+    independent exclusion evidence so the disputed row is never declared a
+    confirmed rejection.
     """
 
     normalized = strict_preflight(records)
@@ -997,15 +1000,21 @@ def partition_stage2(
         for identifier, verdict in external.items()
         if verdict not in {"valid", "ambiguous"}
     }
+    stage1_nonvalid_stage2_valid_ids = {
+        identifier
+        for identifier, first_verdict in first_by_id.items()
+        if first_verdict != "valid" and second_by_id[identifier] == "valid"
+    }
+    quarantine_ids = ambiguous_ids | stage1_nonvalid_stage2_valid_ids
     rejected_ids = (
         both_nonvalid_ids | external_nonvalid_ids | stage0_ids
-    ) - ambiguous_ids
-    retained_ids = record_ids - rejected_ids - ambiguous_ids
+    ) - quarantine_ids
+    retained_ids = record_ids - rejected_ids - quarantine_ids
 
     result = {"retained": [], "excluded": [], "ambiguous_quarantine": []}
     for record in normalized:
         identifier = record["stable_id"]
-        if identifier in ambiguous_ids:
+        if identifier in quarantine_ids:
             result["ambiguous_quarantine"].append(record)
         elif identifier in rejected_ids:
             result["excluded"].append(record)
@@ -1023,11 +1032,19 @@ def partition_stage2(
         "retained_record_count": len(result["retained"]),
         "excluded_record_count": len(result["excluded"]),
         "ambiguous_quarantine_record_count": len(result["ambiguous_quarantine"]),
+        "partition_policy": "precision_first_quarantine_one_pass_recovery_v1",
         "exclusion_reason_counts": {
-            "both_new_passes_nonvalid": len(both_nonvalid_ids - ambiguous_ids),
-            "prior_opus_or_v3_nonvalid": len(external_nonvalid_ids - ambiguous_ids),
-            "stage0_deterministic_hit": len(stage0_ids - ambiguous_ids),
+            "both_new_passes_nonvalid": len(both_nonvalid_ids - quarantine_ids),
+            "prior_opus_or_v3_nonvalid": len(external_nonvalid_ids - quarantine_ids),
+            "stage0_deterministic_hit": len(stage0_ids - quarantine_ids),
             "union": len(rejected_ids),
+        },
+        "quarantine_reason_counts": {
+            "ambiguous_outcome": len(ambiguous_ids),
+            "stage1_nonvalid_stage2_valid": len(
+                stage1_nonvalid_stage2_valid_ids
+            ),
+            "union": len(quarantine_ids),
         },
         "bucket_stratum_counts": {
             name: stratum_counts(rows) for name, rows in sorted(result.items())
@@ -1044,7 +1061,22 @@ def partition_stage2(
         "input_content_sha256": _canonical_jsonl_sha256(normalized),
         "raw_text_in_report": False,
     }
-    if sum(len(rows) for rows in result.values()) != len(normalized):
+    bucket_ids = {
+        name: {record["stable_id"] for record in rows}
+        for name, rows in result.items()
+    }
+    if (
+        sum(len(rows) for rows in result.values()) != len(normalized)
+        or set().union(*bucket_ids.values()) != record_ids
+        or any(
+            bucket_ids[left] & bucket_ids[right]
+            for left, right in (
+                ("retained", "excluded"),
+                ("retained", "ambiguous_quarantine"),
+                ("excluded", "ambiguous_quarantine"),
+            )
+        )
+    ):
         _fail("partition does not exhaust the immutable input")
     return result, report
 

@@ -436,9 +436,12 @@ every present file must match the exact batch order, six-value enum, 200-charact
 note limit, stage, reviewer kind, and reviewer ID. Malformed or foreign files
 stop the cascade instead of being skipped.
 
-After both passes are complete, `corpus-v4 partition` publishes disjoint
-retained, excluded, and ambiguous-quarantine stable-ID files plus the canonical
-Stage 4 exclusion union. `corpus-v4 calibration-queue` then publishes every
+After both passes are complete, `corpus-v4 partition` applies the owner-approved
+precision-first policy. Two-pass non-valid rows and independent hard exclusions
+are excluded; ambiguous rows and Stage-1-nonvalid/Stage-2-valid recoveries are
+quarantined; only the remaining rows are retained. It publishes disjoint bucket
+files plus the canonical Stage 4 exclusion union. `corpus-v4 calibration-queue`
+then publishes every
 handoff teacher disagreement plus exactly 100 fixed-seed one-pass-only rows in
 the standard `human-audit serve` queue format. It never creates owner responses
 or writes `sampled_human_audit`.

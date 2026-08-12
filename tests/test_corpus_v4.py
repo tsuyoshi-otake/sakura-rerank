@@ -185,19 +185,29 @@ class CorpusV4Tests(unittest.TestCase):
             [row["stable_id"] for row in output["excluded"]],
             [ids[0], ids[2], ids[3]],
         )
-        self.assertEqual(
-            [row["stable_id"] for row in output["retained"]], [ids[1]]
-        )
+        self.assertEqual(output["retained"], [])
         self.assertEqual(
             [row["stable_id"] for row in output["ambiguous_quarantine"]],
-            [ids[4]],
+            [ids[1], ids[4]],
         )
         self.assertEqual(report["exclusion_reason_counts"]["union"], 3)
+        self.assertEqual(
+            report["partition_policy"],
+            "precision_first_quarantine_one_pass_recovery_v1",
+        )
+        self.assertEqual(
+            report["quarantine_reason_counts"],
+            {
+                "ambiguous_outcome": 1,
+                "stage1_nonvalid_stage2_valid": 1,
+                "union": 2,
+            },
+        )
 
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "partition"
             published = publish_partition_directory(target, output, report)
-            self.assertEqual(published["stage4_stable_id_exclusion"]["count"], 4)
+            self.assertEqual(published["stage4_stable_id_exclusion"]["count"], 5)
             self.assertTrue((target / "stage4-stable-id-exclusion.jsonl").is_file())
 
     def test_stage3_selects_all_disagreements_plus_exactly_one_hundred_and_converts(self) -> None:
