@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "tier_a_human_audit_queue",
+  "selection_algorithm": "final_holdout_plus_stratified_round_robin_sha256_v1",
+  "seed": 20260812,
+  "minimum_sample_size": 1000,
+  "dataset_record_count": 24068,
+  "dataset_content_sha256": "82aa1622fee1571c6c80fae8668ed9e8397a1ae239d66bc4f11387c66d63b975",
+  "record_count": 3610,
+  "final_holdout_count": 3610,
+  "content_sha256": "8111c5caffac24787061263bf850cc587c15f074fbd2913b0d5f9cec94550173",
+  "split_counts": {
+    "final-holdout": 3610
+  },
+  "stratum_counts": {
+    "reading-03-09/candidates-02-06/local-correct": 13,
+    "reading-03-09/candidates-07-16/local-correct": 32,
+    "reading-03-09/candidates-07-16/local-wrong": 8,
+    "reading-03-09/candidates-17-32/local-correct": 2956,
+    "reading-03-09/candidates-17-32/local-wrong": 537,
+    "reading-10-30/candidates-17-32/local-correct": 64
+  },
+  "raw_text_in_queue": true,
+  "raw_text_in_manifest": false
+}

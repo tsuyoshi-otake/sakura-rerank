@@ -26,6 +26,10 @@ research boundary.
 - Verified candidate snapshot:
   `manifests/jawiki-research-top32-snapshot-verified.json`
 - Expanded pre-review evidence: `reports/issue-15-tier-a-pre-review.json`
+- Expanded v3 audit queue:
+  `manifests/tier-a-human-audit-queue-expanded-v3-verified.json`
+- Expanded v3 teacher audit result:
+  `reports/issue-15-tier-a-teacher-audit-v3.json`
 
 The old expanded-v1 chain produced 33,553 automatic Tier A records and a
 5,033-row final holdout with zero measured article, exact-paragraph,
@@ -36,8 +40,20 @@ next teacher pass found that 9,486 rows violated the original minimum reading
 length and that residual wiki emphasis/file text remained. Cleaner v3 enforces
 the 3--128 reading bound before matching, before export, and before non-fixture
 training, and its 24,069 corrected source spans have now reproduced twice with
-byte-identical output and report pairs. Issue #15 owns regeneration of the
-downstream v3 chain and a fresh owner-authorized audit before Gate A.
+byte-identical output and report pairs.
+
+Issue #15 regenerated the whole downstream v3 chain twice with byte-identical
+output at every stage: request shards, trusted top-32 export, 24,068 Tier A
+records, a leakage-free 18,052/2,406/3,610 split, and a 3,610-row audit queue
+covering the entire final holdout. A fresh owner-authorized AI teacher audit
+then labelled all 3,610 rows and Gate A failed on label precision: 3,433 valid
+against 177 rejected, point precision 0.95097 and 95% Wilson lower bound
+0.94343, well under the required 0.995 and 0.990. Rejections were 67
+`extraction_noise`, 66 `wrong_reading`, 34 `wrong_segmentation`, 9
+`wrong_gold_surface`, and 1 `ambiguous`, so extraction residue and reading
+selection are both still material. Cleaner work must close that gap and the
+audit must be rerun on a regenerated queue before Gate A can be reconsidered;
+no audit response from an earlier chain may be reused as evidence.
 After model selection, Issue #18 owns a pinned public AJIMEE Eval comparison;
 public-eval labels must never enter training or tuning. The final candidate also
 requires the repository's fixed Windows CPU batch-one benchmark before any
