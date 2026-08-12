@@ -197,23 +197,28 @@ class StreamingExtractionTests(unittest.TestCase):
 
 
 class SourceSpanManifestTests(unittest.TestCase):
-    def test_tracked_manifest_is_the_only_measured_commit_a_identity(self) -> None:
-        manifest = json.loads(
-            Path("manifests/jawiki-tier-a-source-spans-verified.json").read_text(
-                encoding="utf-8"
+    def test_tracked_manifests_are_the_only_verified_identities(self) -> None:
+        paths = (
+            Path("manifests/jawiki-tier-a-source-spans-verified.json"),
+            Path("manifests/jawiki-tier-a-source-spans-expanded-verified.json"),
+        )
+        manifests = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+        identities = {
+            (manifest["extractor_git_sha"], manifest["content_sha256"])
+            for manifest in manifests
+        }
+        self.assertEqual(VERIFIED_SOURCE_SPAN_IDENTITIES, frozenset(identities))
+        for manifest in manifests:
+            identity = (manifest["extractor_git_sha"], manifest["content_sha256"])
+            self.assertEqual(
+                VERIFIED_SOURCE_SPAN_METADATA[identity],
+                {
+                    field: value
+                    for field, value in manifest.items()
+                    if field
+                    not in {"verification_status", "extractor_git_sha", "content_sha256"}
+                },
             )
-        )
-        identity = (manifest["extractor_git_sha"], manifest["content_sha256"])
-        self.assertEqual(VERIFIED_SOURCE_SPAN_IDENTITIES, frozenset({identity}))
-        self.assertEqual(
-            VERIFIED_SOURCE_SPAN_METADATA[identity],
-            {
-                field: value
-                for field, value in manifest.items()
-                if field
-                not in {"verification_status", "extractor_git_sha", "content_sha256"}
-            },
-        )
 
     def measured_manifest(self, records: list[dict[str, object]]) -> dict[str, object]:
         return {
