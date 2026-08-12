@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from sakura_rerank.data.human_audit import (
+    build_calibration_queue_manifest,
     build_queue_manifest,
     read_audit_responses,
     select_audit_records,
@@ -30,7 +31,35 @@ def _queue() -> tuple[list[dict[str, object]], dict[str, object]]:
     return queue, manifest
 
 
+def _calibration_queue() -> tuple[list[dict[str, object]], dict[str, object]]:
+    queue, _ = _queue()
+    return queue, build_calibration_queue_manifest(
+        queue,
+        seed=91,
+        source_dataset_record_count=4,
+        source_dataset_content_sha256="a" * 64,
+        teacher_state_content_sha256="b" * 64,
+        disagreement_list_content_sha256="c" * 64,
+        disagreement_record_count=3,
+        one_pass_eligible_record_count=1,
+        one_pass_selected_record_count=1,
+    )
+
+
 class ReviewStoreTests(unittest.TestCase):
+    def test_calibration_manifest_uses_the_standard_review_store_contract(self) -> None:
+        queue, manifest = _calibration_queue()
+        with tempfile.TemporaryDirectory() as directory:
+            store = ReviewStore(
+                queue,
+                manifest,
+                Path(directory) / "responses.jsonl",
+                "reviewer-1",
+                "human",
+            )
+            self.assertEqual(store.state()["selected_record_count"], 4)
+            self.assertEqual(store.state()["review_order"], "queue-seed-sha256-v1")
+
     def test_submit_is_atomic_immutable_and_resumable(self) -> None:
         queue, manifest = _queue()
         expected_first = min(

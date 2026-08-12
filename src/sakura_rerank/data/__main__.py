@@ -8,7 +8,33 @@ import json
 import sys
 from pathlib import Path
 
-from .contracts import ContractError, canonical_jsonl_bytes, read_jsonl
+from ..atomic_io import write_bytes_atomic
+from .contracts import ContractError, canonical_json_bytes, canonical_jsonl_bytes, read_jsonl
+from .corpus_v4 import (
+    ADJUDICATION_REVIEWER_ID,
+    CALIBRATION_SEED,
+    SCREEN_REVIEWER_ID,
+    analyze_stage0_dev_rules,
+    audit_response_verdict_map,
+    build_stage2_batches,
+    build_teacher_batches,
+    discover_teacher_disagreements,
+    flatten_handoff_verdicts,
+    flatten_teacher_verdicts,
+    merge_external_verdict_maps,
+    partition_stage2,
+    preflight_v4_inputs,
+    publish_partition_directory,
+    publish_stage3_calibration_queue,
+    publish_teacher_queue_directory,
+    read_handoff_batches,
+    read_handoff_verdict_directory,
+    read_teacher_queue_directory,
+    scan_verdict_directory,
+    stage0_deterministic_hit_ids,
+    stage0_probe_report,
+    teacher_verdict_state_sha256,
+)
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
 from .exporter_requests import (
     ensure_paths_under_root,
@@ -164,6 +190,11 @@ def _parser() -> argparse.ArgumentParser:
     preprocess.add_argument("--max-output-bytes", type=int, default=240 * 1024 * 1024)
     preprocess.add_argument("--min-reading-chars", type=int, default=3)
     preprocess.add_argument("--max-reading-chars", type=int, default=128)
+    preprocess.add_argument(
+        "--stable-id-exclusion",
+        type=Path,
+        help="canonical sorted stable-ID JSONL exclusion commitment for Stage 4",
+    )
 
     exporter_requests = commands.add_parser(
         "exporter-requests", help="build a verified research top-32 request batch"
@@ -237,6 +268,83 @@ def _parser() -> argparse.ArgumentParser:
     audit_apply.add_argument("--queue-manifest", type=Path, required=True)
     audit_apply.add_argument("--report", type=Path, required=True)
 
+    corpus_v4 = commands.add_parser(
+        "corpus-v4", help="run the fail-closed corpus-v4 teacher cascade"
+    )
+    corpus_v4_commands = corpus_v4.add_subparsers(
+        dest="corpus_v4_command", required=True
+    )
+    v4_preflight = corpus_v4_commands.add_parser(
+        "preflight", help="validate every pinned v4 input before screening"
+    )
+    v4_preflight.add_argument("dataset", type=Path)
+    v4_preflight.add_argument("--source-spans", type=Path, required=True)
+    v4_preflight.add_argument("--source-span-manifest", type=Path, required=True)
+    v4_preflight.add_argument("--jawiki-manifest", type=Path, required=True)
+    v4_preflight.add_argument("--dictionary-index", type=Path, required=True)
+    v4_preflight.add_argument("--dictionary-manifest", type=Path, required=True)
+    v4_preflight.add_argument("--exporter-manifest", type=Path, required=True)
+    v4_preflight.add_argument("--v3-audit-queue", type=Path, required=True)
+    v4_preflight.add_argument("--v3-audit-manifest", type=Path, required=True)
+    v4_preflight.add_argument("--v3-audit-responses", type=Path, required=True)
+    v4_preflight.add_argument("--handoff-directory", type=Path, required=True)
+    v4_preflight.add_argument("--allowed-root", type=Path, required=True)
+
+    v4_stage0 = corpus_v4_commands.add_parser(
+        "stage0-analyze", help="measure cleaner probes and the adopted v4 rule"
+    )
+    v4_stage0.add_argument("dataset", type=Path)
+    v4_stage0.add_argument("output", type=Path)
+    v4_stage0.add_argument("--dev-batches", type=Path, required=True)
+    v4_stage0.add_argument("--sol-verdicts", type=Path, required=True)
+
+    v4_stage1 = corpus_v4_commands.add_parser(
+        "stage1-queue", help="publish the immutable full-corpus screening queue"
+    )
+    v4_stage1.add_argument("dataset", type=Path)
+    v4_stage1.add_argument("output_directory", type=Path)
+    v4_stage1.add_argument("--batch-size", type=int, default=40)
+
+    v4_status = corpus_v4_commands.add_parser(
+        "verdict-status", help="validate completed verdict batches and report pending counts"
+    )
+    v4_status.add_argument("queue_directory", type=Path)
+    v4_status.add_argument("verdict_directory", type=Path)
+
+    v4_stage2 = corpus_v4_commands.add_parser(
+        "stage2-queue", help="publish the fresh note-free adjudication queue"
+    )
+    v4_stage2.add_argument("stage1_queue_directory", type=Path)
+    v4_stage2.add_argument("stage1_verdict_directory", type=Path)
+    v4_stage2.add_argument("output_directory", type=Path)
+    v4_stage2.add_argument("--batch-size", type=int, default=40)
+
+    v4_partition = corpus_v4_commands.add_parser(
+        "partition", help="publish retained, excluded, and ambiguous stable-ID buckets"
+    )
+    v4_partition.add_argument("dataset", type=Path)
+    v4_partition.add_argument("stage1_queue_directory", type=Path)
+    v4_partition.add_argument("stage1_verdict_directory", type=Path)
+    v4_partition.add_argument("stage2_queue_directory", type=Path)
+    v4_partition.add_argument("stage2_verdict_directory", type=Path)
+    v4_partition.add_argument("output_directory", type=Path)
+    v4_partition.add_argument("--opus-dev-batches", type=Path, required=True)
+    v4_partition.add_argument("--opus-dev-verdicts", type=Path, required=True)
+    v4_partition.add_argument("--v3-audit-responses", type=Path, required=True)
+
+    v4_calibration = corpus_v4_commands.add_parser(
+        "calibration-queue", help="prepare only the owner calibration queue"
+    )
+    v4_calibration.add_argument("dataset", type=Path)
+    v4_calibration.add_argument("stage1_queue_directory", type=Path)
+    v4_calibration.add_argument("stage1_verdict_directory", type=Path)
+    v4_calibration.add_argument("stage2_queue_directory", type=Path)
+    v4_calibration.add_argument("stage2_verdict_directory", type=Path)
+    v4_calibration.add_argument("output", type=Path)
+    v4_calibration.add_argument("--manifest", type=Path, required=True)
+    v4_calibration.add_argument("--handoff-directory", type=Path, required=True)
+    v4_calibration.add_argument("--seed", type=int, default=CALIBRATION_SEED)
+
     return parser
 
 
@@ -288,6 +396,291 @@ def _run(arguments: argparse.Namespace) -> int:
             )
         )
         return 0
+
+    if arguments.command == "corpus-v4":
+        if arguments.corpus_v4_command == "preflight":
+            report = preflight_v4_inputs(
+                dataset_path=arguments.dataset,
+                source_spans_path=arguments.source_spans,
+                source_span_manifest_path=arguments.source_span_manifest,
+                jawiki_manifest_path=arguments.jawiki_manifest,
+                dictionary_index_path=arguments.dictionary_index,
+                dictionary_manifest_path=arguments.dictionary_manifest,
+                exporter_manifest_path=arguments.exporter_manifest,
+                v3_audit_queue_path=arguments.v3_audit_queue,
+                v3_audit_manifest_path=arguments.v3_audit_manifest,
+                v3_audit_responses_path=arguments.v3_audit_responses,
+                handoff_directory=arguments.handoff_directory,
+                allowed_root=arguments.allowed_root,
+            )
+            print(json.dumps(report, sort_keys=True))
+            return 0
+
+        if arguments.corpus_v4_command == "stage0-analyze":
+            if arguments.output.exists():
+                raise TierAError("corpus v4: Stage 0 report already exists and is immutable")
+            if not arguments.output.parent.is_dir():
+                raise TierAError("corpus v4: Stage 0 report parent directory is missing")
+            records = read_jsonl(arguments.dataset)
+            dev_batches = read_handoff_batches(arguments.dev_batches)
+            sol_payloads, pending = read_handoff_verdict_directory(
+                dev_batches, arguments.sol_verdicts
+            )
+            if pending:
+                raise TierAError("corpus v4: Stage 0 requires complete Sol dev verdicts")
+            dev_items = [item for batch in dev_batches for item in batch["items"]]
+            dev_report = analyze_stage0_dev_rules(
+                dev_items, flatten_handoff_verdicts(dev_batches, sol_payloads)
+            )
+            corpus_report = stage0_probe_report(records)
+            report = {
+                "schema_version": 1,
+                "report_kind": "tier_a_v4_stage0",
+                "dev_rule_analysis": dev_report,
+                "corpus_probe_analysis": corpus_report,
+                "adopted_rule_hit_count": len(stage0_deterministic_hit_ids(records)),
+                "raw_text_in_report": False,
+            }
+            write_bytes_atomic(
+                arguments.output, canonical_json_bytes(report) + b"\n"
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": corpus_report["input_record_count"],
+                        "adopted_rule_hit_count": report["adopted_rule_hit_count"],
+                        "report_sha256": hashlib.sha256(
+                            canonical_json_bytes(report) + b"\n"
+                        ).hexdigest(),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v4_command == "stage1-queue":
+            batches = build_teacher_batches(
+                read_jsonl(arguments.dataset), batch_size=arguments.batch_size
+            )
+            manifest = publish_teacher_queue_directory(
+                arguments.output_directory,
+                batches,
+                stage="stage1",
+                reviewer_kind="ai_teacher",
+                reviewer_id=SCREEN_REVIEWER_ID,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": manifest["record_count"],
+                        "batch_count": manifest["batch_count"],
+                        "content_sha256": manifest["content_sha256"],
+                        "reviewer_kind": manifest["reviewer_kind"],
+                        "reviewer_id": manifest["reviewer_id"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v4_command == "verdict-status":
+            completed, pending = scan_verdict_directory(
+                arguments.queue_directory, arguments.verdict_directory
+            )
+            verdict_counts: dict[str, int] = {}
+            for payload in completed.values():
+                for entry in payload["verdicts"]:
+                    verdict_counts[entry["verdict"]] = (
+                        verdict_counts.get(entry["verdict"], 0) + 1
+                    )
+            print(
+                json.dumps(
+                    {
+                        "status": "complete" if not pending else "resumable",
+                        "completed_batch_count": len(completed),
+                        "pending_batch_count": len(pending),
+                        "verdict_counts": dict(sorted(verdict_counts.items())),
+                        "verdict_state_content_sha256": teacher_verdict_state_sha256(
+                            completed
+                        ),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v4_command == "stage2-queue":
+            stage1_batches, stage1_manifest = read_teacher_queue_directory(
+                arguments.stage1_queue_directory
+            )
+            if (
+                stage1_manifest["stage"] != "stage1"
+                or stage1_manifest["reviewer_kind"] != "ai_teacher"
+                or stage1_manifest["reviewer_id"] != SCREEN_REVIEWER_ID
+            ):
+                raise TierAError("corpus v4: Stage 1 queue provenance is invalid")
+            stage1_verdicts, pending = scan_verdict_directory(
+                arguments.stage1_queue_directory,
+                arguments.stage1_verdict_directory,
+            )
+            if pending:
+                raise TierAError("corpus v4: Stage 1 verdicts are incomplete")
+            stage2_batches = build_stage2_batches(
+                stage1_batches,
+                stage1_verdicts,
+                batch_size=arguments.batch_size,
+            )
+            manifest = publish_teacher_queue_directory(
+                arguments.output_directory,
+                stage2_batches,
+                stage="stage2",
+                reviewer_kind="ai_teacher",
+                reviewer_id=ADJUDICATION_REVIEWER_ID,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": manifest["record_count"],
+                        "batch_count": manifest["batch_count"],
+                        "content_sha256": manifest["content_sha256"],
+                        "reviewer_kind": manifest["reviewer_kind"],
+                        "reviewer_id": manifest["reviewer_id"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        stage1_batches, stage1_manifest = read_teacher_queue_directory(
+            arguments.stage1_queue_directory
+        )
+        stage2_batches, stage2_manifest = read_teacher_queue_directory(
+            arguments.stage2_queue_directory
+        )
+        if (
+            stage1_manifest["stage"] != "stage1"
+            or stage1_manifest["reviewer_id"] != SCREEN_REVIEWER_ID
+            or stage2_manifest["stage"] != "stage2"
+            or stage2_manifest["reviewer_id"] != ADJUDICATION_REVIEWER_ID
+        ):
+            raise TierAError("corpus v4: teacher queue provenance is invalid")
+        stage1_payloads, stage1_pending = scan_verdict_directory(
+            arguments.stage1_queue_directory, arguments.stage1_verdict_directory
+        )
+        stage2_payloads, stage2_pending = scan_verdict_directory(
+            arguments.stage2_queue_directory, arguments.stage2_verdict_directory
+        )
+        if stage1_pending or stage2_pending:
+            raise TierAError("corpus v4: teacher verdicts are incomplete")
+        records = read_jsonl(arguments.dataset)
+
+        if arguments.corpus_v4_command == "partition":
+            opus_batches = read_handoff_batches(arguments.opus_dev_batches)
+            missing = (
+                (15,)
+                if not (arguments.opus_dev_verdicts / "verdicts-015.json").exists()
+                else ()
+            )
+            opus_payloads, _ = read_handoff_verdict_directory(
+                opus_batches,
+                arguments.opus_dev_verdicts,
+                allowed_missing_indexes=missing,
+            )
+            opus_verdicts: dict[str, str] = {}
+            for index, payload in opus_payloads.items():
+                for item, entry in zip(
+                    opus_batches[index]["items"], payload["verdicts"], strict=True
+                ):
+                    opus_verdicts[item["stable_id"]] = entry["verdict"]
+            external = merge_external_verdict_maps(
+                opus_verdicts,
+                audit_response_verdict_map(
+                    read_audit_responses(arguments.v3_audit_responses)
+                ),
+            )
+            partition, report = partition_stage2(
+                records,
+                stage1_batches,
+                stage1_payloads,
+                stage2_batches,
+                stage2_payloads,
+                external_verdicts=external,
+                stage0_hit_ids=stage0_deterministic_hit_ids(records),
+            )
+            published = publish_partition_directory(
+                arguments.output_directory, partition, report
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "input_record_count": published["input_record_count"],
+                        "retained_record_count": published["retained_record_count"],
+                        "excluded_record_count": published["excluded_record_count"],
+                        "ambiguous_quarantine_record_count": published[
+                            "ambiguous_quarantine_record_count"
+                        ],
+                        "stage4_exclusion_count": published[
+                            "stage4_stable_id_exclusion"
+                        ]["count"],
+                        "stage4_exclusion_sha256": published[
+                            "stage4_stable_id_exclusion"
+                        ]["content_sha256"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v4_command == "calibration-queue":
+            disagreements = discover_teacher_disagreements(
+                arguments.handoff_directory
+            )
+            stage1_by_id = flatten_teacher_verdicts(
+                stage1_batches,
+                stage1_payloads,
+                reviewer_id=SCREEN_REVIEWER_ID,
+            )
+            stage2_by_id = flatten_teacher_verdicts(
+                stage2_batches,
+                stage2_payloads,
+                reviewer_id=ADJUDICATION_REVIEWER_ID,
+            )
+            manifest, queue_sha, manifest_sha = publish_stage3_calibration_queue(
+                arguments.output,
+                arguments.manifest,
+                records,
+                disagreements,
+                stage1_by_id,
+                stage2_by_id,
+                seed=arguments.seed,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "prepared_for_owner",
+                        "record_count": manifest["record_count"],
+                        "disagreement_record_count": manifest[
+                            "disagreement_record_count"
+                        ],
+                        "one_pass_eligible_record_count": manifest[
+                            "one_pass_eligible_record_count"
+                        ],
+                        "one_pass_selected_record_count": manifest[
+                            "one_pass_selected_record_count"
+                        ],
+                        "content_sha256": queue_sha,
+                        "manifest_sha256": manifest_sha,
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        raise TierAError("corpus v4: unsupported subcommand")
 
     if arguments.command == "human-audit":
         if arguments.human_audit_command == "serve":
@@ -506,16 +899,17 @@ def _run(arguments: argparse.Namespace) -> int:
         dictionary, dictionary_manifest = load_dictionary_inputs(
             arguments.dictionary_index, arguments.dictionary_manifest
         )
-        ensure_distinct_tier_a_paths(
-            {
-                "dump": supplied_dump,
-                "jawiki_manifest": arguments.jawiki_manifest,
-                "dictionary_index": arguments.dictionary_index,
-                "dictionary_manifest": arguments.dictionary_manifest,
-                "output": arguments.output,
-                "report": arguments.report,
-            }
-        )
+        preprocess_paths = {
+            "dump": supplied_dump,
+            "jawiki_manifest": arguments.jawiki_manifest,
+            "dictionary_index": arguments.dictionary_index,
+            "dictionary_manifest": arguments.dictionary_manifest,
+            "output": arguments.output,
+            "report": arguments.report,
+        }
+        if arguments.stable_id_exclusion is not None:
+            preprocess_paths["stable_id_exclusion"] = arguments.stable_id_exclusion
+        ensure_distinct_tier_a_paths(preprocess_paths)
         output_hash, report_hash, count = extract_source_spans(
             supplied_dump,
             arguments.output,
@@ -533,6 +927,7 @@ def _run(arguments: argparse.Namespace) -> int:
                 min_reading_chars=arguments.min_reading_chars,
                 max_reading_chars=arguments.max_reading_chars,
             ),
+            stable_id_exclusion_path=arguments.stable_id_exclusion,
         )
         print(
             json.dumps(

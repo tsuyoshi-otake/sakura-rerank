@@ -9,6 +9,7 @@ from pathlib import Path
 from sakura_rerank.data.contracts import canonical_jsonl_bytes
 from sakura_rerank.data.human_audit import (
     apply_audit_responses,
+    build_calibration_queue_manifest,
     build_quality_report,
     build_queue_manifest,
     publish_audit_application,
@@ -74,6 +75,38 @@ class HumanAuditTests(unittest.TestCase):
             publish_audit_queue(output, report, queue, manifest)
             self.assertEqual(output.read_bytes(), canonical_jsonl_bytes(queue))
             self.assertTrue(report.is_file())
+
+    def test_calibration_manifest_is_aggregate_only_and_requires_reconciled_counts(self) -> None:
+        records = _records(5, holdout=3)
+        queue = select_audit_records(records, seed=1, minimum_sample_size=4)
+        manifest = build_calibration_queue_manifest(
+            queue,
+            seed=17,
+            source_dataset_record_count=5,
+            source_dataset_content_sha256="a" * 64,
+            teacher_state_content_sha256="b" * 64,
+            disagreement_list_content_sha256="c" * 64,
+            disagreement_record_count=3,
+            one_pass_eligible_record_count=1,
+            one_pass_selected_record_count=1,
+        )
+        self.assertEqual(manifest["manifest_kind"], "tier_a_owner_calibration_queue")
+        self.assertNotIn("fixture left context", json.dumps(manifest))
+        validate_queue_manifest(manifest, queue)
+
+        selected_too_many = dict(manifest)
+        selected_too_many["one_pass_selected_record_count"] = 3
+        with self.assertRaisesRegex(TierAError, "selected count exceeds eligible"):
+            validate_queue_manifest(selected_too_many, queue)
+
+        overlap_or_wrong_total = dict(manifest)
+        overlap_or_wrong_total["record_count"] = 5
+        with self.assertRaisesRegex(TierAError, "record count does not reconcile"):
+            validate_queue_manifest(overlap_or_wrong_total, queue)
+
+        unsorted_queue = list(reversed(queue))
+        with self.assertRaisesRegex(TierAError, "sorted and unique"):
+            validate_queue_manifest(manifest, unsorted_queue)
 
     def test_response_reader_rejects_duplicate_ids_and_unknown_fields(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

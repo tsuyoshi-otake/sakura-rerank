@@ -387,6 +387,68 @@ python -m sakura_rerank.data human-audit report `
   --queue-manifest data\generated\human-audit-queue.manifest.json
 ```
 
+## Corpus v4 teacher cascade
+
+`corpus-v4` is the fail-closed, resumable Stage 0--3 boundary for Issue #15.
+It binds Stage 1 to `gpt-5.6-sol-screen-20260812` and Stage 2 to
+`gpt-5.6-sol-adjudicate-20260812`, both with `reviewer_kind=ai_teacher`.
+Teacher batches contain review text and therefore stay under ignored `data/`;
+manifests, status output, partition reports, and issue evidence are aggregate
+only.
+
+Validate all immutable v3 inputs before publishing a queue:
+
+```powershell
+python -m sakura_rerank.data corpus-v4 preflight `
+  data\splits\tier-a-expanded-v3-a.jsonl `
+  --source-spans data\generated\source-spans-expanded-v3-a.jsonl `
+  --source-span-manifest manifests\jawiki-tier-a-source-spans-expanded-v3-verified.json `
+  --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
+  --dictionary-index data\generated\system-dictionary-index.jsonl `
+  --dictionary-manifest manifests\system-dictionary-index-verified.json `
+  --exporter-manifest manifests\research-exporter-verified.json `
+  --v3-audit-queue data\generated\tier-a-expanded-v3-a-audit-queue.jsonl `
+  --v3-audit-manifest data\generated\tier-a-expanded-v3-a-audit-queue.manifest.json `
+  --v3-audit-responses data\generated\tier-a-expanded-v3-a-audit-responses.jsonl `
+  --handoff-directory data\generated\v4-handoff --allowed-root .
+
+python -m sakura_rerank.data corpus-v4 stage0-analyze `
+  data\splits\tier-a-expanded-v3-a.jsonl `
+  data\generated\v4-stage0-analysis.json `
+  --dev-batches data\generated\v4-handoff\dev-batches `
+  --sol-verdicts data\generated\v4-handoff\dev-verdicts-sol
+
+python -m sakura_rerank.data corpus-v4 stage1-queue `
+  data\splits\tier-a-expanded-v3-a.jsonl `
+  data\generated\v4-screening
+
+python -m sakura_rerank.data corpus-v4 verdict-status `
+  data\generated\v4-screening data\generated\v4-screening-verdicts
+
+python -m sakura_rerank.data corpus-v4 stage2-queue `
+  data\generated\v4-screening data\generated\v4-screening-verdicts `
+  data\generated\v4-adjudication
+```
+
+Each queue directory is published by one same-parent rename and becomes
+immutable. A verdict directory may be absent or incomplete for resume, but
+every present file must match the exact batch order, six-value enum, 200-character
+note limit, stage, reviewer kind, and reviewer ID. Malformed or foreign files
+stop the cascade instead of being skipped.
+
+After both passes are complete, `corpus-v4 partition` publishes disjoint
+retained, excluded, and ambiguous-quarantine stable-ID files plus the canonical
+Stage 4 exclusion union. `corpus-v4 calibration-queue` then publishes every
+handoff teacher disagreement plus exactly 100 fixed-seed one-pass-only rows in
+the standard `human-audit serve` queue format. It never creates owner responses
+or writes `sampled_human_audit`.
+
+Stage 4 remains owner-gated. After the owner completes calibration and fixes the
+policy, pass the partition's canonical `stage4-stable-id-exclusion.jsonl` to
+`jawiki-preprocess --stable-id-exclusion`. A schema-v3/v4 source-span manifest
+is measured only until an A/B reproduction identity is explicitly allowlisted.
+This cascade does not run a new final-holdout Gate A audit.
+
 The manifest command returns status 3 for a structured blocker. The split
 command rejects any normalized or filesystem-alias collision among input,
 output, and report before writing. Output and report payloads are fully staged

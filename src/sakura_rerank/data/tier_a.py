@@ -36,14 +36,18 @@ from .research_exporter import MAX_EXPORT_RECORDS, validate_export_records
 
 SOURCE_SPAN_SCHEMA_VERSION = 1
 SOURCE_SPAN_RECORD_TYPE = "jawiki_tier_a_source_span"
-SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 2
-SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS = frozenset({1, 2})
+SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 3
+SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS = frozenset({1, 2, 3})
 SOURCE_SPAN_MANIFEST_KIND = "jawiki_tier_a_source_spans"
-SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v3"
+SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v4"
+STABLE_ID_EXCLUSION_FORMAT_VERSION = 1
+STABLE_ID_EXCLUSION_CANONICALIZATION = "utf8_lf_sorted_unique_stable_id_jsonl_v1"
+MAX_STABLE_ID_EXCLUSIONS = 100_000
 SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS = frozenset(
     {
         "conservative_wikitext_v1",
         "conservative_wikitext_v2",
+        "conservative_wikitext_v3",
         SOURCE_SPAN_CLEANER_VERSION,
     }
 )
@@ -323,6 +327,46 @@ def _integer(value: Any, field: str, *, maximum: int) -> int:
     return value
 
 
+def validate_stable_id_exclusion_commitment(value: Any) -> dict[str, Any]:
+    """Validate the aggregate-only Stage 4 stable-ID exclusion commitment."""
+
+    commitment = _strict_object(
+        value,
+        {
+            "format_version",
+            "canonicalization",
+            "count",
+            "content_sha256",
+            "raw_stable_ids_in_report",
+        },
+        "source_span_manifest.stage4_stable_id_exclusion",
+    )
+    if commitment["format_version"] != STABLE_ID_EXCLUSION_FORMAT_VERSION:
+        raise TierAError("source_span_manifest.stage4_stable_id_exclusion.format_version: unsupported format")
+    if commitment["canonicalization"] != STABLE_ID_EXCLUSION_CANONICALIZATION:
+        raise TierAError(
+            "source_span_manifest.stage4_stable_id_exclusion.canonicalization: unsupported canonicalization"
+        )
+    if commitment["raw_stable_ids_in_report"] is not False:
+        raise TierAError(
+            "source_span_manifest.stage4_stable_id_exclusion.raw_stable_ids_in_report: must be false"
+        )
+    return {
+        "format_version": STABLE_ID_EXCLUSION_FORMAT_VERSION,
+        "canonicalization": STABLE_ID_EXCLUSION_CANONICALIZATION,
+        "count": _integer(
+            commitment["count"],
+            "source_span_manifest.stage4_stable_id_exclusion.count",
+            maximum=MAX_STABLE_ID_EXCLUSIONS,
+        ),
+        "content_sha256": _sha256(
+            commitment["content_sha256"],
+            "source_span_manifest.stage4_stable_id_exclusion.content_sha256",
+        ),
+        "raw_stable_ids_in_report": False,
+    }
+
+
 def _read_jsonl(path: str | Path, *, label: str, maximum_records: int) -> list[Mapping[str, Any]]:
     source = Path(path)
     try:
@@ -591,13 +635,17 @@ def validate_source_span_manifest(
         "counts",
         "raw_text_in_report",
     }
-    manifest = _strict_object(manifest, fields, "source_span_manifest")
-    manifest_schema_version = manifest["schema_version"]
+    if not isinstance(manifest, Mapping):
+        raise TierAError("source_span_manifest: fields do not match schema")
+    manifest_schema_version = manifest.get("schema_version")
     if (
         type(manifest_schema_version) is not int
         or manifest_schema_version not in SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS
     ):
         raise TierAError("source_span_manifest.schema_version: unsupported schema")
+    if manifest_schema_version == 3:
+        fields.add("stage4_stable_id_exclusion")
+    manifest = _strict_object(manifest, fields, "source_span_manifest")
     if manifest["manifest_kind"] != SOURCE_SPAN_MANIFEST_KIND:
         raise TierAError("source_span_manifest.manifest_kind: unsupported kind")
     status = manifest["verification_status"]
@@ -638,8 +686,10 @@ def validate_source_span_manifest(
         "conservative_wikitext_v2",
     }:
         raise TierAError("source_span_manifest: legacy schema requires a legacy cleaner")
-    if manifest_schema_version == 2 and cleaner_version != SOURCE_SPAN_CLEANER_VERSION:
-        raise TierAError("source_span_manifest: current schema requires the current cleaner")
+    if manifest_schema_version == 2 and cleaner_version != "conservative_wikitext_v3":
+        raise TierAError("source_span_manifest: schema v2 requires the v3 cleaner")
+    if manifest_schema_version == 3 and cleaner_version != SOURCE_SPAN_CLEANER_VERSION:
+        raise TierAError("source_span_manifest: schema v3 requires the v4 cleaner")
     config_fields = {
         "sample_modulus",
         "sample_slots",
@@ -651,7 +701,7 @@ def validate_source_span_manifest(
         "min_surface_chars",
         "max_surface_chars",
     }
-    if manifest_schema_version == 2:
+    if manifest_schema_version in {2, 3}:
         config_fields.update({"min_reading_chars", "max_reading_chars"})
     config = _strict_object(
         manifest["config"],
@@ -669,7 +719,7 @@ def validate_source_span_manifest(
         "min_surface_chars": 256,
         "max_surface_chars": 256,
     }
-    if manifest_schema_version == 2:
+    if manifest_schema_version in {2, 3}:
         integer_bounds.update(
             {
                 "min_reading_chars": MAX_READING_CHARS,
@@ -693,7 +743,7 @@ def validate_source_span_manifest(
         <= normalized_config["max_surface_chars"]
     ):
         raise TierAError("source_span_manifest.config: invalid bounds")
-    if manifest_schema_version == 2 and not (
+    if manifest_schema_version in {2, 3} and not (
         MIN_READING_CHARS
         <= normalized_config["min_reading_chars"]
         <= normalized_config["max_reading_chars"]
@@ -734,6 +784,11 @@ def validate_source_span_manifest(
         )
     if manifest["raw_text_in_report"] is not False:
         raise TierAError("source_span_manifest.raw_text_in_report: must be false")
+    stable_id_exclusion = (
+        validate_stable_id_exclusion_commitment(manifest["stage4_stable_id_exclusion"])
+        if manifest_schema_version == 3
+        else None
+    )
     normalized = {
         "schema_version": manifest_schema_version,
         "manifest_kind": SOURCE_SPAN_MANIFEST_KIND,
@@ -750,6 +805,8 @@ def validate_source_span_manifest(
         "counts": dict(sorted(normalized_counts.items())),
         "raw_text_in_report": False,
     }
+    if stable_id_exclusion is not None:
+        normalized["stage4_stable_id_exclusion"] = stable_id_exclusion
     identity = (extractor_git_sha, content_sha)
     if status == "verified":
         if identity not in VERIFIED_SOURCE_SPAN_IDENTITIES:

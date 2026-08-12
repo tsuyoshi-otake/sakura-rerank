@@ -21,6 +21,8 @@ from ..atomic_io import commit_staged_file_and_bytes_atomic
 from .contracts import (
     MAX_READING_CHARS,
     MIN_READING_CHARS,
+    ContractError,
+    _require_identifier,
     canonical_json_bytes,
     sentence_shingle_hashes,
     text_sha256,
@@ -32,6 +34,9 @@ from .tier_a import (
     SOURCE_SPAN_MANIFEST_KIND,
     SOURCE_SPAN_MANIFEST_SCHEMA_VERSION,
     SOURCE_SPAN_SCHEMA_VERSION,
+    MAX_STABLE_ID_EXCLUSIONS,
+    STABLE_ID_EXCLUSION_CANONICALIZATION,
+    STABLE_ID_EXCLUSION_FORMAT_VERSION,
     TierAError,
     ensure_distinct_tier_a_paths,
     read_dictionary_index,
@@ -49,6 +54,7 @@ MAX_SENTENCE_CHARS = 512
 MAX_COMMITTED_PREFIX_CHARS = 4_096
 MAX_GOLD_SURFACE_CHARS = 64
 MAX_OUTPUT_BYTES = 256 * 1024 * 1024
+MAX_STABLE_ID_EXCLUSION_BYTES = 16 * 1024 * 1024
 
 _COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 _REF_RE = re.compile(r"<ref\b[^>]*>.*?</ref\s*>", re.IGNORECASE | re.DOTALL)
@@ -70,6 +76,7 @@ _RESIDUAL_MARKUP = (
     "https://",
     "''",
 )
+_RESIDUAL_DECORATIVE_CORRUPTION = frozenset("\u25bd\u25ef")
 _DROP_LINK_NAMESPACES = frozenset(
     {
         "file",
@@ -99,6 +106,93 @@ _RESIDUAL_NAMESPACE_RE = re.compile(
 
 class PreprocessingError(ValueError):
     """The source-span pipeline could not produce a trusted terminal state."""
+
+
+def contains_v4_decorative_corruption(text: str) -> bool:
+    return any(marker in text for marker in _RESIDUAL_DECORATIVE_CORRUPTION)
+
+
+def contains_v4_bare_pipe(text: str) -> bool:
+    return "|" in text
+
+
+def contains_v4_residual_corruption(text: str) -> bool:
+    """Return whether either zero-false-fire dev-supported v4 rule fires.
+
+    Keeping the predicate public lets the corpus partition commit the exact
+    same deterministic rule that source preprocessing applies at Stage 4.
+    """
+
+    return contains_v4_decorative_corruption(text) or contains_v4_bare_pipe(text)
+
+
+def _empty_stable_id_exclusion_commitment() -> dict[str, Any]:
+    return {
+        "format_version": STABLE_ID_EXCLUSION_FORMAT_VERSION,
+        "canonicalization": STABLE_ID_EXCLUSION_CANONICALIZATION,
+        "count": 0,
+        "content_sha256": hashlib.sha256(b"").hexdigest(),
+        "raw_stable_ids_in_report": False,
+    }
+
+
+def load_stable_id_exclusion(
+    path: str | Path | None,
+) -> tuple[frozenset[str], dict[str, Any]]:
+    """Read the bounded, canonical Stage 4 stable-ID exclusion input.
+
+    The input is deliberately accepted only in its canonical JSONL encoding so
+    the manifest commitment proves the exact ordered exclusion set without
+    disclosing any identifiers in a tracked report.
+    """
+
+    if path is None:
+        return frozenset(), _empty_stable_id_exclusion_commitment()
+    source = Path(path)
+    try:
+        size = source.stat().st_size
+        payload = source.read_bytes()
+    except OSError as error:
+        raise PreprocessingError(
+            f"stable-ID exclusion input cannot be read ({type(error).__name__})"
+        ) from error
+    if size > MAX_STABLE_ID_EXCLUSION_BYTES or len(payload) != size:
+        raise PreprocessingError("stable-ID exclusion input exceeds or changed during bounded read")
+    if not payload:
+        return frozenset(), _empty_stable_id_exclusion_commitment()
+    if b"\r" in payload or not payload.endswith(b"\n"):
+        raise PreprocessingError("stable-ID exclusion input must use canonical JSONL with UTF-8 LF")
+    lines = payload[:-1].split(b"\n")
+    if not lines or len(lines) > MAX_STABLE_ID_EXCLUSIONS or any(not line for line in lines):
+        raise PreprocessingError("stable-ID exclusion input count is outside the bound")
+    stable_ids: list[str] = []
+    for line_number, line in enumerate(lines, start=1):
+        try:
+            record = json.loads(line.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise PreprocessingError(
+                f"stable-ID exclusion input line {line_number} is not UTF-8 JSON"
+            ) from error
+        if not isinstance(record, Mapping) or set(record) != {"stable_id"}:
+            raise PreprocessingError(
+                f"stable-ID exclusion input line {line_number} must contain only stable_id"
+            )
+        try:
+            stable_id = _require_identifier(record["stable_id"], "stable-ID exclusion stable_id")
+        except ContractError as error:
+            raise PreprocessingError(str(error)) from error
+        if line != canonical_json_bytes({"stable_id": stable_id}):
+            raise PreprocessingError("stable-ID exclusion input must be canonical JSONL")
+        stable_ids.append(stable_id)
+    if stable_ids != sorted(stable_ids) or len(stable_ids) != len(set(stable_ids)):
+        raise PreprocessingError("stable-ID exclusion input stable_id values must be sorted and unique")
+    return frozenset(stable_ids), {
+        "format_version": STABLE_ID_EXCLUSION_FORMAT_VERSION,
+        "canonicalization": STABLE_ID_EXCLUSION_CANONICALIZATION,
+        "count": len(stable_ids),
+        "content_sha256": hashlib.sha256(payload).hexdigest(),
+        "raw_stable_ids_in_report": False,
+    }
 
 
 @dataclass(frozen=True)
@@ -338,6 +432,9 @@ def clean_wikitext(raw: str) -> tuple[list[str], Counter[str]]:
             ):
                 counts["residual_markup"] += 1
                 continue
+            if contains_v4_residual_corruption(paragraph):
+                counts["residual_corruption"] += 1
+                continue
             paragraphs.append(paragraph)
     return paragraphs, counts
 
@@ -415,6 +512,8 @@ def iter_source_spans(
     matcher: SurfaceMatcher,
     config: ExtractorConfig,
     counts: Counter[str],
+    *,
+    excluded_stable_ids: frozenset[str] = frozenset(),
 ) -> Iterator[dict[str, Any]]:
     context = ET.iterparse(stream, events=("start", "end"))
     _, root = next(context)
@@ -465,7 +564,7 @@ def iter_source_spans(
                             if not _sampled(sample_key, config):
                                 counts["matches_not_sampled"] += 1
                                 continue
-                            yield _span_record(
+                            record = _span_record(
                                 page_sequence=page_sequence,
                                 page_id=page_id,
                                 revision_id=revision_id,
@@ -478,6 +577,10 @@ def iter_source_spans(
                                 match_end=end,
                                 surface=surface,
                             )
+                            if record["stable_id"] in excluded_stable_ids:
+                                counts["stable_id_exclusions"] += 1
+                                continue
+                            yield record
                             emitted += 1
                             per_page += 1
                             if emitted >= config.max_records:
@@ -504,6 +607,7 @@ def extract_source_spans(
     dictionary_manifest: Mapping[str, Any],
     extractor_git_sha: str,
     config: ExtractorConfig,
+    stable_id_exclusion_path: str | Path | None = None,
 ) -> tuple[str, str, int]:
     config.validate()
     if jawiki_manifest.get("status") != LOCAL_ARTIFACT_VERIFIED:
@@ -513,12 +617,24 @@ def extract_source_spans(
     normalized_dictionary_manifest = validate_dictionary_index_manifest(
         dictionary_manifest, dictionary_records
     )
+    excluded_stable_ids, stable_id_exclusion = load_stable_id_exclusion(
+        stable_id_exclusion_path
+    )
     matcher = SurfaceMatcher(dictionary_records, config)
     output = Path(output_path)
     report = Path(report_path)
     try:
         ensure_distinct_tier_a_paths(
-            {"dump": dump_path, "output": output, "report": report}
+            {
+                "dump": dump_path,
+                "output": output,
+                "report": report,
+                **(
+                    {"stable_id_exclusion": stable_id_exclusion_path}
+                    if stable_id_exclusion_path is not None
+                    else {}
+                ),
+            }
         )
     except TierAError as error:
         raise PreprocessingError(str(error)) from error
@@ -533,7 +649,13 @@ def extract_source_spans(
     counts: Counter[str] = Counter()
     try:
         with os.fdopen(descriptor, "wb") as destination, bz2.open(dump_path, "rb") as stream:
-            for record in iter_source_spans(stream, matcher, config, counts):
+            for record in iter_source_spans(
+                stream,
+                matcher,
+                config,
+                counts,
+                excluded_stable_ids=excluded_stable_ids,
+            ):
                 line = canonical_json_bytes(record) + b"\n"
                 if destination.tell() + len(line) > config.max_output_bytes:
                     counts["stopped_at_output_byte_bound"] = 1
@@ -561,6 +683,7 @@ def extract_source_spans(
             "content_sha256": output_sha,
             "counts": dict(sorted(counts.items())),
             "raw_text_in_report": False,
+            "stage4_stable_id_exclusion": stable_id_exclusion,
         }
         report_payload = canonical_json_bytes(manifest) + b"\n"
         report_sha = hashlib.sha256(report_payload).hexdigest()

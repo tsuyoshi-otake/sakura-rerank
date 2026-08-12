@@ -21,6 +21,8 @@ from .tier_a import TierAError
 QUEUE_SCHEMA_VERSION = 1
 QUEUE_RECORD_TYPE = "tier_a_human_audit_item"
 QUEUE_MANIFEST_KIND = "tier_a_human_audit_queue"
+CALIBRATION_QUEUE_MANIFEST_KIND = "tier_a_owner_calibration_queue"
+CALIBRATION_QUEUE_SELECTION_ALGORITHM = "teacher_disagreements_plus_one_pass_sha256_v1"
 RESPONSE_SCHEMA_VERSION = 2
 RESPONSE_RECORD_TYPE = "tier_a_audit_response"
 REPORT_SCHEMA_VERSION = 2
@@ -54,6 +56,25 @@ _QUEUE_MANIFEST_FIELDS = {
     "dataset_content_sha256",
     "record_count",
     "final_holdout_count",
+    "split_counts",
+    "stratum_counts",
+    "content_sha256",
+    "raw_text_in_queue",
+    "raw_text_in_manifest",
+}
+_CALIBRATION_QUEUE_MANIFEST_FIELDS = {
+    "schema_version",
+    "manifest_kind",
+    "selection_algorithm",
+    "seed",
+    "source_dataset_record_count",
+    "source_dataset_content_sha256",
+    "teacher_state_content_sha256",
+    "disagreement_list_content_sha256",
+    "disagreement_record_count",
+    "one_pass_eligible_record_count",
+    "one_pass_selected_record_count",
+    "record_count",
     "split_counts",
     "stratum_counts",
     "content_sha256",
@@ -192,6 +213,50 @@ def build_queue_manifest(
     }
 
 
+def build_calibration_queue_manifest(
+    queue: Sequence[Mapping[str, Any]],
+    *,
+    seed: int,
+    source_dataset_record_count: int,
+    source_dataset_content_sha256: str,
+    teacher_state_content_sha256: str,
+    disagreement_list_content_sha256: str,
+    disagreement_record_count: int,
+    one_pass_eligible_record_count: int,
+    one_pass_selected_record_count: int,
+) -> dict[str, Any]:
+    """Build the aggregate-only provenance manifest for an owner calibration queue.
+
+    The queue itself deliberately remains the ordinary human-audit row schema, so
+    the loopback review service does not need a special calibration code path.
+    """
+
+    validated_queue = validate_audit_queue(queue)
+    split_counts = Counter(item["split"] for item in validated_queue)
+    stratum_counts = Counter(item["stratum"] for item in validated_queue)
+    manifest = {
+        "schema_version": QUEUE_SCHEMA_VERSION,
+        "manifest_kind": CALIBRATION_QUEUE_MANIFEST_KIND,
+        "selection_algorithm": CALIBRATION_QUEUE_SELECTION_ALGORITHM,
+        "seed": seed,
+        "source_dataset_record_count": source_dataset_record_count,
+        "source_dataset_content_sha256": source_dataset_content_sha256,
+        "teacher_state_content_sha256": teacher_state_content_sha256,
+        "disagreement_list_content_sha256": disagreement_list_content_sha256,
+        "disagreement_record_count": disagreement_record_count,
+        "one_pass_eligible_record_count": one_pass_eligible_record_count,
+        "one_pass_selected_record_count": one_pass_selected_record_count,
+        "record_count": len(validated_queue),
+        "split_counts": dict(sorted(split_counts.items())),
+        "stratum_counts": dict(sorted(stratum_counts.items())),
+        "content_sha256": hashlib.sha256(canonical_jsonl_bytes(validated_queue)).hexdigest(),
+        "raw_text_in_queue": True,
+        "raw_text_in_manifest": False,
+    }
+    validate_queue_manifest(manifest, validated_queue)
+    return manifest
+
+
 def publish_audit_queue(
     queue_path: str | Path,
     manifest_path: str | Path,
@@ -204,6 +269,8 @@ def publish_audit_queue(
         raise TierAError("audit queue manifest does not match the queue")
     if manifest.get("raw_text_in_manifest") is not False:
         raise TierAError("audit queue manifest must be text-free")
+    if manifest.get("manifest_kind") == CALIBRATION_QUEUE_MANIFEST_KIND:
+        validate_queue_manifest(manifest, queue)
     manifest_payload = canonical_json_bytes(manifest) + b"\n"
     write_bytes_pair_atomic(queue_path, queue_payload, manifest_path, manifest_payload)
     return queue_sha, hashlib.sha256(manifest_payload).hexdigest()
@@ -221,6 +288,21 @@ def read_audit_queue(path: str | Path) -> list[dict[str, Any]]:
         lines = payload.decode("utf-8").splitlines()
     except UnicodeDecodeError as error:
         raise TierAError("audit queue: must be UTF-8") from error
+    parsed: list[Mapping[str, Any]] = []
+    for line_number, line in enumerate(lines, start=1):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise TierAError(f"audit queue line {line_number}: invalid JSON") from error
+        if not isinstance(value, Mapping):
+            raise TierAError(f"audit queue line {line_number}: fields do not match schema")
+        parsed.append(value)
+    return validate_audit_queue(parsed)
+
+
+def validate_audit_queue(values: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Validate standard audit rows, including canonical stable-ID ordering."""
+
     queue: list[dict[str, Any]] = []
     expected_fields = {
         "schema_version",
@@ -236,11 +318,7 @@ def read_audit_queue(path: str | Path) -> list[dict[str, Any]]:
         "gold_segments",
         "production_candidates",
     }
-    for line_number, line in enumerate(lines, start=1):
-        try:
-            value = json.loads(line)
-        except json.JSONDecodeError as error:
-            raise TierAError(f"audit queue line {line_number}: invalid JSON") from error
+    for line_number, value in enumerate(values, start=1):
         if not isinstance(value, Mapping) or set(value) != expected_fields:
             raise TierAError(f"audit queue line {line_number}: fields do not match schema")
         if value["schema_version"] != QUEUE_SCHEMA_VERSION or value["record_type"] != QUEUE_RECORD_TYPE:
@@ -296,6 +374,9 @@ def read_queue_manifest(path: str | Path) -> Mapping[str, Any]:
 def validate_queue_manifest(
     manifest: Mapping[str, Any], queue: Sequence[Mapping[str, Any]]
 ) -> None:
+    if manifest.get("manifest_kind") == CALIBRATION_QUEUE_MANIFEST_KIND:
+        _validate_calibration_queue_manifest(manifest, queue)
+        return
     if set(manifest) != _QUEUE_MANIFEST_FIELDS:
         raise TierAError("audit queue manifest: fields do not match aggregate-only schema")
     if manifest.get("schema_version") != QUEUE_SCHEMA_VERSION:
@@ -333,6 +414,74 @@ def validate_queue_manifest(
         raise TierAError("audit queue manifest: invalid stratum")
     if manifest.get("stratum_counts") != dict(sorted(strata.items())):
         raise TierAError("audit queue manifest: stratum counts mismatch")
+
+
+def _validate_calibration_queue_manifest(
+    manifest: Mapping[str, Any], queue: Sequence[Mapping[str, Any]]
+) -> None:
+    """Fail closed unless calibration provenance and standard review rows reconcile."""
+
+    if set(manifest) != _CALIBRATION_QUEUE_MANIFEST_FIELDS:
+        raise TierAError("calibration queue manifest: fields do not match aggregate-only schema")
+    if manifest.get("schema_version") != QUEUE_SCHEMA_VERSION:
+        raise TierAError("calibration queue manifest: unsupported schema")
+    if manifest.get("selection_algorithm") != CALIBRATION_QUEUE_SELECTION_ALGORITHM:
+        raise TierAError("calibration queue manifest: unsupported selection algorithm")
+    if type(manifest.get("seed")) is not int:
+        raise TierAError("calibration queue manifest: invalid seed")
+
+    count_fields = (
+        "source_dataset_record_count",
+        "disagreement_record_count",
+        "one_pass_eligible_record_count",
+        "one_pass_selected_record_count",
+        "record_count",
+    )
+    for field in count_fields:
+        value = manifest.get(field)
+        if type(value) is not int or not 0 <= value <= MAX_QUEUE_RECORDS:
+            raise TierAError(f"calibration queue manifest: invalid {field}")
+    source_count = manifest["source_dataset_record_count"]
+    disagreement_count = manifest["disagreement_record_count"]
+    eligible_count = manifest["one_pass_eligible_record_count"]
+    selected_count = manifest["one_pass_selected_record_count"]
+    if disagreement_count > source_count or eligible_count > source_count:
+        raise TierAError("calibration queue manifest: source dataset counts are inconsistent")
+    if selected_count > eligible_count:
+        raise TierAError("calibration queue manifest: selected count exceeds eligible count")
+    if selected_count != min(100, eligible_count):
+        raise TierAError("calibration queue manifest: selected count is not the fixed sample size")
+    if manifest["record_count"] != disagreement_count + selected_count:
+        raise TierAError("calibration queue manifest: record count does not reconcile")
+    if manifest["record_count"] > source_count:
+        raise TierAError("calibration queue manifest: record count exceeds source dataset")
+
+    for field in (
+        "source_dataset_content_sha256",
+        "teacher_state_content_sha256",
+        "disagreement_list_content_sha256",
+        "content_sha256",
+    ):
+        value = manifest.get(field)
+        if not isinstance(value, str) or _SHA256.fullmatch(value) is None:
+            raise TierAError(f"calibration queue manifest: invalid {field}")
+    if manifest["raw_text_in_queue"] is not True or manifest["raw_text_in_manifest"] is not False:
+        raise TierAError("calibration queue manifest: raw-text flags are invalid")
+
+    validated_queue = validate_audit_queue(queue)
+    if manifest["record_count"] != len(validated_queue):
+        raise TierAError("calibration queue manifest: record count mismatch")
+    queue_sha = hashlib.sha256(canonical_jsonl_bytes(validated_queue)).hexdigest()
+    if manifest["content_sha256"] != queue_sha:
+        raise TierAError("calibration queue manifest: content hash mismatch")
+    split_counts = Counter(item["split"] for item in validated_queue)
+    if manifest["split_counts"] != dict(sorted(split_counts.items())):
+        raise TierAError("calibration queue manifest: split counts mismatch")
+    strata = Counter(item["stratum"] for item in validated_queue)
+    if any(_STRATUM.fullmatch(name) is None for name in strata):
+        raise TierAError("calibration queue manifest: invalid stratum")
+    if manifest["stratum_counts"] != dict(sorted(strata.items())):
+        raise TierAError("calibration queue manifest: stratum counts mismatch")
 
 
 def read_audit_responses(path: str | Path) -> list[dict[str, Any]]:

@@ -19,6 +19,7 @@ from sakura_rerank.data.jawiki_preprocess import (
     clean_wikitext,
     extract_source_spans,
     iter_source_spans,
+    load_stable_id_exclusion,
 )
 from sakura_rerank.data.tier_a import (
     TierABlockedError,
@@ -110,6 +111,14 @@ class CleanerAndMatcherTests(unittest.TestCase):
             clean_wikitext("Before [[:ファイル:Map.jpg|thumb|caption]] after。"),
             (["Before after。"], Counter()),
         )
+
+    def test_cleaner_rejects_zero_false_fire_v4_corruption_markers(self) -> None:
+        for marker in ("|", "\u25bd", "\u25ef"):
+            with self.subTest(marker=ord(marker)):
+                self.assertEqual(
+                    clean_wikitext(f"before {marker} after。"),
+                    ([], Counter({"residual_corruption": 1})),
+                )
 
     def test_matcher_uses_longest_non_overlapping_exact_surface(self) -> None:
         matcher = SurfaceMatcher(dictionary_records(), config())
@@ -224,10 +233,14 @@ class StreamingExtractionTests(unittest.TestCase):
             self.assertEqual((root / "first.jsonl").read_bytes(), (root / "second.jsonl").read_bytes())
             first_report = json.loads((root / "first-report.json").read_text(encoding="utf-8"))
             self.assertIs(first_report["raw_text_in_report"], False)
-            self.assertEqual(first_report["schema_version"], 2)
-            self.assertEqual(first_report["cleaner_version"], "conservative_wikitext_v3")
+            self.assertEqual(first_report["schema_version"], 3)
+            self.assertEqual(first_report["cleaner_version"], "conservative_wikitext_v4")
             self.assertEqual(first_report["config"]["min_reading_chars"], 3)
             self.assertEqual(first_report["config"]["max_reading_chars"], 128)
+            self.assertEqual(first_report["stage4_stable_id_exclusion"]["count"], 0)
+            self.assertIs(
+                first_report["stage4_stable_id_exclusion"]["raw_stable_ids_in_report"], False
+            )
             self.assertNotIn("Before", (root / "first-report.json").read_text(encoding="utf-8"))
 
     def test_second_replace_failure_restores_existing_pair(self) -> None:
@@ -390,7 +403,7 @@ class SourceSpanManifestTests(unittest.TestCase):
         self.assertEqual(normalized["config"]["min_reading_chars"], 3)
 
         manifest["cleaner_version"] = "conservative_wikitext_v2"
-        with self.assertRaisesRegex(TierAError, "current cleaner"):
+        with self.assertRaisesRegex(TierAError, "requires the v3 cleaner"):
             validate_source_span_manifest(
                 manifest,
                 records,
@@ -419,6 +432,91 @@ class SourceSpanManifestTests(unittest.TestCase):
                 dictionary_manifest=dictionary_manifest(),
                 require_verified=False,
             )
+
+    def test_v4_manifest_requires_a_strict_stable_id_exclusion_commitment(self) -> None:
+        records = self.records()
+        manifest = self.measured_manifest(records)
+        manifest["schema_version"] = 3
+        manifest["cleaner_version"] = "conservative_wikitext_v4"
+        manifest["config"]["min_reading_chars"] = 3
+        manifest["config"]["max_reading_chars"] = 128
+        manifest["stage4_stable_id_exclusion"] = {
+            "format_version": 1,
+            "canonicalization": "utf8_lf_sorted_unique_stable_id_jsonl_v1",
+            "count": 0,
+            "content_sha256": hashlib.sha256(b"").hexdigest(),
+            "raw_stable_ids_in_report": False,
+        }
+        normalized = validate_source_span_manifest(
+            manifest,
+            records,
+            jawiki_manifest=jawiki_manifest(),
+            dictionary_manifest=dictionary_manifest(),
+            require_verified=False,
+        )
+        self.assertEqual(normalized["stage4_stable_id_exclusion"]["count"], 0)
+        manifest["verification_status"] = "verified"
+        with self.assertRaisesRegex(TierAError, "outside the allowlist"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+            )
+        manifest["verification_status"] = "measured"
+        with self.assertRaisesRegex(TierAError, "fields do not match schema"):
+            del manifest["stage4_stable_id_exclusion"]
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+
+
+    def test_canonical_exclusion_is_committed_and_applied_before_yield(self) -> None:
+        first_counts: Counter[str] = Counter()
+        records = list(
+            iter_source_spans(
+                io.BytesIO(xml_fixture()), SurfaceMatcher(dictionary_records(), config()), config(), first_counts
+            )
+        )
+        exclusion_payload = canonical_jsonl_bytes([{"stable_id": records[0]["stable_id"]}])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "exclusion.jsonl"
+            path.write_bytes(exclusion_payload)
+            excluded_ids, commitment = load_stable_id_exclusion(path)
+        counts: Counter[str] = Counter()
+        remaining = list(
+            iter_source_spans(
+                io.BytesIO(xml_fixture()),
+                SurfaceMatcher(dictionary_records(), config()),
+                config(),
+                counts,
+                excluded_stable_ids=excluded_ids,
+            )
+        )
+        self.assertEqual(len(remaining), len(records) - 1)
+        self.assertNotIn(records[0]["stable_id"], {record["stable_id"] for record in remaining})
+        self.assertEqual(counts["stable_id_exclusions"], 1)
+        self.assertEqual(commitment["count"], 1)
+        self.assertEqual(commitment["content_sha256"], hashlib.sha256(exclusion_payload).hexdigest())
+
+    def test_exclusion_rejects_noncanonical_unsorted_and_duplicate_records(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "exclusion.jsonl"
+            path.write_text('{"stable_id": "jawiki-b"}\n', encoding="utf-8")
+            with self.assertRaisesRegex(PreprocessingError, "canonical JSONL"):
+                load_stable_id_exclusion(path)
+            path.write_bytes(
+                b'{"stable_id":"jawiki-b"}\n{"stable_id":"jawiki-a"}\n'
+            )
+            with self.assertRaisesRegex(PreprocessingError, "sorted and unique"):
+                load_stable_id_exclusion(path)
+            path.write_bytes(canonical_jsonl_bytes([{"stable_id": "jawiki-a"}] * 2))
+            with self.assertRaisesRegex(PreprocessingError, "sorted and unique"):
+                load_stable_id_exclusion(path)
 
     def test_content_or_metadata_tampering_is_rejected(self) -> None:
         records = self.records()

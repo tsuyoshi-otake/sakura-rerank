@@ -43,3 +43,11 @@ The
 [`jawiki-snapshot.blocked.example.json`](jawiki-snapshot.blocked.example.json)
 file demonstrates how to report unconfirmed metadata without filling in
 guesses. It is intentionally not a valid verified manifest.
+
+Corpus v4 adds two aggregate-only commitments. Source-span manifest schema v3
+requires a hash/count commitment to the canonical Stage 4 stable-ID exclusion
+file; it does not expose the IDs and cannot claim `verified` until a reproduced
+identity is explicitly allowlisted. The owner calibration queue uses
+[`owner-calibration-queue-manifest.schema.json`](owner-calibration-queue-manifest.schema.json)
+to bind the source dataset, complete teacher state, deduplicated disagreement
+list, fixed-seed 100-row one-pass sample, and ordinary review queue content.
