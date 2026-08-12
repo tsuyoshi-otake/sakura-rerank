@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tsuyoshi-otake/sakura-rerank/manifests/human-audit-queue-manifest.schema.json",
+  "title": "Tier A human audit queue manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_kind", "selection_algorithm", "seed", "minimum_sample_size", "dataset_record_count", "dataset_content_sha256", "record_count", "final_holdout_count", "split_counts", "stratum_counts", "content_sha256", "raw_text_in_queue", "raw_text_in_manifest"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "manifest_kind": {"const": "tier_a_human_audit_queue"},
+    "selection_algorithm": {"const": "final_holdout_plus_stratified_round_robin_sha256_v1"},
+    "seed": {"type": "integer"},
+    "minimum_sample_size": {"type": "integer", "minimum": 1, "maximum": 100000},
+    "dataset_record_count": {"type": "integer", "minimum": 1, "maximum": 100000},
+    "dataset_content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "record_count": {"type": "integer", "minimum": 1, "maximum": 100000},
+    "final_holdout_count": {"type": "integer", "minimum": 0, "maximum": 100000},
+    "split_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "stratum_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "raw_text_in_queue": {"const": true},
+    "raw_text_in_manifest": {"const": false}
+  }
+}

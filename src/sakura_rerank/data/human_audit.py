@@ -440,6 +440,12 @@ def build_quality_report(
         if queue_by_id[stable_id]["split"] == "final-holdout"
         and response["verdict"] == "valid"
     )
+    final_valid_strata = Counter(
+        queue_by_id[stable_id]["stratum"]
+        for stable_id, response in response_by_id.items()
+        if queue_by_id[stable_id]["split"] == "final-holdout"
+        and response["verdict"] == "valid"
+    )
     enough_completed = completed >= minimum_completed
     enough_holdout = final_valid >= minimum_final_holdout_valid
     precision_pass = precision >= 0.995 and lower >= 0.99
@@ -454,6 +460,7 @@ def build_quality_report(
         "verdict_counts": {verdict: verdict_counts.get(verdict, 0) for verdict in VERDICTS},
         "final_holdout_completed_count": final_completed,
         "final_holdout_valid_count": final_valid,
+        "final_holdout_valid_stratum_counts": dict(sorted(final_valid_strata.items())),
         "point_precision": precision,
         "wilson_95_lower_bound": lower,
         "thresholds": {

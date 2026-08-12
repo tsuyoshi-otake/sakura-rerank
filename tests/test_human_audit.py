@@ -89,11 +89,19 @@ class HumanAuditTests(unittest.TestCase):
 
     def test_quality_gate_requires_both_precision_and_reviewed_holdout(self) -> None:
         queue = [
-            {"stable_id": f"audit-{index:05d}", "split": "final-holdout"}
+            {
+                "stable_id": f"audit-{index:05d}",
+                "split": "final-holdout",
+                "stratum": "reading-03-09/candidates-02-06/local-correct",
+            }
             for index in range(3_000)
         ]
         passed = build_quality_report(queue, [_response(item["stable_id"]) for item in queue])
         self.assertTrue(passed["gate_a_human_audit_pass"])
+        self.assertEqual(
+            passed["final_holdout_valid_stratum_counts"],
+            {"reading-03-09/candidates-02-06/local-correct": 3_000},
+        )
         failed_responses = [
             _response(item["stable_id"], "wrong_gold_surface" if index < 16 else "valid")
             for index, item in enumerate(queue)

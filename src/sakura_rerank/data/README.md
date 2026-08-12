@@ -148,7 +148,8 @@ bounded `requests-NNNNN.jsonl` files plus a closed, aggregate-only manifest.
 Every shard and the concatenated logical request stream have independent
 SHA-256 identities. Existing destinations are rejected, all staged files are
 flushed before the directory rename, and a failed rename removes the complete
-staging directory.
+staging directory. The closed manifest shape is documented in
+`manifests/research-exporter-request-shards.schema.json`.
 
 After the isolated exporter has produced matching `output-NNNNN.jsonl` and
 `report-NNNNN.json` files, `tier-a-shards` validates every result against the
@@ -165,6 +166,9 @@ candidate-count, and local-correctness strata. The review queue intentionally
 contains the bounded text needed by a reviewer; its paired manifest contains
 only counts, configuration, and hashes. Review responses use a closed verdict
 schema and require a reviewer identity and timezone-qualified timestamp.
+The aggregate queue manifest and response record shapes are documented in
+`manifests/human-audit-queue-manifest.schema.json` and
+`manifests/human-audit-response.schema.json`.
 
 `human-audit report` counts only supplied reviews. Gate A passes only when at
 least 1,000 labels are complete, at least 3,000 valid final-holdout labels exist,

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tsuyoshi-otake/sakura-rerank/manifests/human-audit-response.schema.json",
+  "title": "Tier A human audit response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "record_type", "stable_id", "verdict", "reviewer_id", "reviewed_at", "note"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "record_type": {"const": "tier_a_human_audit_response"},
+    "stable_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "verdict": {"enum": ["valid", "wrong_reading", "wrong_segmentation", "wrong_gold_surface", "ambiguous", "extraction_noise"]},
+    "reviewer_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "note": {"type": "string", "maxLength": 2000}
+  }
+}
