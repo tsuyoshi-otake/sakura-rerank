@@ -114,6 +114,7 @@ class SurfaceMatcher:
 
     def __init__(self, records: Sequence[Mapping[str, Any]], config: ExtractorConfig):
         buckets: dict[str, dict[int, set[str]]] = defaultdict(lambda: defaultdict(set))
+        boundary_metadata: dict[str, tuple[str | None, str | None, bool]] = {}
         accepted = 0
         for record in records:
             surface = record["surface"]
@@ -123,17 +124,27 @@ class SurfaceMatcher:
                 continue
             key = surface if len(surface) == 1 else surface[:2]
             buckets[key][len(surface)].add(surface)
+            boundary_metadata[surface] = (
+                _character_class(surface[0]),
+                _character_class(surface[-1]),
+                all(
+                    _character_class(character) in {"hiragana", "katakana"}
+                    for character in surface
+                ),
+            )
             accepted += 1
         self._buckets = {
             key: tuple((length, frozenset(values)) for length, values in sorted(groups.items(), reverse=True))
             for key, groups in buckets.items()
         }
+        self._boundary_metadata = boundary_metadata
         self.surface_count = accepted
 
     def matches(
         self, text: str, counts: Counter[str] | None = None
     ) -> Iterator[tuple[int, int, str]]:
         position = 0
+        parenthesis_depth = 0
         while position < len(text):
             groups = []
             if position + 1 < len(text):
@@ -147,14 +158,33 @@ class SurfaceMatcher:
                     if candidate in surfaces and (match is None or length > len(match[2])):
                         match = (position, end, candidate)
             if match is None:
-                position += 1
-            elif not _safe_match_boundaries(text, *match):
+                next_position = position + 1
+            elif not _safe_match_boundaries(
+                text,
+                *match,
+                self._boundary_metadata[match[2]],
+                inside_parentheses=parenthesis_depth > 0,
+            ):
                 if counts is not None:
                     counts["matches_unsafe_boundary"] += 1
-                position += 1
+                next_position = position + 1
             else:
                 yield match
-                position = match[1]
+                next_position = match[1]
+
+            if next_position == position + 1:
+                character = text[position]
+                if character == "(":
+                    parenthesis_depth += 1
+                elif character == ")" and parenthesis_depth:
+                    parenthesis_depth -= 1
+            else:
+                for character in text[position:next_position]:
+                    if character == "(":
+                        parenthesis_depth += 1
+                    elif character == ")" and parenthesis_depth:
+                        parenthesis_depth -= 1
+            position = next_position
 
 
 def _character_class(character: str) -> str | None:
@@ -168,22 +198,24 @@ def _character_class(character: str) -> str | None:
     return None
 
 
-def _inside_parentheses(text: str, position: int) -> bool:
-    return text.rfind("(", 0, position) > text.rfind(")", 0, position)
-
-
-def _safe_match_boundaries(text: str, start: int, end: int, surface: str) -> bool:
+def _safe_match_boundaries(
+    text: str,
+    start: int,
+    end: int,
+    surface: str,
+    metadata: tuple[str | None, str | None, bool],
+    *,
+    inside_parentheses: bool,
+) -> bool:
     """Reject dictionary substrings that cut through a lexical token or reading note."""
 
-    first_class = _character_class(surface[0])
-    last_class = _character_class(surface[-1])
+    first_class, last_class, pure_kana = metadata
     if start and first_class is not None and _character_class(text[start - 1]) == first_class:
         return False
     if end < len(text) and last_class is not None and _character_class(text[end]) == last_class:
         return False
-    if all(_character_class(character) in {"hiragana", "katakana"} for character in surface):
-        if _inside_parentheses(text, start):
-            return False
+    if pure_kana and inside_parentheses:
+        return False
     return True
 
 

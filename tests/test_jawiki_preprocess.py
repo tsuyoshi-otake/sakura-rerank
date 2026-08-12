@@ -132,6 +132,23 @@ class CleanerAndMatcherTests(unittest.TestCase):
         self.assertEqual(paragraphs, ["先発", "グレゴリオ暦"])
         self.assertEqual(counts, {})
 
+    def test_matcher_tracks_nested_parentheses_in_one_linear_scan(self) -> None:
+        records = [
+            {
+                "schema_version": 1,
+                "record_type": "system_dictionary_surface_index",
+                "surface": "かな",
+                "readings": ["かな"],
+            }
+        ]
+        counts: Counter[str] = Counter()
+        matcher = SurfaceMatcher(records, config())
+        self.assertEqual(
+            list(matcher.matches("外(注(かな)続) かな", counts)),
+            [(10, 12, "かな")],
+        )
+        self.assertEqual(counts["matches_unsafe_boundary"], 1)
+
 
 class StreamingExtractionTests(unittest.TestCase):
     def test_iterparse_is_deterministic_and_filters_namespace_and_redirect(self) -> None:
