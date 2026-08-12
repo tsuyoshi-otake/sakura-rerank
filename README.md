@@ -11,14 +11,18 @@ candidate generator.
 ## Status
 
 The repository has completed the current-HEAD audit, current Tiny baseline
-reproduction, deterministic data contracts, fixed jawiki acquisition and
-source-span extraction, and a verified top-32 candidate snapshot produced by
-the isolated research exporter tracked by
-[Issue #1](https://github.com/tsuyoshi-otake/sakura-rerank/issues/1).
-No Gate A/B result has been established, and no production default is approved.
-The first automatic Tier A pilot retained 1,643 of 1,969 verified source rows;
-the expanded corpus and independent human-review gate are tracked in
-[Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15). A trained
+reproduction, deterministic data contracts, fixed jawiki acquisition, and a
+reproducible expanded Tier A candidate snapshot produced by the isolated
+research exporter. The expanded run retained 33,553 of 40,703 verified source
+rows, assigned 5,033 rows to the final holdout with zero measured cross-split
+leakage, and measured Oracle Recall@6 at 99.064%.
+
+Gate A is still pending because the deterministic 5,033-row holdout queue has
+not received real human judgments. The queue, aggregate evidence, and remaining
+quality gate are tracked in
+[Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15) and
+[`reports/issue-15-tier-a-pre-review.json`](reports/issue-15-tier-a-pre-review.json).
+No Gate B result or production default is approved, and a trained
 Sakura-Rerank-Tiny-v1 model has not yet been selected or exported.
 
 The evidence and decision are recorded in

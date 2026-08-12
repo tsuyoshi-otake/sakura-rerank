@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "tier_a_human_audit_queue",
+  "selection_algorithm": "final_holdout_plus_stratified_round_robin_sha256_v1",
+  "seed": 20260812,
+  "minimum_sample_size": 1000,
+  "dataset_record_count": 33553,
+  "dataset_content_sha256": "02c6717f4f2469bd7e2aba36bd3158c8d87a66ba43939556eb7b3d1313345e67",
+  "record_count": 5033,
+  "final_holdout_count": 5033,
+  "content_sha256": "a9debe3f776a3d681403d6dc514faf25518979d9ba51265f0d37a1862095936b",
+  "split_counts": {
+    "final-holdout": 5033
+  },
+  "stratum_counts": {
+    "reading-01-02/candidates-02-06/local-correct": 1165,
+    "reading-01-02/candidates-02-06/local-wrong": 58,
+    "reading-01-02/candidates-07-16/local-correct": 571,
+    "reading-01-02/candidates-07-16/local-wrong": 77,
+    "reading-01-02/candidates-17-32/local-correct": 444,
+    "reading-01-02/candidates-17-32/local-wrong": 256,
+    "reading-03-09/candidates-02-06/local-correct": 23,
+    "reading-03-09/candidates-02-06/local-wrong": 1,
+    "reading-03-09/candidates-07-16/local-correct": 31,
+    "reading-03-09/candidates-07-16/local-wrong": 3,
+    "reading-03-09/candidates-17-32/local-correct": 2022,
+    "reading-03-09/candidates-17-32/local-wrong": 350,
+    "reading-10-30/candidates-17-32/local-correct": 31,
+    "reading-10-30/candidates-17-32/local-wrong": 1
+  },
+  "raw_text_in_queue": true,
+  "raw_text_in_manifest": false
+}

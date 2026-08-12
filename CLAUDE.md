@@ -20,16 +20,19 @@ research boundary.
   `6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad`
 - Dictionary index: `manifests/system-dictionary-index-verified.json`
 - Jawiki source spans: `manifests/jawiki-tier-a-source-spans-verified.json`
+- Expanded jawiki source spans:
+  `manifests/jawiki-tier-a-source-spans-expanded-verified.json`
 - Research exporter identity: `manifests/research-exporter-verified.json`
 - Verified candidate snapshot:
   `manifests/jawiki-research-top32-snapshot-verified.json`
+- Expanded pre-review evidence: `reports/issue-15-tier-a-pre-review.json`
 
-The 1,969-record chain has produced a 1,643-record automatic Tier A pilot.
-Issue #15 owns expanded deterministic extraction, bounded top-32 request
-sharding, leakage-safe splitting, and the independent human-review gate. The
-verified pilot snapshot is prerequisite evidence, not a Gate A/B result and not
-approval for production integration. No Sakura-Rerank-Tiny-v1 model has been
-selected or exported yet.
+The expanded chain has produced 33,553 automatic Tier A records and a 5,033-row
+final holdout with zero measured article, exact-paragraph, near-sentence, or
+template leakage. Its deterministic human-audit queue remains unanswered.
+Issue #15 owns that independent human-review gate. Automatic verification is
+prerequisite evidence, not a Gate A/B result and not approval for production
+integration. No Sakura-Rerank-Tiny-v1 model has been selected or exported yet.
 
 ## Data and privacy
 
