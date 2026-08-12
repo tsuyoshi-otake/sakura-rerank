@@ -13,7 +13,12 @@ from pathlib import Path
 from typing import Any
 
 from ..atomic_io import write_bytes_pair_atomic
-from .contracts import canonical_json_bytes, canonical_jsonl_bytes
+from .contracts import (
+    MAX_READING_CHARS,
+    MIN_READING_CHARS,
+    canonical_json_bytes,
+    canonical_jsonl_bytes,
+)
 from .tier_a import (
     TierAError,
     validate_dictionary_index,
@@ -95,8 +100,7 @@ def validate_exporter_requests(
             raise TierAError(f"exporter_requests[{index}].stable_id: outside bounded alphabet")
         if (
             not isinstance(reading, str)
-            or not reading
-            or len(reading) > 128
+            or not MIN_READING_CHARS <= len(reading) <= MAX_READING_CHARS
             or any(character in reading for character in ("\0", "\r", "\n"))
         ):
             raise TierAError(f"exporter_requests[{index}].reading: outside bounded contract")
@@ -259,6 +263,8 @@ def _join_verified_requests(
             raise TierAError("exporter_requests: source surface is absent from dictionary index")
         if len(readings) != 1:
             raise TierAError("exporter_requests: source surface does not have exactly one reading")
+        if not MIN_READING_CHARS <= len(readings[0]) <= MAX_READING_CHARS:
+            raise TierAError("exporter_requests: source reading is outside target bounds")
         requests.append({"stable_id": span["stable_id"], "reading": readings[0]})
 
     provenance = {

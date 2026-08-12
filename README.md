@@ -17,13 +17,16 @@ retained 33,553 of 40,703 source rows, assigned 5,033 rows to the final holdout
 with zero measured cross-split leakage, and measured Oracle Recall@6 at 99.064%.
 
 Gate A is still pending. At the owner's direction, Codex inspected the first 120
-queue rows as an explicitly identified `ai_teacher`: 115 were valid and five
-were rejected (95.83% point precision, 90.62% Wilson lower bound). This is not
-reported as human review and fails the quality thresholds. Cleaner v2 rejects
-the observed unsafe source boundaries and has now reproduced 30,003 corrected
-source spans twice with byte-identical output and report pairs. Its downstream
-candidate snapshot and teacher queue must still be regenerated before model
-training. The queue, aggregate
+expanded-v1 queue rows as an explicitly identified `ai_teacher`: 115 were valid
+and five were rejected (95.83% point precision, 90.62% Wilson lower bound).
+Cleaner v2 then reproduced 30,003 corrected source spans and the complete
+downstream chain twice byte-identically. It yielded 23,081 automatic Tier A rows,
+a 3,462-row final holdout, and zero measured cross-split leakage. The next
+teacher pass stopped after finding a contract-level failure: 9,486 Tier A rows
+had readings shorter than the specified three-character minimum, and residual
+MediaWiki emphasis/file markup remained. Cleaner v3 is therefore being repaired
+and must reproduce a fresh chain before training. None of this is reported as
+human review. The queue, aggregate
 evidence, and remaining quality gate are tracked in
 [Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15) and
 [`reports/issue-15-tier-a-pre-review.json`](reports/issue-15-tier-a-pre-review.json).
@@ -39,8 +42,8 @@ Sakura-Rerank-Tiny-v1 model has not yet been selected or exported.
 The evidence and decision are recorded in
 [`research/current-state-review.md`](research/current-state-review.md) and
 [`research/current-tiny-baseline.md`](research/current-tiny-baseline.md).
-Production protocol or integration changes must wait until independently
-reviewed data satisfies the relevant quality gates.
+Production protocol or integration changes must wait until reviewed data
+satisfies the relevant quality gates.
 
 ## Intended production boundary
 
@@ -80,12 +83,18 @@ exact hashes and provenance belong in tracked manifests.
 3. Build and audit high-confidence Tier A examples from actual full-reading
    Sakura converter N-best paths.
 4. Compare equal-budget GRU, minGRU, and Tiny Transformer students on identical
-   snapshots and CPU benchmark conditions.
+   snapshots, then run the pinned public AJIMEE Eval as a held-out comparison;
+   never train or tune on its labels.
 5. Consider protocol v2 and opt-in production integration only after the data,
    quality, safety, and resource gates pass.
 
 The target and verification rubric are maintained in Issue #1. Adoption is
 based on the measured accuracy/latency Pareto frontier, not architecture novelty.
+Public-eval provenance and the cross-model comparison contract are tracked in
+[Issue #18](https://github.com/tsuyoshi-otake/sakura-rerank/issues/18). Final
+production candidates are also benchmarked on Windows CPU with GPU disabled,
+batch one, one ORT intra/inter-op thread, warmup, and at least 10,000 measured
+runs.
 
 ## Data contract boundary
 
@@ -96,9 +105,10 @@ standard-library tooling and CLI are documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md). It does
 not train a model or alter Sakura Input. The acquisition command may download
 only the pinned jawiki artifact, and converter invocation remains isolated in
-the separately built research exporter. The next data step is Tier A assembly
-and audit from the immutable verified snapshot; the snapshot itself is not Gate
-A/B evidence.
+the separately built research exporter. The active data step is a v3 source-span
+regeneration and teacher audit that enforces readings of 3--128 characters at
+matching, exporter-request, and non-fixture training-contract boundaries. A
+snapshot by itself is not Gate A/B evidence.
 
 ## Verified top-32 snapshot
 

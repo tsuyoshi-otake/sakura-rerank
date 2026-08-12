@@ -97,6 +97,20 @@ class CleanerAndMatcherTests(unittest.TestCase):
         self.assertEqual(counts, {})
         self.assertEqual(clean_wikitext("Before {{unclosed"), ([], Counter({"unbalanced_template": 1})))
 
+    def test_cleaner_rejects_emphasis_and_namespace_residue(self) -> None:
+        self.assertEqual(
+            clean_wikitext("前文'''戦国'''時代。"),
+            ([], Counter({"residual_markup": 1})),
+        )
+        self.assertEqual(
+            clean_wikitext("ファイル:大阪メトロの写真。"),
+            ([], Counter({"residual_markup": 1})),
+        )
+        self.assertEqual(
+            clean_wikitext("Before [[:ファイル:Map.jpg|thumb|caption]] after。"),
+            (["Before after。"], Counter()),
+        )
+
     def test_matcher_uses_longest_non_overlapping_exact_surface(self) -> None:
         matcher = SurfaceMatcher(dictionary_records(), config())
         self.assertEqual(
@@ -114,18 +128,34 @@ class CleanerAndMatcherTests(unittest.TestCase):
             }
             for surface, reading in (
                 ("LT", "えるてぃー"),
-                ("ri", "ri"),
+                ("ri", "あーるあい"),
                 ("6日", "むいか"),
-                ("ば", "ば"),
+                ("かな", "かなあ"),
             )
         ]
         counts: Counter[str] = Counter()
         matcher = SurfaceMatcher(records, config())
         self.assertEqual(
-            list(matcher.matches("LTE Spring 16日 (しんば) ば", counts)),
-            [(21, 22, "ば")],
+            list(matcher.matches("LTE Spring 16日 (しんかな) かな", counts)),
+            [(22, 24, "かな")],
         )
         self.assertEqual(counts["matches_unsafe_boundary"], 4)
+
+    def test_matcher_excludes_unique_readings_shorter_than_target_contract(self) -> None:
+        records = [
+            {
+                "schema_version": 1,
+                "record_type": "system_dictionary_surface_index",
+                "surface": surface,
+                "readings": [reading],
+            }
+            for surface, reading in (("言", "こと"), ("派生語", "はせいご"))
+        ]
+        matcher = SurfaceMatcher(records, config())
+        self.assertEqual(matcher.surface_count, 1)
+        self.assertEqual(list(matcher.matches("派生言語と派生語")), [(5, 8, "派生語")])
+        with self.assertRaisesRegex(PreprocessingError, "reading bounds"):
+            ExtractorConfig(min_reading_chars=2).validate()
 
     def test_cleaner_does_not_join_physical_source_lines(self) -> None:
         paragraphs, counts = clean_wikitext("先発\nグレゴリオ暦")
@@ -138,7 +168,7 @@ class CleanerAndMatcherTests(unittest.TestCase):
                 "schema_version": 1,
                 "record_type": "system_dictionary_surface_index",
                 "surface": "かな",
-                "readings": ["かな"],
+                "readings": ["かなあ"],
             }
         ]
         counts: Counter[str] = Counter()
@@ -194,6 +224,10 @@ class StreamingExtractionTests(unittest.TestCase):
             self.assertEqual((root / "first.jsonl").read_bytes(), (root / "second.jsonl").read_bytes())
             first_report = json.loads((root / "first-report.json").read_text(encoding="utf-8"))
             self.assertIs(first_report["raw_text_in_report"], False)
+            self.assertEqual(first_report["schema_version"], 2)
+            self.assertEqual(first_report["cleaner_version"], "conservative_wikitext_v3")
+            self.assertEqual(first_report["config"]["min_reading_chars"], 3)
+            self.assertEqual(first_report["config"]["max_reading_chars"], 128)
             self.assertNotIn("Before", (root / "first-report.json").read_text(encoding="utf-8"))
 
     def test_second_replace_failure_restores_existing_pair(self) -> None:
@@ -336,6 +370,54 @@ class SourceSpanManifestTests(unittest.TestCase):
                 require_verified=False,
             )
             self.assertEqual(normalized["cleaner_version"], cleaner_version)
+
+    def test_current_manifest_requires_pinned_reading_bounds(self) -> None:
+        records = self.records()
+        manifest = self.measured_manifest(records)
+        manifest["schema_version"] = 2
+        manifest["cleaner_version"] = "conservative_wikitext_v3"
+        manifest["config"]["min_reading_chars"] = 3
+        manifest["config"]["max_reading_chars"] = 128
+        normalized = validate_source_span_manifest(
+            manifest,
+            records,
+            jawiki_manifest=jawiki_manifest(),
+            dictionary_manifest=dictionary_manifest(),
+            require_verified=False,
+        )
+        self.assertEqual(normalized["schema_version"], 2)
+        self.assertEqual(normalized["config"]["min_reading_chars"], 3)
+
+        manifest["cleaner_version"] = "conservative_wikitext_v2"
+        with self.assertRaisesRegex(TierAError, "current cleaner"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+        manifest["cleaner_version"] = "conservative_wikitext_v3"
+
+        del manifest["config"]["min_reading_chars"]
+        with self.assertRaisesRegex(TierAError, "fields do not match"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+
+        manifest["config"]["min_reading_chars"] = 2
+        with self.assertRaisesRegex(TierAError, "invalid reading bounds"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
 
     def test_content_or_metadata_tampering_is_rejected(self) -> None:
         records = self.records()

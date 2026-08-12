@@ -20,6 +20,7 @@ TIER_A_VERIFICATION_CONTRACT_VERSION = 2
 RESEARCH_EXPORTER_CONTRACT_VERSION = 1
 RECORD_TYPE = "training_example"
 MAX_LEFT_CONTEXT_CHARS = 64
+MIN_READING_CHARS = 3
 MAX_READING_CHARS = 128
 MAX_SURFACE_CHARS = 256
 MAX_CONVERTER_SEGMENTS = 18
@@ -924,6 +925,11 @@ def validate_record(record: Mapping[str, Any], *, require_split: bool = True) ->
         record["converter_provenance"], is_fixture=is_fixture
     )
     reading = _require_string(record["reading"], "reading", max_chars=MAX_READING_CHARS)
+    if not is_fixture and len(reading) < MIN_READING_CHARS:
+        _error(
+            "reading",
+            f"non-fixture readings must contain at least {MIN_READING_CHARS} characters",
+        )
     gold_surface = _require_string(
         record["gold_surface"], "gold_surface", max_chars=MAX_SURFACE_CHARS
     )

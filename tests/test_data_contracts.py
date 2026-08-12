@@ -241,6 +241,11 @@ class ContractValidationTests(unittest.TestCase):
         with self.assertRaises(ContractError):
             validate_record(record)
 
+        record = production_record()
+        record["reading"] = "かな"
+        with self.assertRaisesRegex(ContractError, "at least 3"):
+            validate_record(record)
+
     def test_production_record_is_fail_closed_to_pinned_head_and_dictionary(self) -> None:
         with self.assertRaisesRegex(ContractError, "top-32 remains blocked"):
             validate_record(production_record())

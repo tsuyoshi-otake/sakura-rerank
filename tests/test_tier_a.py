@@ -67,7 +67,7 @@ def _candidate(
 
 
 def exporter_record(*, gold_category: str = "system_dictionary") -> dict[str, object]:
-    reading = "かな"
+    reading = "かなもじ"
     provenance = {
         "kind": "sakura_input_converter_export",
         "sakura_input_head": PINNED_SAKURA_INPUT_HEAD,
@@ -142,7 +142,7 @@ def dictionary_index(readings: list[str] | None = None) -> list[dict[str, object
             "schema_version": 1,
             "record_type": "system_dictionary_surface_index",
             "surface": "カナ",
-            "readings": readings or ["かな"],
+            "readings": readings or ["かなもじ"],
         }
     ]
 
@@ -236,6 +236,14 @@ class TierAGeneratorTests(unittest.TestCase):
         self.assertEqual(
             raised.exception.report["details"]["rejection_counts"],
             {"dictionary_reading_ambiguous": 1},
+        )
+
+    def test_short_dictionary_reading_blocks_empty_output(self) -> None:
+        with self.assertRaisesRegex(TierABlockedError, "no source span") as raised:
+            generate([source_span()], dictionary_index(["かな"]), [exporter_record()])
+        self.assertEqual(
+            raised.exception.report["details"]["rejection_counts"],
+            {"reading_outside_target_bounds": 1},
         )
 
     def test_fallback_gold_path_blocks_empty_output(self) -> None:

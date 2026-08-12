@@ -102,8 +102,9 @@ bound to an allowlisted source-span manifest, an exact system
 dictionary surface index bound to the pinned compiled dictionary SHA-256, and
 allowlisted research top-32 snapshots. A source span contains no reading. The
 reading comes only from an exact surface lookup with exactly one indexed
-reading, then the forward converter output must contain exactly one NFKC-equal
-gold candidate whose full path consists only of `system_dictionary` segments.
+reading of 3--128 characters, then the forward converter output must contain
+exactly one NFKC-equal gold candidate whose full path consists only of
+`system_dictionary` segments.
 
 Expected exclusions (missing/ambiguous dictionary evidence, missing snapshots,
 reading mismatch, missing/ambiguous gold, fallback paths, and singleton
@@ -129,7 +130,8 @@ is tracked by Git.
 `exporter-requests` validates the allowlisted source-span and dictionary-index
 manifests, then joins every source `gold_surface` to exactly one indexed system
 dictionary reading. A missing or ambiguous reading rejects the complete batch;
-the command never guesses, normalizes, or partially publishes readings. Output
+readings outside 3--128 characters are also rejected before publication. The
+command never guesses, normalizes, or partially publishes readings. Output
 contains exactly `stable_id` and `reading`, sorted by stable ID and bounded to
 the research exporter's 4,096-record input limit.
 
@@ -213,9 +215,15 @@ conservative cleaner removes balanced templates, tables, references, supported
 links and tags, and rejects paragraphs with ambiguous or residual markup.
 Cleaner v2 keeps physical source lines separate and rejects dictionary matches
 that cut through ASCII/kana tokens or occur inside kana reading annotations.
+Cleaner v3 additionally removes colon-prefixed media namespace links, rejects
+residual emphasis/media namespace text, and indexes only exact single-reading
+surfaces whose reading has 3--128 characters.
 
-The matcher indexes only system-dictionary surfaces that have exactly one
-reading. Two-character prefix buckets and descending surface lengths select the
+The current matcher indexes only system-dictionary surfaces that have exactly
+one in-range reading. Manifest schema v2 pins both reading bounds; historical
+schema-v1 cleaner-v1/v2 manifests remain verifiable without being normalized to
+the current schema. Exporter request and non-fixture training validation repeat
+the same bound independently. Two-character prefix buckets and descending surface lengths select the
 longest non-overlapping exact match without materializing article-by-dictionary
 pairs. Hash sampling and per-page/global record bounds are deterministic. The
 canonical JSONL and text-free manifest are staged and committed as one
@@ -303,7 +311,8 @@ python -m sakura_rerank.data jawiki-preprocess `
   --dictionary-index data\generated\system-dictionary-index.jsonl `
   --dictionary-manifest manifests\system-dictionary-index-verified.json `
   --report data\generated\source-spans-measured.json `
-  --extractor-git-sha <exact-sakura-rerank-git-sha>
+  --extractor-git-sha <exact-sakura-rerank-git-sha> `
+  --min-reading-chars 3 --max-reading-chars 128
 
 python -m sakura_rerank.data exporter-requests `
   data\generated\source-spans.jsonl `

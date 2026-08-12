@@ -30,9 +30,17 @@ research boundary.
 The old expanded-v1 chain produced 33,553 automatic Tier A records and a
 5,033-row final holdout with zero measured article, exact-paragraph,
 near-sentence, or template leakage. An owner-authorized Codex teacher audit
-rejected five of its first 120 rows. Cleaner v2 repairs those source-boundary
-classes and its 30,003 corrected source spans reproduced twice byte-identically;
-Issue #15 owns regeneration and review of the downstream v2 chain.
+rejected five of its first 120 rows. Cleaner v2 reproduced a byte-identical
+downstream chain with 23,081 Tier A rows and a 3,462-row final holdout, but the
+next teacher pass found that 9,486 rows violated the original minimum reading
+length and that residual wiki emphasis/file text remained. Gate A is stopped.
+Issue #15 owns cleaner v3, which must enforce the 3--128 reading bound before
+matching, before export, and before non-fixture training, then reproduce and
+re-audit the complete chain.
+After model selection, Issue #18 owns a pinned public AJIMEE Eval comparison;
+public-eval labels must never enter training or tuning. The final candidate also
+requires the repository's fixed Windows CPU batch-one benchmark before any
+production decision.
 The teacher result is explicitly not human review. Automatic verification is
 prerequisite evidence, not a Gate A/B result and not approval for production
 integration. No Sakura-Rerank-Tiny-v1 model has been selected or exported yet.

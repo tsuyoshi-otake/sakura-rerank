@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "manifest_kind", "verification_status", "snapshot_date", "jawiki_local_sha256", "dictionary_index_sha256", "extractor_git_sha", "cleaner_version", "config", "eligible_dictionary_surface_count", "record_count", "content_sha256", "counts", "raw_text_in_report"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"enum": [1, 2]},
     "manifest_kind": {"const": "jawiki_tier_a_source_spans"},
     "verification_status": {"enum": ["measured", "verified"]},
     "snapshot_date": {"const": "2026-08-01"},
@@ -13,7 +13,7 @@
     "dictionary_index_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "extractor_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "cleaner_version": {
-      "enum": ["conservative_wikitext_v1", "conservative_wikitext_v2"]
+      "enum": ["conservative_wikitext_v1", "conservative_wikitext_v2", "conservative_wikitext_v3"]
     },
     "config": {
       "type": "object",
@@ -28,7 +28,9 @@
         "min_sentence_chars": {"type": "integer", "minimum": 1, "maximum": 4096},
         "max_sentence_chars": {"type": "integer", "minimum": 1, "maximum": 4096},
         "min_surface_chars": {"type": "integer", "minimum": 1, "maximum": 256},
-        "max_surface_chars": {"type": "integer", "minimum": 1, "maximum": 256}
+        "max_surface_chars": {"type": "integer", "minimum": 1, "maximum": 256},
+        "min_reading_chars": {"type": "integer", "minimum": 3, "maximum": 128},
+        "max_reading_chars": {"type": "integer", "minimum": 3, "maximum": 128}
       }
     },
     "eligible_dictionary_surface_count": {"type": "integer", "minimum": 1, "maximum": 2000000},
@@ -41,5 +43,32 @@
       "additionalProperties": {"type": "integer", "minimum": 0, "maximum": 10000000000}
     },
     "raw_text_in_report": {"const": false}
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"schema_version": {"const": 1}}},
+      "then": {
+        "properties": {
+          "cleaner_version": {"enum": ["conservative_wikitext_v1", "conservative_wikitext_v2"]},
+          "config": {
+            "not": {
+              "anyOf": [
+                {"required": ["min_reading_chars"]},
+                {"required": ["max_reading_chars"]}
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": 2}}},
+      "then": {
+        "properties": {
+          "cleaner_version": {"const": "conservative_wikitext_v3"},
+          "config": {"required": ["min_reading_chars", "max_reading_chars"]}
+        }
+      }
+    }
+  ]
 }

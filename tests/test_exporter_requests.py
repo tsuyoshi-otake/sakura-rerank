@@ -24,6 +24,7 @@ from sakura_rerank.data.exporter_requests import (
     generate_exporter_requests,
     publish_exporter_request_shards,
     publish_exporter_requests,
+    validate_exporter_requests,
     verify_builder_checkout,
 )
 
@@ -189,6 +190,17 @@ class ExporterRequestTests(unittest.TestCase):
             self.generate([source_span(surface="missing")], dictionary())
         with self.assertRaisesRegex(TierAError, "exactly one"):
             self.generate([source_span()], dictionary(["one", "two"]))
+        with self.assertRaisesRegex(TierAError, "outside target bounds"):
+            self.generate([source_span()], dictionary(["かな"]))
+
+    def test_request_schema_rejects_short_readings(self) -> None:
+        for reading in ("か", "かな"):
+            with self.subTest(reading=reading), self.assertRaisesRegex(
+                TierAError, "outside bounded contract"
+            ):
+                validate_exporter_requests(
+                    [{"stable_id": "case-001", "reading": reading}]
+                )
 
     def test_invalid_builder_identity_is_rejected(self) -> None:
         with self.assertRaisesRegex(TierAError, "Git SHA"):

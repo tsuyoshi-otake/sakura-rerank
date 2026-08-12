@@ -162,6 +162,8 @@ def _parser() -> argparse.ArgumentParser:
     preprocess.add_argument("--max-records", type=int, default=200_000)
     preprocess.add_argument("--max-records-per-page", type=int, default=32)
     preprocess.add_argument("--max-output-bytes", type=int, default=240 * 1024 * 1024)
+    preprocess.add_argument("--min-reading-chars", type=int, default=3)
+    preprocess.add_argument("--max-reading-chars", type=int, default=128)
 
     exporter_requests = commands.add_parser(
         "exporter-requests", help="build a verified research top-32 request batch"
@@ -528,6 +530,8 @@ def _run(arguments: argparse.Namespace) -> int:
                 max_records=arguments.max_records,
                 max_records_per_page=arguments.max_records_per_page,
                 max_output_bytes=arguments.max_output_bytes,
+                min_reading_chars=arguments.min_reading_chars,
+                max_reading_chars=arguments.max_reading_chars,
             ),
         )
         print(

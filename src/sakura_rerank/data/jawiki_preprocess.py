@@ -18,7 +18,13 @@ from pathlib import Path
 from typing import Any, BinaryIO
 
 from ..atomic_io import commit_staged_file_and_bytes_atomic
-from .contracts import canonical_json_bytes, sentence_shingle_hashes, text_sha256
+from .contracts import (
+    MAX_READING_CHARS,
+    MIN_READING_CHARS,
+    canonical_json_bytes,
+    sentence_shingle_hashes,
+    text_sha256,
+)
 from .manifest import LOCAL_ARTIFACT_VERIFIED
 from .tier_a import (
     SOURCE_SPAN_RECORD_TYPE,
@@ -53,7 +59,17 @@ _EXTERNAL_LINK_RE = re.compile(r"\[(https?://[^\s\]]+)(?:\s+([^\]]+))?\]")
 _HEADING_RE = re.compile(r"^\s*=+\s*(.*?)\s*=+\s*$")
 _LIST_PREFIX_RE = re.compile(r"^\s*[*#;:]+\s*")
 _SENTENCE_RE = re.compile(r".*?[。！？]+|.+$", re.DOTALL)
-_RESIDUAL_MARKUP = ("{{", "}}", "[[", "]]", "{|", "|}", "http://", "https://")
+_RESIDUAL_MARKUP = (
+    "{{",
+    "}}",
+    "[[",
+    "]]",
+    "{|",
+    "|}",
+    "http://",
+    "https://",
+    "''",
+)
 _DROP_LINK_NAMESPACES = frozenset(
     {
         "file",
@@ -74,6 +90,11 @@ _DROP_LINK_NAMESPACES = frozenset(
         "メディア",
     }
 )
+_RESIDUAL_NAMESPACE_RE = re.compile(
+    r"(?<![A-Za-z0-9_])(?:file|image|category|template|help|portal|wikipedia|media|"
+    r"ファイル|画像|カテゴリ|テンプレート|ヘルプ|ポータル|ウィキペディア|メディア):",
+    re.IGNORECASE,
+)
 
 
 class PreprocessingError(ValueError):
@@ -91,6 +112,8 @@ class ExtractorConfig:
     max_sentence_chars: int = MAX_SENTENCE_CHARS
     min_surface_chars: int = 1
     max_surface_chars: int = MAX_GOLD_SURFACE_CHARS
+    min_reading_chars: int = MIN_READING_CHARS
+    max_reading_chars: int = MAX_READING_CHARS
 
     def validate(self) -> None:
         if not 1 <= self.sample_modulus <= 1_000_000:
@@ -107,6 +130,13 @@ class ExtractorConfig:
             raise PreprocessingError("sentence bounds are invalid")
         if not 1 <= self.min_surface_chars <= self.max_surface_chars <= 256:
             raise PreprocessingError("surface bounds are invalid")
+        if not (
+            MIN_READING_CHARS
+            <= self.min_reading_chars
+            <= self.max_reading_chars
+            <= MAX_READING_CHARS
+        ):
+            raise PreprocessingError("reading bounds are invalid")
 
 
 class SurfaceMatcher:
@@ -118,8 +148,13 @@ class SurfaceMatcher:
         accepted = 0
         for record in records:
             surface = record["surface"]
-            if len(record["readings"]) != 1 or not (
-                config.min_surface_chars <= len(surface) <= config.max_surface_chars
+            readings = record["readings"]
+            if (
+                len(readings) != 1
+                or not config.min_surface_chars <= len(surface) <= config.max_surface_chars
+                or not config.min_reading_chars
+                <= len(readings[0])
+                <= config.max_reading_chars
             ):
                 continue
             key = surface if len(surface) == 1 else surface[:2]
@@ -255,7 +290,12 @@ def _replace_internal_links(text: str) -> str | None:
         if "[[" in content:
             return None
         target = content.split("|", 1)[0].strip()
-        namespace = target.split(":", 1)[0].casefold() if ":" in target else ""
+        namespace_target = target.lstrip(":").strip()
+        namespace = (
+            namespace_target.split(":", 1)[0].casefold()
+            if ":" in namespace_target
+            else ""
+        )
         if namespace not in _DROP_LINK_NAMESPACES:
             display = content.rsplit("|", 1)[-1].strip()
             output.append(display.split("#", 1)[0])
@@ -294,6 +334,7 @@ def clean_wikitext(raw: str) -> tuple[list[str], Counter[str]]:
                 any(marker in paragraph for marker in _RESIDUAL_MARKUP)
                 or "<" in paragraph
                 or ">" in paragraph
+                or _RESIDUAL_NAMESPACE_RE.search(paragraph) is not None
             ):
                 counts["residual_markup"] += 1
                 continue

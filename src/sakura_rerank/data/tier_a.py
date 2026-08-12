@@ -17,7 +17,9 @@ from .contracts import (
     AUTOMATIC_TIER_A_SOURCE,
     CONTRACT_SCHEMA_VERSION,
     MAX_LEFT_CONTEXT_CHARS,
+    MAX_READING_CHARS,
     MAX_SURFACE_CHARS,
+    MIN_READING_CHARS,
     PINNED_DICTIONARY_SHA256,
     PINNED_JAWIKI_SNAPSHOT_DATE,
     PINNED_SAKURA_INPUT_HEAD,
@@ -34,11 +36,16 @@ from .research_exporter import MAX_EXPORT_RECORDS, validate_export_records
 
 SOURCE_SPAN_SCHEMA_VERSION = 1
 SOURCE_SPAN_RECORD_TYPE = "jawiki_tier_a_source_span"
-SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 1
+SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 2
+SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS = frozenset({1, 2})
 SOURCE_SPAN_MANIFEST_KIND = "jawiki_tier_a_source_spans"
-SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v2"
+SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v3"
 SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS = frozenset(
-    {"conservative_wikitext_v1", SOURCE_SPAN_CLEANER_VERSION}
+    {
+        "conservative_wikitext_v1",
+        "conservative_wikitext_v2",
+        SOURCE_SPAN_CLEANER_VERSION,
+    }
 )
 DICTIONARY_INDEX_SCHEMA_VERSION = 1
 DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION = 2
@@ -210,7 +217,6 @@ MAX_INPUT_FILE_BYTES = 256 * 1024 * 1024
 MAX_MANIFEST_FILE_BYTES = 1024 * 1024
 MAX_COMMITTED_PREFIX_CHARS = 4_096
 MAX_READINGS_PER_SURFACE = 64
-MAX_READING_CHARS = 128
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -540,7 +546,11 @@ def validate_source_span_manifest(
         "raw_text_in_report",
     }
     manifest = _strict_object(manifest, fields, "source_span_manifest")
-    if manifest["schema_version"] != SOURCE_SPAN_MANIFEST_SCHEMA_VERSION:
+    manifest_schema_version = manifest["schema_version"]
+    if (
+        type(manifest_schema_version) is not int
+        or manifest_schema_version not in SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS
+    ):
         raise TierAError("source_span_manifest.schema_version: unsupported schema")
     if manifest["manifest_kind"] != SOURCE_SPAN_MANIFEST_KIND:
         raise TierAError("source_span_manifest.manifest_kind: unsupported kind")
@@ -577,19 +587,29 @@ def validate_source_span_manifest(
     cleaner_version = manifest["cleaner_version"]
     if cleaner_version not in SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS:
         raise TierAError("source_span_manifest.cleaner_version: unsupported cleaner")
+    if manifest_schema_version == 1 and cleaner_version not in {
+        "conservative_wikitext_v1",
+        "conservative_wikitext_v2",
+    }:
+        raise TierAError("source_span_manifest: legacy schema requires a legacy cleaner")
+    if manifest_schema_version == 2 and cleaner_version != SOURCE_SPAN_CLEANER_VERSION:
+        raise TierAError("source_span_manifest: current schema requires the current cleaner")
+    config_fields = {
+        "sample_modulus",
+        "sample_slots",
+        "max_records",
+        "max_records_per_page",
+        "max_output_bytes",
+        "min_sentence_chars",
+        "max_sentence_chars",
+        "min_surface_chars",
+        "max_surface_chars",
+    }
+    if manifest_schema_version == 2:
+        config_fields.update({"min_reading_chars", "max_reading_chars"})
     config = _strict_object(
         manifest["config"],
-        {
-            "sample_modulus",
-            "sample_slots",
-            "max_records",
-            "max_records_per_page",
-            "max_output_bytes",
-            "min_sentence_chars",
-            "max_sentence_chars",
-            "min_surface_chars",
-            "max_surface_chars",
-        },
+        config_fields,
         "source_span_manifest.config",
     )
     integer_bounds = {
@@ -603,6 +623,13 @@ def validate_source_span_manifest(
         "min_surface_chars": 256,
         "max_surface_chars": 256,
     }
+    if manifest_schema_version == 2:
+        integer_bounds.update(
+            {
+                "min_reading_chars": MAX_READING_CHARS,
+                "max_reading_chars": MAX_READING_CHARS,
+            }
+        )
     normalized_config = {
         field: _integer(config[field], f"source_span_manifest.config.{field}", maximum=bound)
         for field, bound in integer_bounds.items()
@@ -620,6 +647,13 @@ def validate_source_span_manifest(
         <= normalized_config["max_surface_chars"]
     ):
         raise TierAError("source_span_manifest.config: invalid bounds")
+    if manifest_schema_version == 2 and not (
+        MIN_READING_CHARS
+        <= normalized_config["min_reading_chars"]
+        <= normalized_config["max_reading_chars"]
+        <= MAX_READING_CHARS
+    ):
+        raise TierAError("source_span_manifest.config: invalid reading bounds")
     surface_count = _integer(
         manifest["eligible_dictionary_surface_count"],
         "source_span_manifest.eligible_dictionary_surface_count",
@@ -655,7 +689,7 @@ def validate_source_span_manifest(
     if manifest["raw_text_in_report"] is not False:
         raise TierAError("source_span_manifest.raw_text_in_report: must be false")
     normalized = {
-        "schema_version": SOURCE_SPAN_MANIFEST_SCHEMA_VERSION,
+        "schema_version": manifest_schema_version,
         "manifest_kind": SOURCE_SPAN_MANIFEST_KIND,
         "verification_status": status,
         "snapshot_date": PINNED_JAWIKI_SNAPSHOT_DATE,
@@ -751,6 +785,9 @@ def generate_tier_a_records(
             rejected["exporter_snapshot_missing"] += 1
             continue
         reading = readings[0]
+        if not MIN_READING_CHARS <= len(reading) <= MAX_READING_CHARS:
+            rejected["reading_outside_target_bounds"] += 1
+            continue
         if exporter["reading"] != reading:
             rejected["exporter_reading_mismatch"] += 1
             continue
