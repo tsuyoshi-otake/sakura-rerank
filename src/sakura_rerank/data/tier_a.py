@@ -29,7 +29,7 @@ from .contracts import (
     validate_records,
 )
 from .manifest import LOCAL_ARTIFACT_VERIFIED, PREPROCESSING_VERIFIED
-from .research_exporter import validate_export_records
+from .research_exporter import MAX_EXPORT_RECORDS, validate_export_records
 
 
 SOURCE_SPAN_SCHEMA_VERSION = 1
@@ -619,12 +619,22 @@ def generate_tier_a_records(
         dictionary_manifest=normalized_dictionary_manifest,
     )
     dictionary_by_surface = {record["surface"]: record["readings"] for record in dictionary}
+    if not exporter_records or len(exporter_records) > MAX_SOURCE_RECORDS:
+        raise TierAError("exporter_records: record count is outside the dataset bound")
     try:
-        verified_exporter_records = validate_export_records(
-            exporter_records, require_verified=True
-        )
+        verified_exporter_records = []
+        for start in range(0, len(exporter_records), MAX_EXPORT_RECORDS):
+            verified_exporter_records.extend(
+                validate_export_records(
+                    exporter_records[start : start + MAX_EXPORT_RECORDS],
+                    require_verified=True,
+                )
+            )
     except ContractError as error:
         raise TierAError(f"exporter_records: {error}") from error
+    exporter_ids = [record["stable_id"] for record in verified_exporter_records]
+    if exporter_ids != sorted(exporter_ids):
+        raise TierAError("exporter_records.stable_id: must be globally sorted")
     exporter_by_id = {
         record["stable_id"]: record for record in verified_exporter_records
     }

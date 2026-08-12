@@ -17,6 +17,7 @@ from .exporter_requests import (
     publish_exporter_request_shards,
     publish_exporter_requests,
 )
+from .exporter_shards import read_exporter_output_shards, read_request_shard_directory
 from .jawiki_acquisition import AcquisitionError, acquire_jawiki
 from .jawiki_preprocess import (
     ExtractorConfig,
@@ -108,6 +109,21 @@ def _parser() -> argparse.ArgumentParser:
     tier_a.add_argument("--source-span-manifest", type=Path, required=True)
     tier_a.add_argument("--allowed-root", type=Path, required=True)
     tier_a.add_argument("--report", type=Path, required=True)
+
+    tier_a_shards = commands.add_parser(
+        "tier-a-shards", help="assemble Tier A from a verified sharded top-32 export"
+    )
+    tier_a_shards.add_argument("source_spans", type=Path)
+    tier_a_shards.add_argument("request_directory", type=Path)
+    tier_a_shards.add_argument("exporter_directory", type=Path)
+    tier_a_shards.add_argument("output", type=Path)
+    tier_a_shards.add_argument("--dictionary-index", type=Path, required=True)
+    tier_a_shards.add_argument("--dictionary-manifest", type=Path, required=True)
+    tier_a_shards.add_argument("--exporter-manifest", type=Path, required=True)
+    tier_a_shards.add_argument("--jawiki-manifest", type=Path, required=True)
+    tier_a_shards.add_argument("--source-span-manifest", type=Path, required=True)
+    tier_a_shards.add_argument("--allowed-root", type=Path, required=True)
+    tier_a_shards.add_argument("--report", type=Path, required=True)
 
     dictionary_index = commands.add_parser(
         "dictionary-index", help="build an exact index from audited category TSVs"
@@ -562,10 +578,9 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         return 0
 
-    if arguments.command == "tier-a":
+    if arguments.command in {"tier-a", "tier-a-shards"}:
         tier_a_paths = {
             "source_spans": arguments.source_spans,
-            "exporter_jsonl": arguments.exporter_jsonl,
             "dictionary_index": arguments.dictionary_index,
             "dictionary_manifest": arguments.dictionary_manifest,
             "exporter_manifest": arguments.exporter_manifest,
@@ -574,6 +589,11 @@ def _run(arguments: argparse.Namespace) -> int:
             "output": arguments.output,
             "report": arguments.report,
         }
+        if arguments.command == "tier-a":
+            tier_a_paths["exporter_jsonl"] = arguments.exporter_jsonl
+        else:
+            tier_a_paths["request_directory"] = arguments.request_directory
+            tier_a_paths["exporter_directory"] = arguments.exporter_directory
         ensure_distinct_tier_a_paths(tier_a_paths)
         jawiki_manifest = validate_manifest_document(
             load_manifest_document(arguments.jawiki_manifest), arguments.allowed_root
@@ -590,11 +610,20 @@ def _run(arguments: argparse.Namespace) -> int:
             arguments.dictionary_manifest
         )
         validate_dictionary_index_manifest(dictionary_manifest, dictionary)
-        exporter_records, _ = validate_export_file(
-            arguments.exporter_jsonl,
-            manifest_path=arguments.exporter_manifest,
-            require_verified=True,
-        )
+        if arguments.command == "tier-a":
+            exporter_records, _ = validate_export_file(
+                arguments.exporter_jsonl,
+                manifest_path=arguments.exporter_manifest,
+                require_verified=True,
+            )
+        else:
+            request_shards, _ = read_request_shard_directory(arguments.request_directory)
+            exporter_shards, _ = read_exporter_output_shards(
+                arguments.exporter_directory,
+                request_shards,
+                exporter_manifest_path=arguments.exporter_manifest,
+            )
+            exporter_records = [record for shard in exporter_shards for record in shard]
         records, report = generate_tier_a_records(
             read_source_spans(arguments.source_spans),
             dictionary,

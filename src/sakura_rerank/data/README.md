@@ -150,6 +150,13 @@ SHA-256 identities. Existing destinations are rejected, all staged files are
 flushed before the directory rename, and a failed rename removes the complete
 staging directory.
 
+After the isolated exporter has produced matching `output-NNNNN.jsonl` and
+`report-NNNNN.json` files, `tier-a-shards` validates every result against the
+trusted exporter manifest, requires exact request/output stable-ID equality,
+recomputes every per-shard report, and requires global sorted uniqueness before
+Tier A assembly. Unexpected files, missing shards, and aggregate mismatches fail
+closed.
+
 ## Human audit gate
 
 `human-audit queue` selects every final-holdout record and fills any remaining
@@ -295,6 +302,18 @@ python -m sakura_rerank.data tier-a `
   --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
   --source-span-manifest manifests\jawiki-tier-a-source-spans-verified.json `
   --allowed-root data --report reports\tier-a-generation.json
+
+python -m sakura_rerank.data tier-a-shards `
+  data\generated\source-spans-expanded.jsonl `
+  data\generated\top32-request-shards `
+  data\generated\top32-output-shards `
+  data\generated\tier-a-expanded.jsonl `
+  --dictionary-index data\generated\system-dictionary-index.jsonl `
+  --dictionary-manifest manifests\system-dictionary-index-verified.json `
+  --exporter-manifest manifests\research-exporter-verified.json `
+  --jawiki-manifest data\generated\jawiki-20260801-local-manifest.json `
+  --source-span-manifest manifests\jawiki-tier-a-source-spans-expanded-verified.json `
+  --allowed-root . --report data\generated\tier-a-expanded.report.json
 
 # An input JSONL file has the same contract fields with `split: null`.
 python -m sakura_rerank.data split `

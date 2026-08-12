@@ -300,18 +300,12 @@ def generate_exporter_request_shards(
     return shards, manifest
 
 
-def publish_exporter_request_shards(
-    output_directory: str | Path,
+def validate_exporter_request_shards(
     shards: Sequence[Sequence[Mapping[str, Any]]],
     manifest: Mapping[str, Any],
-) -> tuple[str, str]:
-    """Atomically publish a new immutable directory of request shards."""
+) -> tuple[list[list[dict[str, str]]], dict[str, Any]]:
+    """Validate a complete globally ordered request-shard bundle."""
 
-    destination = Path(output_directory)
-    if destination.exists():
-        raise TierAError("output_directory: already exists")
-    if not destination.parent.is_dir():
-        raise TierAError("output_directory: parent directory does not exist")
     if not shards or len(shards) > MAX_REQUEST_SHARDS:
         raise TierAError("exporter_request_shards: shard count is outside the bound")
     if set(manifest) != _SHARD_MANIFEST_FIELDS:
@@ -369,6 +363,25 @@ def publish_exporter_request_shards(
         raise TierAError("manifest.content_sha256: does not match request shards")
     if manifest.get("raw_text_in_manifest") is not False:
         raise TierAError("manifest.raw_text_in_manifest: must be false")
+    return normalized_shards, dict(manifest)
+
+
+def publish_exporter_request_shards(
+    output_directory: str | Path,
+    shards: Sequence[Sequence[Mapping[str, Any]]],
+    manifest: Mapping[str, Any],
+) -> tuple[str, str]:
+    """Atomically publish a new immutable directory of request shards."""
+
+    destination = Path(output_directory)
+    if destination.exists():
+        raise TierAError("output_directory: already exists")
+    if not destination.parent.is_dir():
+        raise TierAError("output_directory: parent directory does not exist")
+    normalized_shards, normalized_manifest = validate_exporter_request_shards(
+        shards, manifest
+    )
+    combined_sha = normalized_manifest["content_sha256"]
 
     staged = Path(tempfile.mkdtemp(prefix=f".{destination.name}.", dir=destination.parent))
     try:
@@ -378,7 +391,7 @@ def publish_exporter_request_shards(
                 output.write(canonical_jsonl_bytes(shard))
                 output.flush()
                 os.fsync(output.fileno())
-        manifest_payload = canonical_json_bytes(manifest) + b"\n"
+        manifest_payload = canonical_json_bytes(normalized_manifest) + b"\n"
         with (staged / "manifest.json").open("wb") as output:
             output.write(manifest_payload)
             output.flush()
@@ -387,7 +400,7 @@ def publish_exporter_request_shards(
     finally:
         if staged.exists():
             shutil.rmtree(staged)
-    manifest_sha = hashlib.sha256(canonical_json_bytes(manifest) + b"\n").hexdigest()
+    manifest_sha = hashlib.sha256(manifest_payload).hexdigest()
     return combined_sha, manifest_sha
 
 
