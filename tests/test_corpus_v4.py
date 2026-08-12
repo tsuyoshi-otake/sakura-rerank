@@ -128,7 +128,7 @@ class CorpusV4Tests(unittest.TestCase):
             payload = verdict(batches[0])
             payload["verdicts"] = list(reversed(payload["verdicts"]))
             (output / "verdicts-000.json").write_text(json.dumps(payload), encoding="utf-8")
-            with self.assertRaisesRegex(TierAError, "order"):
+            with self.assertRaisesRegex(TierAError, "batch 000.*order"):
                 scan_verdict_directory(queue, output)
             (output / "verdicts-000.json").write_text(json.dumps(verdict(batches[0])), encoding="utf-8")
             (output / "unexpected.json").write_text("{}", encoding="utf-8")

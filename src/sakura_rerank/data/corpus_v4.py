@@ -693,7 +693,15 @@ def scan_verdict_directory(queue_directory: str | Path, verdict_directory: str |
             pending.append(index)
             continue
         value = _read_json(path, MAX_BATCH_BYTES)
-        completed[index] = validate_teacher_verdict_batch(batch, value, reviewer_kind=manifest["reviewer_kind"], reviewer_id=manifest["reviewer_id"])
+        try:
+            completed[index] = validate_teacher_verdict_batch(
+                batch,
+                value,
+                reviewer_kind=manifest["reviewer_kind"],
+                reviewer_id=manifest["reviewer_id"],
+            )
+        except TierAError as exc:
+            _fail(f"verdict batch {index:03d}: {exc}")
     return completed, pending
 
 
