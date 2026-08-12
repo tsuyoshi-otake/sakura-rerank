@@ -346,14 +346,27 @@ def read_audit_responses(path: str | Path) -> list[dict[str, Any]]:
         lines = payload.decode("utf-8").splitlines()
     except UnicodeDecodeError as error:
         raise TierAError("audit responses: must be UTF-8") from error
-    responses: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    parsed: list[Mapping[str, Any]] = []
     for line_number, line in enumerate(lines, start=1):
         try:
             value = json.loads(line)
         except json.JSONDecodeError as error:
             raise TierAError(f"audit responses line {line_number}: invalid JSON") from error
-        if not isinstance(value, Mapping) or set(value) != {
+        if not isinstance(value, Mapping):
+            raise TierAError(f"audit responses line {line_number}: response must be an object")
+        parsed.append(value)
+    return validate_audit_responses(parsed)
+
+
+def validate_audit_responses(
+    values: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Validate response objects and return their canonical stable-ID order."""
+
+    responses: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for line_number, value in enumerate(values, start=1):
+        if set(value) != {
             "schema_version",
             "record_type",
             "stable_id",
@@ -389,6 +402,19 @@ def read_audit_responses(path: str | Path) -> list[dict[str, Any]]:
         responses.append(dict(value))
     responses.sort(key=lambda response: response["stable_id"])
     return responses
+
+
+def publish_audit_responses(
+    path: str | Path, responses: Sequence[Mapping[str, Any]]
+) -> str:
+    """Atomically publish validated responses without logging review text."""
+
+    normalized = validate_audit_responses(responses)
+    payload = canonical_jsonl_bytes(normalized)
+    if not payload or len(payload) > MAX_RESPONSE_BYTES:
+        raise TierAError("audit responses: empty or outside byte bound")
+    write_bytes_atomic(path, payload)
+    return hashlib.sha256(payload).hexdigest()
 
 
 def wilson_lower_bound(successes: int, total: int, *, z: float = 1.959963984540054) -> float:

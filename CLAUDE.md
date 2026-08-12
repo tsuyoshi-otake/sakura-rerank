@@ -50,6 +50,9 @@ integration. No Sakura-Rerank-Tiny-v1 model has been selected or exported yet.
   remain pending and training-ineligible; rejected rows are excluded. Gate A
   requires at least 1,000 completed labels, 3,000 valid final-holdout labels,
   99.5% point precision, and a 99.0% 95% Wilson lower bound.
+- Use `human-audit serve` for local review. Keep it bound to loopback, preserve
+  its token requirement and no-log behavior, and never automate clicks or
+  populate verdicts on behalf of the named human reviewer.
 
 ## Working method
 

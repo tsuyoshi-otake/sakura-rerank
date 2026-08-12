@@ -191,6 +191,14 @@ selected rows pending and ineligible, and accepts only explicitly valid rows.
 It never invents human responses; output and aggregate report are published as
 one transaction.
 
+`human-audit serve` runs a dependency-free reviewer on `127.0.0.1` only. A
+random token in the printed URL protects every API call; the server suppresses
+request logs, sends a restrictive content-security policy, and never transmits
+queue text outside the loopback connection. Review order is a deterministic
+SHA-256 permutation of the queue seed. Each explicit verdict atomically rewrites
+the canonical response JSONL, an existing response can never be overwritten,
+and restarting with the same response path resumes at the next pending item.
+
 ## Deterministic jawiki source spans
 
 `jawiki-preprocess` streams the pinned bzip2 XML with `iterparse`; it never
@@ -350,6 +358,12 @@ python -m sakura_rerank.data human-audit queue `
   data\splits\examples.jsonl data\generated\human-audit-queue.jsonl `
   --manifest data\generated\human-audit-queue.manifest.json `
   --seed 20260812 --minimum-sample-size 1000
+
+python -m sakura_rerank.data human-audit serve `
+  data\generated\human-audit-queue.jsonl `
+  data\generated\human-audit-responses.jsonl `
+  --queue-manifest data\generated\human-audit-queue.manifest.json `
+  --reviewer-id <human-reviewer-id> --port 8765
 
 python -m sakura_rerank.data human-audit report `
   data\generated\human-audit-queue.jsonl <review-responses.jsonl> `

@@ -52,6 +52,7 @@ from .splitter import (
     publish_split_artifacts,
 )
 from .research_exporter import validate_export_file
+from .reviewer import run_review_server
 from .tier_a import (
     TierABlockedError,
     TierAError,
@@ -199,6 +200,14 @@ def _parser() -> argparse.ArgumentParser:
     audit_queue.add_argument("--manifest", type=Path, required=True)
     audit_queue.add_argument("--seed", type=int, required=True)
     audit_queue.add_argument("--minimum-sample-size", type=int, default=1000)
+    audit_serve = human_audit_commands.add_parser(
+        "serve", help="run the loopback-only human review interface"
+    )
+    audit_serve.add_argument("queue", type=Path)
+    audit_serve.add_argument("responses", type=Path)
+    audit_serve.add_argument("--queue-manifest", type=Path, required=True)
+    audit_serve.add_argument("--reviewer-id", required=True)
+    audit_serve.add_argument("--port", type=int, default=8765)
     audit_report = human_audit_commands.add_parser(
         "report", help="calculate the human-audit Wilson quality gate"
     )
@@ -271,6 +280,22 @@ def _run(arguments: argparse.Namespace) -> int:
         return 0
 
     if arguments.command == "human-audit":
+        if arguments.human_audit_command == "serve":
+            ensure_distinct_tier_a_paths(
+                {
+                    "queue": arguments.queue,
+                    "responses": arguments.responses,
+                    "queue_manifest": arguments.queue_manifest,
+                }
+            )
+            run_review_server(
+                arguments.queue,
+                arguments.queue_manifest,
+                arguments.responses,
+                arguments.reviewer_id,
+                port=arguments.port,
+            )
+            return 0
         if arguments.human_audit_command == "queue":
             ensure_distinct_tier_a_paths(
                 {

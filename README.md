@@ -22,6 +22,10 @@ not received real human judgments. The queue, aggregate evidence, and remaining
 quality gate are tracked in
 [Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15) and
 [`reports/issue-15-tier-a-pre-review.json`](reports/issue-15-tier-a-pre-review.json).
+Reviewers can use the loopback-only `human-audit serve` interface documented in
+[`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md); every
+click is atomically persisted and resumable without sending queue text to an
+external service.
 No Gate B result or production default is approved, and a trained
 Sakura-Rerank-Tiny-v1 model has not yet been selected or exported.
 
