@@ -637,11 +637,6 @@ def _validate_research_exporter_run(
     result_status = _require_string(value["result_status"], f"{field}.result_status")
     if result_status not in {"search_exhausted", "truncated"}:
         _error(f"{field}.result_status", "must be search_exhausted or truncated")
-    if returned_count < requested_limit and result_status != "search_exhausted":
-        _error(
-            f"{field}.result_status",
-            "a short top-32 result requires explicit search_exhausted evidence",
-        )
 
     verification_status = _require_string(
         value["verification_status"], f"{field}.verification_status"

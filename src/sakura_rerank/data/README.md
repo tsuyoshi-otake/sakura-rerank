@@ -165,6 +165,12 @@ staging directory on any failure, and renames the directory only after every
 shard completes. Invoke it twice with different destinations and compare every
 file hash before treating a large export as deterministic evidence.
 
+Exporter `result_status` describes the search terminal, not the returned list
+length. `truncated` means the candidate limit or bounded search-state budget was
+reached before search exhaustion; path consolidation can therefore leave fewer
+than 32 returned candidates. Validation still requires an allowed terminal,
+exact `returned_count`, the bound 32, and a trusted exporter identity.
+
 ## Human audit gate
 
 `human-audit queue` selects every final-holdout record and fills any remaining

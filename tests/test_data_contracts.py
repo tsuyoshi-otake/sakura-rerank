@@ -465,12 +465,18 @@ class ContractValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "top-32 contract bound"):
             validate_record(bounded_to_18)
 
-        unexplained_short_result = production_record()
-        run = unexplained_short_result["candidate_snapshots"]["training_top32"]["exporter_run"]
-        run["result_status"] = "truncated"
-        _rehash_snapshots(unexplained_short_result)
-        with self.assertRaisesRegex(ContractError, "search_exhausted"):
-            validate_record(unexplained_short_result)
+        short_truncated_result = production_record()
+        run = short_truncated_result["candidate_snapshots"]["training_top32"]["exporter_run"]
+        run.update(
+            {
+                "verification_status": "verified",
+                "exporter_git_sha": "06ff8c34417fb7dbc24e41d786dfb6434cdd6aa1",
+                "exporter_binary_sha256": "0b26990a153df06c8e870b7e44abca386ada2ffd6f649c0232cea6a79960acbf",
+                "result_status": "truncated",
+            }
+        )
+        _rehash_snapshots(short_truncated_result)
+        validate_record(short_truncated_result)
 
         claimed_verified_without_identity = production_record()
         run = claimed_verified_without_identity["candidate_snapshots"]["training_top32"]["exporter_run"]
