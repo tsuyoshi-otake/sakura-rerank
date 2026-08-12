@@ -12,7 +12,9 @@
     "jawiki_local_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "dictionary_index_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "extractor_git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "cleaner_version": {"const": "conservative_wikitext_v1"},
+    "cleaner_version": {
+      "enum": ["conservative_wikitext_v1", "conservative_wikitext_v2"]
+    },
     "config": {
       "type": "object",
       "additionalProperties": false,

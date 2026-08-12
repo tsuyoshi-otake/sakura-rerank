@@ -31,13 +31,16 @@ def _records(count: int, *, holdout: int) -> list[dict[str, object]]:
     return result
 
 
-def _response(stable_id: str, verdict: str = "valid") -> dict[str, object]:
+def _response(
+    stable_id: str, verdict: str = "valid", reviewer_kind: str = "human"
+) -> dict[str, object]:
     return {
-        "schema_version": 1,
-        "record_type": "tier_a_human_audit_response",
+        "schema_version": 2,
+        "record_type": "tier_a_audit_response",
         "stable_id": stable_id,
         "verdict": verdict,
         "reviewer_id": "reviewer-1",
+        "reviewer_kind": reviewer_kind,
         "reviewed_at": "2026-08-12T12:00:00+09:00",
         "note": "",
     }
@@ -113,6 +116,19 @@ class HumanAuditTests(unittest.TestCase):
         self.assertFalse(incomplete["checks"]["minimum_completed"])
         self.assertFalse(incomplete["checks"]["minimum_final_holdout_valid"])
 
+        teacher_responses = [
+            _response(item["stable_id"], reviewer_kind="ai_teacher") for item in queue
+        ]
+        teacher_default = build_quality_report(queue, teacher_responses)
+        self.assertFalse(teacher_default["gate_a_human_audit_pass"])
+        self.assertFalse(teacher_default["gate_a_owner_authorized_audit_pass"])
+        teacher_authorized = build_quality_report(
+            queue, teacher_responses, allow_ai_teacher=True
+        )
+        self.assertFalse(teacher_authorized["gate_a_human_audit_pass"])
+        self.assertTrue(teacher_authorized["gate_a_owner_authorized_audit_pass"])
+        self.assertEqual(teacher_authorized["reviewer_kind_counts"]["ai_teacher"], 3_000)
+
     def test_wilson_lower_bound_matches_known_all_success_case(self) -> None:
         self.assertAlmostEqual(wilson_lower_bound(1_000, 1_000), 0.9961732415, places=9)
         self.assertEqual(wilson_lower_bound(0, 0), 0.0)
@@ -151,6 +167,15 @@ class HumanAuditTests(unittest.TestCase):
             apply_audit_responses(records, [foreign], [])
         with self.assertRaisesRegex(TierAError, "outside the queue"):
             apply_audit_responses(records, queue, [_response("foreign-id")])
+
+    def test_application_never_mislabels_ai_teacher_as_human(self) -> None:
+        records = _records(2, holdout=1)
+        queue = select_audit_records(records, seed=2, minimum_sample_size=1)
+        teacher_response = _response(
+            queue[0]["stable_id"], reviewer_kind="ai_teacher"
+        )
+        with self.assertRaisesRegex(TierAError, "human responses only"):
+            apply_audit_responses(records, queue, [teacher_response])
 
 
 if __name__ == "__main__":

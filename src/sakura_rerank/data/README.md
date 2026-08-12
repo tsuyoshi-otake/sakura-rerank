@@ -171,14 +171,16 @@ reached before search exhaustion; path consolidation can therefore leave fewer
 than 32 returned candidates. Validation still requires an allowed terminal,
 exact `returned_count`, the bound 32, and a trusted exporter identity.
 
-## Human audit gate
+## Provenance-aware audit gate
 
 `human-audit queue` selects every final-holdout record and fills any remaining
 minimum sample by deterministic round-robin sampling across reading-length,
 candidate-count, and local-correctness strata. The review queue intentionally
 contains the bounded text needed by a reviewer; its paired manifest contains
 only counts, configuration, and hashes. Review responses use a closed verdict
-schema and require a reviewer identity and timezone-qualified timestamp.
+schema and require a reviewer identity, a `human` or `ai_teacher` reviewer kind,
+and a timezone-qualified timestamp. AI teacher evidence can be accepted only by
+the explicit owner-policy switch and never sets `gate_a_human_audit_pass`.
 The aggregate queue manifest and response record shapes are documented in
 `manifests/human-audit-queue-manifest.schema.json` and
 `manifests/human-audit-response.schema.json`.
@@ -187,9 +189,12 @@ The aggregate queue manifest and response record shapes are documented in
 least 1,000 labels are complete, at least 3,000 valid final-holdout labels exist,
 point precision is at least 99.5%, and the two-sided 95% Wilson lower bound is at
 least 99.0%. `human-audit apply` excludes rejected rows, marks unanswered
-selected rows pending and ineligible, and accepts only explicitly valid rows.
-It never invents human responses; output and aggregate report are published as
-one transaction.
+selected rows pending and ineligible, and accepts only explicitly valid human
+responses. AI teacher responses remain separate quality evidence and cannot be
+written into the `sampled_human_audit` field. The command never invents or
+relabels responses; output and aggregate report are published as one
+transaction. `--allow-ai-teacher` reports a distinct
+`gate_a_owner_authorized_audit_pass` while preserving the human-gate result.
 
 `human-audit serve` runs a dependency-free reviewer on `127.0.0.1` only. A
 random token in the printed URL protects every API call; the server suppresses
@@ -206,6 +211,8 @@ writes raw XML or an intermediate article corpus. It accepts namespace-zero,
 non-redirect pages with numeric page and revision identities. The versioned
 conservative cleaner removes balanced templates, tables, references, supported
 links and tags, and rejects paragraphs with ambiguous or residual markup.
+Cleaner v2 keeps physical source lines separate and rejects dictionary matches
+that cut through ASCII/kana tokens or occur inside kana reading annotations.
 
 The matcher indexes only system-dictionary surfaces that have exactly one
 reading. Two-character prefix buckets and descending surface lengths select the
@@ -363,7 +370,7 @@ python -m sakura_rerank.data human-audit serve `
   data\generated\human-audit-queue.jsonl `
   data\generated\human-audit-responses.jsonl `
   --queue-manifest data\generated\human-audit-queue.manifest.json `
-  --reviewer-id <human-reviewer-id> --port 8765
+  --reviewer-id <reviewer-id> --reviewer-kind <human-or-ai_teacher> --port 8765
 
 python -m sakura_rerank.data human-audit report `
   data\generated\human-audit-queue.jsonl <review-responses.jsonl> `

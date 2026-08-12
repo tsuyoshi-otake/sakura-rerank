@@ -1,4 +1,4 @@
-"""Deterministic Tier A human-review queues and fail-closed quality reports."""
+"""Deterministic Tier A review queues and provenance-aware quality reports."""
 
 from __future__ import annotations
 
@@ -21,11 +21,11 @@ from .tier_a import TierAError
 QUEUE_SCHEMA_VERSION = 1
 QUEUE_RECORD_TYPE = "tier_a_human_audit_item"
 QUEUE_MANIFEST_KIND = "tier_a_human_audit_queue"
-RESPONSE_SCHEMA_VERSION = 1
-RESPONSE_RECORD_TYPE = "tier_a_human_audit_response"
-REPORT_SCHEMA_VERSION = 1
-REPORT_KIND = "tier_a_human_audit_quality"
-APPLICATION_REPORT_KIND = "tier_a_human_audit_application"
+RESPONSE_SCHEMA_VERSION = 2
+RESPONSE_RECORD_TYPE = "tier_a_audit_response"
+REPORT_SCHEMA_VERSION = 2
+REPORT_KIND = "tier_a_audit_quality"
+APPLICATION_REPORT_KIND = "tier_a_audit_application"
 MAX_QUEUE_RECORDS = 100_000
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 MAX_QUEUE_BYTES = 256 * 1024 * 1024
@@ -38,6 +38,7 @@ VERDICTS = (
     "ambiguous",
     "extraction_noise",
 )
+REVIEWER_KINDS = ("human", "ai_teacher")
 _IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _STRATUM = re.compile(
@@ -372,6 +373,7 @@ def validate_audit_responses(
             "stable_id",
             "verdict",
             "reviewer_id",
+            "reviewer_kind",
             "reviewed_at",
             "note",
         }:
@@ -389,6 +391,8 @@ def validate_audit_responses(
             raise TierAError(f"audit responses line {line_number}: invalid verdict")
         if not isinstance(reviewer_id, str) or _IDENTIFIER.fullmatch(reviewer_id) is None:
             raise TierAError(f"audit responses line {line_number}: invalid reviewer_id")
+        if value["reviewer_kind"] not in REVIEWER_KINDS:
+            raise TierAError(f"audit responses line {line_number}: invalid reviewer_kind")
         reviewed_at = value["reviewed_at"]
         try:
             timestamp = datetime.fromisoformat(reviewed_at.replace("Z", "+00:00"))
@@ -435,6 +439,7 @@ def build_quality_report(
     *,
     minimum_completed: int = 1_000,
     minimum_final_holdout_valid: int = 3_000,
+    allow_ai_teacher: bool = False,
 ) -> dict[str, Any]:
     if type(minimum_completed) is not int or not 1 <= minimum_completed <= MAX_QUEUE_RECORDS:
         raise TierAError("minimum_completed is outside the bound")
@@ -453,6 +458,7 @@ def build_quality_report(
     if unknown:
         raise TierAError("audit responses: contains IDs outside the queue")
     verdict_counts = Counter(response["verdict"] for response in responses)
+    reviewer_kind_counts = Counter(response["reviewer_kind"] for response in responses)
     completed = len(responses)
     valid = verdict_counts.get("valid", 0)
     precision = valid / completed if completed else 0.0
@@ -475,6 +481,13 @@ def build_quality_report(
     enough_completed = completed >= minimum_completed
     enough_holdout = final_valid >= minimum_final_holdout_valid
     precision_pass = precision >= 0.995 and lower >= 0.99
+    quantitative_pass = enough_completed and enough_holdout and precision_pass
+    human_only = completed > 0 and reviewer_kind_counts.get("human", 0) == completed
+    accepted_reviewer_provenance = human_only or (
+        allow_ai_teacher
+        and completed > 0
+        and sum(reviewer_kind_counts.get(kind, 0) for kind in REVIEWER_KINDS) == completed
+    )
     return {
         "schema_version": REPORT_SCHEMA_VERSION,
         "report_kind": REPORT_KIND,
@@ -484,6 +497,9 @@ def build_quality_report(
         "valid_record_count": valid,
         "invalid_record_count": completed - valid,
         "verdict_counts": {verdict: verdict_counts.get(verdict, 0) for verdict in VERDICTS},
+        "reviewer_kind_counts": {
+            kind: reviewer_kind_counts.get(kind, 0) for kind in REVIEWER_KINDS
+        },
         "final_holdout_completed_count": final_completed,
         "final_holdout_valid_count": final_valid,
         "final_holdout_valid_stratum_counts": dict(sorted(final_valid_strata.items())),
@@ -499,8 +515,12 @@ def build_quality_report(
             "minimum_completed": enough_completed,
             "minimum_final_holdout_valid": enough_holdout,
             "label_precision": precision_pass,
+            "accepted_reviewer_provenance": accepted_reviewer_provenance,
         },
-        "gate_a_human_audit_pass": enough_completed and enough_holdout and precision_pass,
+        "ai_teacher_authorized_by_owner": allow_ai_teacher,
+        "gate_a_human_audit_pass": quantitative_pass and human_only,
+        "gate_a_owner_authorized_audit_pass": quantitative_pass
+        and accepted_reviewer_provenance,
         "queue_content_sha256": hashlib.sha256(canonical_jsonl_bytes(queue)).hexdigest(),
         "response_content_sha256": hashlib.sha256(canonical_jsonl_bytes(responses)).hexdigest(),
         "raw_text_in_report": False,
@@ -524,6 +544,11 @@ def apply_audit_responses(
         raise TierAError("audit queue contains IDs outside the dataset")
     if set(response_by_id) - set(queue_by_id):
         raise TierAError("audit responses contain IDs outside the queue")
+    if any(response["reviewer_kind"] != "human" for response in responses):
+        raise TierAError(
+            "audit application accepts human responses only; "
+            "AI teacher evidence remains a separate quality report"
+        )
 
     output: list[dict[str, Any]] = []
     accepted = rejected = pending = 0

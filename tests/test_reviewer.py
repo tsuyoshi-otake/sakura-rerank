@@ -39,24 +39,31 @@ class ReviewStoreTests(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "responses.jsonl"
-            store = ReviewStore(queue, manifest, path, "reviewer-1")
+            store = ReviewStore(queue, manifest, path, "reviewer-1", "human")
             self.assertEqual(store.state()["item"]["stable_id"], expected_first)
             result = store.submit(expected_first, "valid", "checked")
             self.assertEqual(result["completed_record_count"], 1)
             responses = read_audit_responses(path)
             self.assertEqual(responses[0]["stable_id"], expected_first)
             self.assertEqual(responses[0]["reviewer_id"], "reviewer-1")
+            self.assertEqual(responses[0]["reviewer_kind"], "human")
             self.assertTrue(responses[0]["reviewed_at"].endswith("Z"))
             with self.assertRaisesRegex(TierAError, "immutable"):
                 store.submit(expected_first, "ambiguous", "changed")
-            resumed = ReviewStore(queue, manifest, path, "reviewer-2", responses)
+            resumed = ReviewStore(queue, manifest, path, "reviewer-2", "human", responses)
             self.assertEqual(resumed.state()["completed_record_count"], 1)
             self.assertNotEqual(resumed.state()["item"]["stable_id"], expected_first)
 
     def test_failed_publication_does_not_advance_memory_state(self) -> None:
         queue, manifest = _queue()
         with tempfile.TemporaryDirectory() as directory:
-            store = ReviewStore(queue, manifest, Path(directory) / "responses.jsonl", "reviewer-1")
+            store = ReviewStore(
+                queue,
+                manifest,
+                Path(directory) / "responses.jsonl",
+                "reviewer-1",
+                "human",
+            )
             stable_id = store.state()["item"]["stable_id"]
             with patch(
                 "sakura_rerank.data.reviewer.publish_audit_responses",
@@ -71,8 +78,10 @@ class ReviewStoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "responses.jsonl"
             with self.assertRaisesRegex(TierAError, "reviewer_id"):
-                ReviewStore(queue, manifest, path, "invalid reviewer")
-            store = ReviewStore(queue, manifest, path, "reviewer-1")
+                ReviewStore(queue, manifest, path, "invalid reviewer", "human")
+            with self.assertRaisesRegex(TierAError, "reviewer_kind"):
+                ReviewStore(queue, manifest, path, "reviewer-1", "unknown")
+            store = ReviewStore(queue, manifest, path, "reviewer-1", "human")
             current = store.state()["item"]["stable_id"]
             other = next(item["stable_id"] for item in queue if item["stable_id"] != current)
             with self.assertRaisesRegex(TierAError, "current pending"):
@@ -84,7 +93,7 @@ class ReviewHTTPServerTests(unittest.TestCase):
         queue, manifest = _queue()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "responses.jsonl"
-            store = ReviewStore(queue, manifest, path, "reviewer-http")
+            store = ReviewStore(queue, manifest, path, "reviewer-http", "ai_teacher")
             server = ReviewHTTPServer(0, store, session_token="test-token")
             self.assertEqual(server.server_address[0], "127.0.0.1")
             thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -122,6 +131,7 @@ class ReviewHTTPServerTests(unittest.TestCase):
                     updated = json.loads(response.read())
                 self.assertEqual(updated["completed_record_count"], 1)
                 self.assertEqual(read_audit_responses(path)[0]["verdict"], "wrong_segmentation")
+                self.assertEqual(read_audit_responses(path)[0]["reviewer_kind"], "ai_teacher")
             finally:
                 server.shutdown()
                 server.server_close()

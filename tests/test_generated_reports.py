@@ -176,6 +176,25 @@ class GeneratedReportTests(unittest.TestCase):
             hashlib.sha256(audit_bytes).hexdigest(),
         )
 
+    def test_teacher_audit_is_provenanced_text_free_and_fail_closed(self) -> None:
+        report = load_report("issue-15-tier-a-teacher-audit-120.json")
+
+        self.assertEqual(report["schema_version"], 2)
+        self.assertEqual(report["report_kind"], "tier_a_audit_quality")
+        self.assertEqual(report["reviewer_kind_counts"], {"ai_teacher": 120, "human": 0})
+        self.assertEqual(report["valid_record_count"], 115)
+        self.assertEqual(report["invalid_record_count"], 5)
+        self.assertFalse(report["gate_a_human_audit_pass"])
+        self.assertFalse(report["gate_a_owner_authorized_audit_pass"])
+        self.assertFalse(report["checks"]["label_precision"])
+        self.assertTrue(report["ai_teacher_authorized_by_owner"])
+        self.assertFalse(report["raw_text_in_report"])
+        self.assertTrue(
+            {"text", "surface", "reading", "left_context", "note", "reviewer_id"}.isdisjoint(
+                object_keys(report)
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

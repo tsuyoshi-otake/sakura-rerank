@@ -104,6 +104,34 @@ class CleanerAndMatcherTests(unittest.TestCase):
             [(0, 8, "Alphabet"), (9, 14, "Alpha")],
         )
 
+    def test_matcher_rejects_token_fragments_and_reading_annotations(self) -> None:
+        records = [
+            {
+                "schema_version": 1,
+                "record_type": "system_dictionary_surface_index",
+                "surface": surface,
+                "readings": [reading],
+            }
+            for surface, reading in (
+                ("LT", "えるてぃー"),
+                ("ri", "ri"),
+                ("6日", "むいか"),
+                ("ば", "ば"),
+            )
+        ]
+        counts: Counter[str] = Counter()
+        matcher = SurfaceMatcher(records, config())
+        self.assertEqual(
+            list(matcher.matches("LTE Spring 16日 (しんば) ば", counts)),
+            [(21, 22, "ば")],
+        )
+        self.assertEqual(counts["matches_unsafe_boundary"], 4)
+
+    def test_cleaner_does_not_join_physical_source_lines(self) -> None:
+        paragraphs, counts = clean_wikitext("先発\nグレゴリオ暦")
+        self.assertEqual(paragraphs, ["先発", "グレゴリオ暦"])
+        self.assertEqual(counts, {})
+
 
 class StreamingExtractionTests(unittest.TestCase):
     def test_iterparse_is_deterministic_and_filters_namespace_and_redirect(self) -> None:

@@ -17,11 +17,16 @@ research exporter. The expanded run retained 33,553 of 40,703 verified source
 rows, assigned 5,033 rows to the final holdout with zero measured cross-split
 leakage, and measured Oracle Recall@6 at 99.064%.
 
-Gate A is still pending because the deterministic 5,033-row holdout queue has
-not received real human judgments. The queue, aggregate evidence, and remaining
-quality gate are tracked in
+Gate A is still pending. At the owner's direction, Codex inspected the first 120
+queue rows as an explicitly identified `ai_teacher`: 115 were valid and five
+were rejected (95.83% point precision, 90.62% Wilson lower bound). This is not
+reported as human review and fails the quality thresholds, so the source-span
+pipeline is being repaired before any model training. The queue, aggregate
+evidence, and remaining quality gate are tracked in
 [Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15) and
 [`reports/issue-15-tier-a-pre-review.json`](reports/issue-15-tier-a-pre-review.json).
+The first teacher-audit result is recorded in
+[`reports/issue-15-tier-a-teacher-audit-120.json`](reports/issue-15-tier-a-teacher-audit-120.json).
 Reviewers can use the loopback-only `human-audit serve` interface documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md); every
 click is atomically persisted and resumable without sending queue text to an

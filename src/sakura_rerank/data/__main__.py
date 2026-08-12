@@ -207,9 +207,12 @@ def _parser() -> argparse.ArgumentParser:
     audit_serve.add_argument("responses", type=Path)
     audit_serve.add_argument("--queue-manifest", type=Path, required=True)
     audit_serve.add_argument("--reviewer-id", required=True)
+    audit_serve.add_argument(
+        "--reviewer-kind", choices=("human", "ai_teacher"), required=True
+    )
     audit_serve.add_argument("--port", type=int, default=8765)
     audit_report = human_audit_commands.add_parser(
-        "report", help="calculate the human-audit Wilson quality gate"
+        "report", help="calculate the provenance-aware Wilson quality gate"
     )
     audit_report.add_argument("queue", type=Path)
     audit_report.add_argument("responses", type=Path)
@@ -217,6 +220,11 @@ def _parser() -> argparse.ArgumentParser:
     audit_report.add_argument("--queue-manifest", type=Path, required=True)
     audit_report.add_argument("--minimum-completed", type=int, default=1000)
     audit_report.add_argument("--minimum-final-holdout-valid", type=int, default=3000)
+    audit_report.add_argument(
+        "--allow-ai-teacher",
+        action="store_true",
+        help="owner-authorized policy override; remains distinct from a human audit",
+    )
     audit_apply = human_audit_commands.add_parser(
         "apply", help="apply review outcomes to a fail-closed training dataset"
     )
@@ -293,6 +301,7 @@ def _run(arguments: argparse.Namespace) -> int:
                 arguments.queue_manifest,
                 arguments.responses,
                 arguments.reviewer_id,
+                arguments.reviewer_kind,
                 port=arguments.port,
             )
             return 0
@@ -380,6 +389,7 @@ def _run(arguments: argparse.Namespace) -> int:
             responses,
             minimum_completed=arguments.minimum_completed,
             minimum_final_holdout_valid=arguments.minimum_final_holdout_valid,
+            allow_ai_teacher=arguments.allow_ai_teacher,
         )
         report_hash = publish_quality_report(arguments.output, report)
         print(
@@ -388,6 +398,9 @@ def _run(arguments: argparse.Namespace) -> int:
                     "status": "evaluated",
                     "completed_record_count": report["completed_record_count"],
                     "gate_a_human_audit_pass": report["gate_a_human_audit_pass"],
+                    "gate_a_owner_authorized_audit_pass": report[
+                        "gate_a_owner_authorized_audit_pass"
+                    ],
                     "report_sha256": report_hash,
                 },
                 sort_keys=True,

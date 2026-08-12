@@ -36,7 +36,10 @@ SOURCE_SPAN_SCHEMA_VERSION = 1
 SOURCE_SPAN_RECORD_TYPE = "jawiki_tier_a_source_span"
 SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 1
 SOURCE_SPAN_MANIFEST_KIND = "jawiki_tier_a_source_spans"
-SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v1"
+SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v2"
+SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS = frozenset(
+    {"conservative_wikitext_v1", SOURCE_SPAN_CLEANER_VERSION}
+)
 DICTIONARY_INDEX_SCHEMA_VERSION = 1
 DICTIONARY_INDEX_MANIFEST_SCHEMA_VERSION = 2
 DICTIONARY_INDEX_RECORD_TYPE = "system_dictionary_surface_index"
@@ -526,7 +529,7 @@ def validate_source_span_manifest(
     extractor_git_sha = _git_sha(
         manifest["extractor_git_sha"], "source_span_manifest.extractor_git_sha"
     )
-    if manifest["cleaner_version"] != SOURCE_SPAN_CLEANER_VERSION:
+    if manifest["cleaner_version"] not in SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS:
         raise TierAError("source_span_manifest.cleaner_version: unsupported cleaner")
     config = _strict_object(
         manifest["config"],

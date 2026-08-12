@@ -27,10 +27,11 @@ research boundary.
   `manifests/jawiki-research-top32-snapshot-verified.json`
 - Expanded pre-review evidence: `reports/issue-15-tier-a-pre-review.json`
 
-The expanded chain has produced 33,553 automatic Tier A records and a 5,033-row
+The expanded chain produced 33,553 automatic Tier A records and a 5,033-row
 final holdout with zero measured article, exact-paragraph, near-sentence, or
-template leakage. Its deterministic human-audit queue remains unanswered.
-Issue #15 owns that independent human-review gate. Automatic verification is
+template leakage. An owner-authorized Codex teacher audit rejected five of its
+first 120 rows, so Issue #15 now owns a fail-closed source-span pipeline repair.
+The teacher result is explicitly not human review. Automatic verification is
 prerequisite evidence, not a Gate A/B result and not approval for production
 integration. No Sakura-Rerank-Tiny-v1 model has been selected or exported yet.
 
@@ -46,13 +47,18 @@ integration. No Sakura-Rerank-Tiny-v1 model has been selected or exported yet.
   converter exporter. Do not infer or guess either value.
 - Missing, ambiguous, stale, mismatched, malformed, late, or failed inputs must
   terminate explicitly and publish no partial trusted artifact.
-- Never fabricate or infer a human-review response. Selected unanswered rows
+- Never fabricate or infer a human-review response. An owner-authorized AI
+  teacher must use `reviewer_kind=ai_teacher`; it must never claim the human
+  gate, and its policy override must remain explicit in the aggregate report.
+  AI teacher responses are quality evidence only and must not be applied to the
+  `sampled_human_audit` field. Selected unanswered rows
   remain pending and training-ineligible; rejected rows are excluded. Gate A
   requires at least 1,000 completed labels, 3,000 valid final-holdout labels,
   99.5% point precision, and a 99.0% 95% Wilson lower bound.
-- Use `human-audit serve` for local review. Keep it bound to loopback, preserve
-  its token requirement and no-log behavior, and never automate clicks or
-  populate verdicts on behalf of the named human reviewer.
+- Use `human-audit serve` for local review. Keep it bound to loopback and
+  preserve its token requirement and no-log behavior. Never automate clicks or
+  populate verdicts on behalf of a named human reviewer; AI teacher work must
+  identify itself as such.
 
 ## Working method
 

@@ -130,7 +130,9 @@ class SurfaceMatcher:
         }
         self.surface_count = accepted
 
-    def matches(self, text: str) -> Iterator[tuple[int, int, str]]:
+    def matches(
+        self, text: str, counts: Counter[str] | None = None
+    ) -> Iterator[tuple[int, int, str]]:
         position = 0
         while position < len(text):
             groups = []
@@ -146,9 +148,43 @@ class SurfaceMatcher:
                         match = (position, end, candidate)
             if match is None:
                 position += 1
+            elif not _safe_match_boundaries(text, *match):
+                if counts is not None:
+                    counts["matches_unsafe_boundary"] += 1
+                position += 1
             else:
                 yield match
                 position = match[1]
+
+
+def _character_class(character: str) -> str | None:
+    if character.isascii() and character.isalnum():
+        return "ascii_alnum"
+    codepoint = ord(character)
+    if 0x3040 <= codepoint <= 0x309F:
+        return "hiragana"
+    if 0x30A0 <= codepoint <= 0x30FF:
+        return "katakana"
+    return None
+
+
+def _inside_parentheses(text: str, position: int) -> bool:
+    return text.rfind("(", 0, position) > text.rfind(")", 0, position)
+
+
+def _safe_match_boundaries(text: str, start: int, end: int, surface: str) -> bool:
+    """Reject dictionary substrings that cut through a lexical token or reading note."""
+
+    first_class = _character_class(surface[0])
+    last_class = _character_class(surface[-1])
+    if start and first_class is not None and _character_class(text[start - 1]) == first_class:
+        return False
+    if end < len(text) and last_class is not None and _character_class(text[end]) == last_class:
+        return False
+    if all(_character_class(character) in {"hiragana", "katakana"} for character in surface):
+        if _inside_parentheses(text, start):
+            return False
+    return True
 
 
 def _remove_balanced(text: str, opening: str, closing: str) -> str | None:
@@ -211,24 +247,25 @@ def clean_wikitext(raw: str) -> tuple[list[str], Counter[str]]:
     text = _TAG_RE.sub("", text)
     paragraphs: list[str] = []
     for block in re.split(r"\n\s*\n+", text):
-        lines: list[str] = []
         for line in block.splitlines():
             heading = _HEADING_RE.fullmatch(line)
             line = heading.group(1) if heading else _LIST_PREFIX_RE.sub("", line)
             line = html.unescape(line)
             line = unicodedata.normalize("NFKC", " ".join(line.split()))
-            if line:
-                lines.append(line)
-        paragraph = " ".join(lines).strip()
-        if not paragraph:
-            continue
-        if len(paragraph) > MAX_PARAGRAPH_CHARS:
-            counts["paragraph_too_long"] += 1
-            continue
-        if any(marker in paragraph for marker in _RESIDUAL_MARKUP) or "<" in paragraph or ">" in paragraph:
-            counts["residual_markup"] += 1
-            continue
-        paragraphs.append(paragraph)
+            paragraph = line.strip()
+            if not paragraph:
+                continue
+            if len(paragraph) > MAX_PARAGRAPH_CHARS:
+                counts["paragraph_too_long"] += 1
+                continue
+            if (
+                any(marker in paragraph for marker in _RESIDUAL_MARKUP)
+                or "<" in paragraph
+                or ">" in paragraph
+            ):
+                counts["residual_markup"] += 1
+                continue
+            paragraphs.append(paragraph)
     return paragraphs, counts
 
 
@@ -346,7 +383,7 @@ def iter_source_spans(
                             counts["sentences_outside_bounds"] += 1
                             continue
                         counts["sentences_accepted"] += 1
-                        for start, end, surface in matcher.matches(sentence):
+                        for start, end, surface in matcher.matches(sentence, counts):
                             counts["dictionary_matches"] += 1
                             sample_key = (
                                 f"{page_id}:{revision_id}:{paragraph_index}:"

@@ -19,6 +19,7 @@ from .human_audit import (
     MAX_NOTE_CHARS,
     RESPONSE_RECORD_TYPE,
     RESPONSE_SCHEMA_VERSION,
+    REVIEWER_KINDS,
     VERDICTS,
     publish_audit_responses,
     read_audit_queue,
@@ -47,6 +48,7 @@ class ReviewStore:
         manifest: Mapping[str, Any],
         response_path: str | Path,
         reviewer_id: str,
+        reviewer_kind: str,
         responses: Sequence[Mapping[str, Any]] = (),
     ) -> None:
         validate_queue_manifest(manifest, queue)
@@ -56,6 +58,8 @@ class ReviewStore:
             raise TierAError("reviewer_id contains an unsupported character")
         if not reviewer_id[0].isalnum() or not reviewer_id.isascii():
             raise TierAError("reviewer_id must start with an ASCII alphanumeric character")
+        if reviewer_kind not in REVIEWER_KINDS:
+            raise TierAError("reviewer_kind is unsupported")
 
         self._queue_by_id = {item["stable_id"]: dict(item) for item in queue}
         if len(self._queue_by_id) != len(queue):
@@ -66,6 +70,7 @@ class ReviewStore:
         )
         self._response_path = Path(response_path)
         self._reviewer_id = reviewer_id
+        self._reviewer_kind = reviewer_kind
         normalized_responses = validate_audit_responses(responses)
         self._responses = {
             response["stable_id"]: dict(response) for response in normalized_responses
@@ -81,12 +86,13 @@ class ReviewStore:
         manifest_path: str | Path,
         response_path: str | Path,
         reviewer_id: str,
+        reviewer_kind: str,
     ) -> ReviewStore:
         queue = read_audit_queue(queue_path)
         manifest = read_queue_manifest(manifest_path)
         response_file = Path(response_path)
         responses = read_audit_responses(response_file) if response_file.exists() else []
-        return cls(queue, manifest, response_file, reviewer_id, responses)
+        return cls(queue, manifest, response_file, reviewer_id, reviewer_kind, responses)
 
     def _next_pending(self) -> Mapping[str, Any] | None:
         for stable_id in self._order:
@@ -117,6 +123,7 @@ class ReviewStore:
                 "stable_id": stable_id,
                 "verdict": verdict,
                 "reviewer_id": self._reviewer_id,
+                "reviewer_kind": self._reviewer_kind,
                 "reviewed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "note": note,
             }
@@ -130,6 +137,7 @@ class ReviewStore:
         return {
             "status": "complete" if len(self._responses) == len(self._order) else "reviewing",
             "review_order": REVIEW_ORDER_VERSION,
+            "reviewer_kind": self._reviewer_kind,
             "selected_record_count": len(self._order),
             "completed_record_count": len(self._responses),
             "pending_record_count": len(self._order) - len(self._responses),
@@ -140,8 +148,8 @@ class ReviewStore:
 
 _HTML = """<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sakura Rerank 人手監査</title><link rel="stylesheet" href="/style.css"></head>
-<body><main><header><div><h1>Sakura Rerank 人手監査</h1><p id="progress">読み込み中…</p></div><div id="counts"></div></header>
+<title>Sakura Rerank 教師監査</title><link rel="stylesheet" href="/style.css"></head>
+<body><main><header><div><h1>Sakura Rerank 教師監査</h1><p id="progress">読み込み中…</p></div><div id="counts"></div></header>
 <section id="review" hidden><div class="context"><h2>左文脈</h2><p id="context"></p></div>
 <div class="reading"><span>読み</span><strong id="reading"></strong></div>
 <div class="gold"><span>正解候補</span><strong id="gold"></strong><small id="segments"></small></div>
@@ -274,10 +282,13 @@ def run_review_server(
     manifest_path: str | Path,
     response_path: str | Path,
     reviewer_id: str,
+    reviewer_kind: str,
     *,
     port: int,
 ) -> None:
-    store = ReviewStore.load(queue_path, manifest_path, response_path, reviewer_id)
+    store = ReviewStore.load(
+        queue_path, manifest_path, response_path, reviewer_id, reviewer_kind
+    )
     with ReviewHTTPServer(port, store) as server:
         print(
             json.dumps(
@@ -286,6 +297,7 @@ def run_review_server(
                     "url": server.review_url,
                     "completed_record_count": store.state()["completed_record_count"],
                     "selected_record_count": store.state()["selected_record_count"],
+                    "reviewer_kind": reviewer_kind,
                 },
                 sort_keys=True,
             ),
