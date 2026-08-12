@@ -21,7 +21,7 @@ research boundary.
 - Dictionary index: `manifests/system-dictionary-index-verified.json`
 - Jawiki source spans: `manifests/jawiki-tier-a-source-spans-verified.json`
 - Expanded jawiki source spans:
-  `manifests/jawiki-tier-a-source-spans-expanded-v2-verified.json`
+  `manifests/jawiki-tier-a-source-spans-expanded-v3-verified.json`
 - Research exporter identity: `manifests/research-exporter-verified.json`
 - Verified candidate snapshot:
   `manifests/jawiki-research-top32-snapshot-verified.json`
@@ -33,10 +33,11 @@ near-sentence, or template leakage. An owner-authorized Codex teacher audit
 rejected five of its first 120 rows. Cleaner v2 reproduced a byte-identical
 downstream chain with 23,081 Tier A rows and a 3,462-row final holdout, but the
 next teacher pass found that 9,486 rows violated the original minimum reading
-length and that residual wiki emphasis/file text remained. Gate A is stopped.
-Issue #15 owns cleaner v3, which must enforce the 3--128 reading bound before
-matching, before export, and before non-fixture training, then reproduce and
-re-audit the complete chain.
+length and that residual wiki emphasis/file text remained. Cleaner v3 enforces
+the 3--128 reading bound before matching, before export, and before non-fixture
+training, and its 24,069 corrected source spans have now reproduced twice with
+byte-identical output and report pairs. Issue #15 owns regeneration of the
+downstream v3 chain and a fresh owner-authorized audit before Gate A.
 After model selection, Issue #18 owns a pinned public AJIMEE Eval comparison;
 public-eval labels must never enter training or tuning. The final candidate also
 requires the repository's fixed Windows CPU batch-one benchmark before any

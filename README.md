@@ -24,9 +24,12 @@ downstream chain twice byte-identically. It yielded 23,081 automatic Tier A rows
 a 3,462-row final holdout, and zero measured cross-split leakage. The next
 teacher pass stopped after finding a contract-level failure: 9,486 Tier A rows
 had readings shorter than the specified three-character minimum, and residual
-MediaWiki emphasis/file markup remained. Cleaner v3 is therefore being repaired
-and must reproduce a fresh chain before training. None of this is reported as
-human review. The queue, aggregate
+MediaWiki emphasis/file markup remained. Cleaner v3 filters dictionary readings
+to 3--128 characters before matching, export, and non-fixture training, and has
+now reproduced 24,069 corrected source spans twice with byte-identical output
+and report pairs. Its downstream candidate snapshot and a fresh teacher queue
+must still be regenerated and audited before model training. None of this is
+reported as human review. The queue, aggregate
 evidence, and remaining quality gate are tracked in
 [Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15) and
 [`reports/issue-15-tier-a-pre-review.json`](reports/issue-15-tier-a-pre-review.json).
