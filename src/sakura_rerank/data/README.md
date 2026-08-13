@@ -446,11 +446,41 @@ handoff teacher disagreement plus exactly 100 fixed-seed one-pass-only rows in
 the standard `human-audit serve` queue format. It never creates owner responses
 or writes `sampled_human_audit`.
 
-Stage 4 remains owner-gated. After the owner completes calibration and fixes the
-policy, pass the partition's canonical `stage4-stable-id-exclusion.jsonl` to
-`jawiki-preprocess --stable-id-exclusion`. A schema-v3/v4 source-span manifest
-is measured only until an A/B reproduction identity is explicitly allowlisted.
+Stage 4 remains owner-gated through calibration and policy approval. With the
+approved precision-first policy, pass the partition's canonical
+`stage4-stable-id-exclusion.jsonl` to `jawiki-preprocess --stable-id-exclusion`.
+It quarantines ambiguous rows and Stage-1-nonvalid/Stage-2-valid recoveries;
+two-pass non-valid rows remain excluded. A schema-v3/v4 source-span manifest is
+measured only until an A/B reproduction identity is explicitly allowlisted.
 This cascade does not run a new final-holdout Gate A audit.
+
+## Verified Stage 4 pre-audit chain
+
+The approved policy committed 6,798 stable-ID exclusions, canonical SHA-256
+`bb732a72e7fc343d517a9a1f03bd8a6031e03262ccffdfe7c318f3f08d01342f`.
+Fresh preprocessing applied 6,456 operational exclusions; the remaining 342
+committed exclusions were already absent from the eligible source stream. The
+reproduced A and B source artifacts each contain 17,438 spans with canonical
+SHA-256 `8b9c2ccf0fa77d85bdc13d3aec44734df2942f206c62c6f78b1461862867b400`.
+
+Tier A retained 17,437 records, canonical SHA-256
+`8d330c9d8e42d72d167fa1a127f8f8f603526096852a12038c3f4e3e51ecb080`; one
+source span was excluded for insufficient candidates. The deterministic split
+uses seed `20260813` and ratios 0.70/0.10/0.20, yielding 12,207 train, 1,743
+dev, and 3,487 final-holdout records. Its assigned-dataset SHA-256 is
+`555a821f986614f0a2f2dab455faacc14b86dc96d60b224694592c9299545a14`, with
+zero cross-split leakage.
+
+The audit queue deliberately contains the complete 3,487-record final holdout,
+not a partial sample. Its canonical SHA-256 is
+`5843a969a050f19e897b0d0f8dc2c173d4fedb759bcc7b04ba142c8d9ffebaa2`.
+It has no responses or verdicts and is therefore strictly pre-audit evidence,
+not a Gate A result. Ambiguous and rejected outcomes are valid reviewer
+outcomes; the protocol does not require human perfection. The tracked,
+aggregate-only verification manifests are
+`tier-a-human-audit-queue-expanded-v4-verified.json` and the A/B pair
+`tier-a-v4-a-pre-audit-chain-verified.json` /
+`tier-a-v4-b-pre-audit-chain-verified.json`.
 
 The manifest command returns status 3 for a structured blocker. The split
 command rejects any normalized or filesystem-alias collision among input,

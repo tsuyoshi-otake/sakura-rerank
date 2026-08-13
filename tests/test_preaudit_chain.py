@@ -80,6 +80,33 @@ def _manifest(*, variant: str = "A") -> dict[str, object]:
 
 
 class PreAuditChainTests(unittest.TestCase):
+    def test_tracked_v4_manifests_are_ready_and_independent(self) -> None:
+        manifests_dir = Path(__file__).parents[1] / "manifests"
+        tracked_manifests = [
+            json.loads(
+                (manifests_dir / f"tier-a-v4-{variant.lower()}-pre-audit-chain-verified.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            for variant in ("A", "B")
+        ]
+        returned_manifests = [
+            validate_pre_audit_chain_manifest(manifest) for manifest in tracked_manifests
+        ]
+
+        self.assertEqual([manifest["variant"] for manifest in returned_manifests], ["A", "B"])
+        for manifest, returned_manifest in zip(tracked_manifests, returned_manifests, strict=True):
+            self.assertEqual(returned_manifest["status"], "pre_audit_ready")
+            self.assertEqual(returned_manifest["human_audit"]["queue_record_count"], 3_487)
+            self.assertEqual(returned_manifest["split"]["cross_split_leakage_count"], 0)
+            self.assertIsNot(returned_manifest, manifest)
+            self.assertIsNot(returned_manifest["split"], manifest["split"])
+            self.assertIsNot(returned_manifest["human_audit"], manifest["human_audit"])
+
+        self.assertIsNot(tracked_manifests[0], tracked_manifests[1])
+        self.assertIsNot(returned_manifests[0], returned_manifests[1])
+        self.assertIsNot(returned_manifests[0]["split"], returned_manifests[1]["split"])
+
     def test_happy_path_accepts_each_reproducibility_variant_and_deep_copies(self) -> None:
         first = _manifest(variant="A")
         second = _manifest(variant="B")

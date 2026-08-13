@@ -22,3 +22,12 @@ digests, acquisition Git SHA, local-only manifest identity, and network-free
 revalidation result. It contains neither the machine-local artifact path nor
 Wikipedia text. The dump and operational local manifest remain under ignored
 `data/` paths and are not committed.
+
+Stage 4's aggregate-only pre-audit evidence is bound by the tracked manifests
+`tier-a-human-audit-queue-expanded-v4-verified.json` and
+`tier-a-v4-a-pre-audit-chain-verified.json` /
+`tier-a-v4-b-pre-audit-chain-verified.json`. They record the source, Tier A,
+split, and full-final-holdout audit-queue hashes and counts without raw text or
+stable IDs. The 3,487-record queue has no responses or verdicts: it is
+pre-audit evidence only and is not a Gate A report. Reviewer ambiguity and
+rejection are valid outcomes; human perfection is not a quality criterion.

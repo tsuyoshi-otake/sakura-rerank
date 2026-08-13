@@ -9,3 +9,6 @@
   three-digit batch index in every fail-closed validation error. This made an
   exact stable-ID-order defect immediately attributable without exposing any
   queue text or reviewer note.
+- On Windows, use `core.autocrlf=false` in external reproducible worktrees that
+  hold canonical JSONL artifacts. LF-to-CRLF checkout conversion changes the
+  bytes and therefore invalidates hash-bound canonical JSONL evidence.

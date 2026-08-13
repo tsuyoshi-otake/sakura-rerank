@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "tier_a_pre_audit_chain",
+  "variant": "A",
+  "status": "pre_audit_ready",
+  "raw_text_in_manifest": false,
+  "partition": {
+    "report_sha256": "db69af37bf683d893d36897a4f01232d55f2b86cbfc46d6b5dc790dc0659affe",
+    "stage4_stable_id_exclusion": {
+      "format_version": 1,
+      "canonicalization": "utf8_lf_sorted_unique_stable_id_jsonl_v1",
+      "count": 6798,
+      "content_sha256": "bb732a72e7fc343d517a9a1f03bd8a6031e03262ccffdfe7c318f3f08d01342f",
+      "raw_stable_ids_in_report": false
+    }
+  },
+  "source_spans": {
+    "manifest_sha256": "08a098932fddbb0a194b7dc6197140da27092cebe9ae92409d239deeb0daa17a",
+    "record_count": 17438,
+    "content_sha256": "8b9c2ccf0fa77d85bdc13d3aec44734df2942f206c62c6f78b1461862867b400",
+    "extractor_git_sha": "9312a78e9b060bbedfbb4f43046d25b066045685",
+    "cleaner_version": "conservative_wikitext_v4"
+  },
+  "tier_a": {
+    "report_sha256": "71d8ad118da656c03c1f01d6f32256fcf748fc2812a7019f0bc538cd72e2c96d",
+    "record_count": 17437,
+    "content_sha256": "8d330c9d8e42d72d167fa1a127f8f8f603526096852a12038c3f4e3e51ecb080",
+    "source_span_content_sha256": "8b9c2ccf0fa77d85bdc13d3aec44734df2942f206c62c6f78b1461862867b400"
+  },
+  "split": {
+    "report_sha256": "15ab1fe7a498cfe221d5dbbbde2b102fc72a28fd634b961a3271681e73adddc0",
+    "seed": 20260813,
+    "ratios": {"train": 0.7, "dev": 0.1, "final_holdout": 0.2},
+    "record_count": 17437,
+    "tier_a_content_sha256": "8d330c9d8e42d72d167fa1a127f8f8f603526096852a12038c3f4e3e51ecb080",
+    "content_sha256": "555a821f986614f0a2f2dab455faacc14b86dc96d60b224694592c9299545a14",
+    "split_counts": {"train": 12207, "dev": 1743, "final_holdout": 3487},
+    "split_content_sha256": {
+      "train": "2fff98d13edc3b6c7e9d4e72d76dde369d16b59dfc7dd8243f793c5902560431",
+      "dev": "993e7bf05a33af4abfdda638600eaef0b9ccebf983f8f5f488f13d58d4d6a406",
+      "final_holdout": "aeea3838c130a5b3703241e217c23b43fede0b9a838e7f2a4c3c30572d29e4d0"
+    },
+    "near_duplicate_threshold": 0.8,
+    "cross_split_leakage_count": 0
+  },
+  "human_audit": {
+    "queue_manifest_sha256": "fc5d88f4613cbb086fc775bb3a12a7d5801bc2f45179de126617c1a4cdfbe60e",
+    "seed": 20260813,
+    "minimum_sample_size": 3000,
+    "dataset_record_count": 17437,
+    "dataset_content_sha256": "555a821f986614f0a2f2dab455faacc14b86dc96d60b224694592c9299545a14",
+    "queue_record_count": 3487,
+    "final_holdout_count": 3487,
+    "queue_content_sha256": "5843a969a050f19e897b0d0f8dc2c173d4fedb759bcc7b04ba142c8d9ffebaa2",
+    "final_holdout_content_sha256": "aeea3838c130a5b3703241e217c23b43fede0b9a838e7f2a4c3c30572d29e4d0"
+  }
+}
