@@ -93,6 +93,10 @@ VERIFIED_SOURCE_SPAN_IDENTITIES = frozenset(
             "ab832e4c2a783eec1070d1bf653aad6db672fdde",
             "898a0930ff4a15d33bac14c51ef66fe6c429879deff0ffaf695c7e28ba6dfd9b",
         ),
+        (
+            "9312a78e9b060bbedfbb4f43046d25b066045685",
+            "8b9c2ccf0fa77d85bdc13d3aec44734df2942f206c62c6f78b1461862867b400",
+        ),
     }
 )
 VERIFIED_SOURCE_SPAN_METADATA: dict[tuple[str, str], Mapping[str, Any]] = {
@@ -259,6 +263,57 @@ VERIFIED_SOURCE_SPAN_METADATA: dict[tuple[str, str], Mapping[str, Any]] = {
             "unbalanced_template": 86_558,
         },
         "raw_text_in_report": False,
+    },
+    (
+        "9312a78e9b060bbedfbb4f43046d25b066045685",
+        "8b9c2ccf0fa77d85bdc13d3aec44734df2942f206c62c6f78b1461862867b400",
+    ): {
+        "schema_version": 3,
+        "manifest_kind": "jawiki_tier_a_source_spans",
+        "snapshot_date": "2026-08-01",
+        "jawiki_local_sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+        "dictionary_index_sha256": "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072",
+        "cleaner_version": "conservative_wikitext_v4",
+        "config": {
+            "sample_modulus": 1_000_000,
+            "sample_slots": 120,
+            "max_records": 100_000,
+            "max_records_per_page": 8,
+            "max_output_bytes": 268_435_456,
+            "min_sentence_chars": 4,
+            "max_sentence_chars": 512,
+            "min_surface_chars": 1,
+            "max_surface_chars": 64,
+            "min_reading_chars": 3,
+            "max_reading_chars": 128,
+        },
+        "eligible_dictionary_surface_count": 326_887,
+        "record_count": 17_438,
+        "counts": {
+            "dictionary_matches": 200_042_451,
+            "matches_not_sampled": 200_018_557,
+            "matches_unsafe_boundary": 72_905_766,
+            "pages_non_main": 636_071,
+            "pages_processed": 1_512_214,
+            "pages_redirect": 952_212,
+            "pages_total": 3_100_497,
+            "paragraphs_accepted": 42_487_676,
+            "residual_corruption": 1_442_954,
+            "residual_markup": 4_309_566,
+            "sentences_accepted": 49_545_927,
+            "sentences_outside_bounds": 5_288_575,
+            "stable_id_exclusions": 6_456,
+            "unbalanced_link": 94_862,
+            "unbalanced_template": 86_558,
+        },
+        "raw_text_in_report": False,
+        "stage4_stable_id_exclusion": {
+            "format_version": 1,
+            "canonicalization": "utf8_lf_sorted_unique_stable_id_jsonl_v1",
+            "count": 6_798,
+            "content_sha256": "bb732a72e7fc343d517a9a1f03bd8a6031e03262ccffdfe7c318f3f08d01342f",
+            "raw_stable_ids_in_report": False,
+        },
     },
 }
 MAX_SOURCE_RECORDS = 1_000_000
