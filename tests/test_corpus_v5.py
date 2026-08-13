@@ -3,11 +3,13 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from sakura_rerank.data import corpus_v5
 from sakura_rerank.data.contracts import canonical_json_bytes
 from sakura_rerank.data.corpus_v5 import (
     AMBIGUOUS_BUCKET,
@@ -191,6 +193,166 @@ class CorpusV5Tests(unittest.TestCase):
             with self.assertRaisesRegex(TierAError, "canonical JSON"):
                 read_blind_teacher_queue_directory(queue)
 
+    def test_queue_publication_retries_transient_windows_rename_error(self) -> None:
+        source = records(2)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "retry-queue"
+            attempts = 0
+
+            def transient_then_replace(source_path: Path, target_path: Path) -> None:
+                nonlocal attempts
+                attempts += 1
+                if attempts == 1:
+                    error = PermissionError("simulated directory lock")
+                    error.winerror = 5
+                    raise error
+                os.replace(source_path, target_path)
+
+            with (
+                patch(
+                    "sakura_rerank.data.corpus_v5._rename_directory_without_overwrite",
+                    side_effect=transient_then_replace,
+                ) as replace_directory,
+                patch("sakura_rerank.data.corpus_v5.random.uniform", return_value=0.002),
+                patch("sakura_rerank.data.corpus_v5.time.sleep") as sleep,
+            ):
+                manifest = publish_blind_teacher_queue_directory(
+                    target,
+                    source,
+                    pass_name=FIRST_PASS,
+                    reviewer_id=FIRST_REVIEWER,
+                )
+
+            self.assertEqual(replace_directory.call_count, 2)
+            sleep.assert_called_once()
+            self.assertAlmostEqual(sleep.call_args.args[0], 0.052)
+            loaded, loaded_manifest = read_blind_teacher_queue_directory(target)
+            self.assertEqual(loaded, build_blind_teacher_batches(source))
+            self.assertEqual(loaded_manifest, manifest)
+
+    def test_queue_publication_exhausted_transient_retries_cleans_temporary_directory(self) -> None:
+        source = records(2)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "locked-queue"
+
+            def transient_lock(_: Path, __: Path) -> None:
+                error = PermissionError("simulated persistent directory lock")
+                error.winerror = 32
+                raise error
+
+            with (
+                patch(
+                    "sakura_rerank.data.corpus_v5._rename_directory_without_overwrite",
+                    side_effect=transient_lock,
+                ) as replace_directory,
+                patch("sakura_rerank.data.corpus_v5.random.uniform", return_value=0.0),
+                patch("sakura_rerank.data.corpus_v5.time.sleep") as sleep,
+            ):
+                with self.assertRaisesRegex(PermissionError, "persistent"):
+                    publish_blind_teacher_queue_directory(
+                        target,
+                        source,
+                        pass_name=FIRST_PASS,
+                        reviewer_id=FIRST_REVIEWER,
+                    )
+
+            self.assertEqual(replace_directory.call_count, 8)
+            self.assertEqual(sleep.call_count, 7)
+            self.assertFalse(target.exists())
+            self.assertEqual(list(root.glob(".locked-queue.*")), [])
+
+    def test_queue_publication_does_not_retry_non_transient_rename_error(self) -> None:
+        source = records(2)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "invalid-queue"
+            with (
+                patch(
+                    "sakura_rerank.data.corpus_v5._rename_directory_without_overwrite",
+                    side_effect=OSError("simulated non-transient failure"),
+                ) as replace_directory,
+                patch("sakura_rerank.data.corpus_v5.time.sleep") as sleep,
+            ):
+                with self.assertRaisesRegex(OSError, "non-transient"):
+                    publish_blind_teacher_queue_directory(
+                        target,
+                        source,
+                        pass_name=FIRST_PASS,
+                        reviewer_id=FIRST_REVIEWER,
+                    )
+
+            self.assertEqual(replace_directory.call_count, 1)
+            sleep.assert_not_called()
+            self.assertFalse(target.exists())
+            self.assertEqual(list(root.glob(".invalid-queue.*")), [])
+
+    def test_queue_publication_does_not_retry_permission_errors_without_transient_winerror(self) -> None:
+        source = records(2)
+        cases = (
+            ("missing-winerror", PermissionError("simulated generic access failure")),
+            ("other-winerror", PermissionError("simulated unrelated access failure")),
+        )
+        cases[1][1].winerror = 3
+        for name, error in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                target = root / name
+                with (
+                    patch(
+                        "sakura_rerank.data.corpus_v5._rename_directory_without_overwrite",
+                        side_effect=error,
+                    ) as replace_directory,
+                    patch("sakura_rerank.data.corpus_v5.time.sleep") as sleep,
+                ):
+                    with self.assertRaisesRegex(PermissionError, "simulated"):
+                        publish_blind_teacher_queue_directory(
+                            target,
+                            source,
+                            pass_name=FIRST_PASS,
+                            reviewer_id=FIRST_REVIEWER,
+                        )
+
+                self.assertEqual(replace_directory.call_count, 1)
+                sleep.assert_not_called()
+                self.assertFalse(target.exists())
+                self.assertEqual(list(root.glob(f".{name}.*")), [])
+
+    def test_directory_publish_retry_delay_caps_jittered_value_at_one_second(self) -> None:
+        with patch("sakura_rerank.data.corpus_v5.random.uniform", return_value=0.5):
+            self.assertEqual(corpus_v5._directory_publish_retry_delay(5), 1.0)
+
+    @unittest.skipUnless(os.name == "nt", "Windows os.rename supplies no-overwrite semantics")
+    def test_queue_publication_preserves_target_created_after_precheck(self) -> None:
+        source = records(2)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "racing-queue"
+            marker = target / "marker.txt"
+            real_rename = os.rename
+
+            def create_target_then_rename(source_path: Path, target_path: Path) -> None:
+                target_path.mkdir()
+                (target_path / "marker.txt").write_text("preserve", encoding="utf-8")
+                real_rename(source_path, target_path)
+
+            with patch(
+                "sakura_rerank.data.corpus_v5.os.rename",
+                side_effect=create_target_then_rename,
+            ) as rename:
+                with self.assertRaises(FileExistsError):
+                    publish_blind_teacher_queue_directory(
+                        target,
+                        source,
+                        pass_name=FIRST_PASS,
+                        reviewer_id=FIRST_REVIEWER,
+                    )
+
+            self.assertEqual(rename.call_count, 1)
+            self.assertEqual(marker.read_text(encoding="utf-8"), "preserve")
+            self.assertEqual(list(root.glob(".racing-queue.*")), [])
+
     def test_resumable_verdict_scan_rejects_malformed_and_extra_files(self) -> None:
         source = records(41)
         batches = build_blind_teacher_batches(source)
@@ -359,11 +521,42 @@ class CorpusV5Tests(unittest.TestCase):
             with self.assertRaisesRegex(TierAError, "bucket counts"):
                 publish_admissibility_partition_directory(root / "bad-pairs", buckets, bad_pairs)
 
+            retry_partition = root / "retry-partition"
+            attempts = 0
+
+            def transient_then_publish(source_path: Path, target_path: Path) -> None:
+                nonlocal attempts
+                attempts += 1
+                if attempts == 1:
+                    error = PermissionError("simulated directory lock")
+                    error.winerror = 5
+                    raise error
+                os.replace(source_path, target_path)
+
+            with (
+                patch(
+                    "sakura_rerank.data.corpus_v5._rename_directory_without_overwrite",
+                    side_effect=transient_then_publish,
+                ) as replace_directory,
+                patch("sakura_rerank.data.corpus_v5.random.uniform", return_value=0.0),
+                patch("sakura_rerank.data.corpus_v5.time.sleep") as sleep,
+            ):
+                publish_admissibility_partition_directory(retry_partition, buckets, report)
+            self.assertEqual(replace_directory.call_count, 2)
+            sleep.assert_called_once_with(0.05)
+            self.assertEqual(
+                json.loads((retry_partition / "report.json").read_text(encoding="utf-8")), report
+            )
+
             failed = root / "failed"
-            with patch("sakura_rerank.data.corpus_v5.os.replace", side_effect=OSError("injected")):
+            with patch(
+                "sakura_rerank.data.corpus_v5._rename_directory_without_overwrite",
+                side_effect=OSError("injected"),
+            ):
                 with self.assertRaisesRegex(OSError, "injected"):
                     publish_admissibility_partition_directory(failed, buckets, report)
             self.assertFalse(failed.exists())
+            self.assertEqual(list(root.glob(".failed.*")), [])
 
 
 if __name__ == "__main__":

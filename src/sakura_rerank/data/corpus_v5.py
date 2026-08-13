@@ -16,9 +16,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 import re
 import shutil
 import tempfile
+import time
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -50,6 +52,11 @@ MAX_BATCHES = 100_000
 MAX_BATCH_BYTES = 4 * 1024 * 1024
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_NOTE_CHARS = 200
+
+_DIRECTORY_PUBLISH_MAX_ATTEMPTS = 8
+_DIRECTORY_PUBLISH_INITIAL_BACKOFF_SECONDS = 0.05
+_DIRECTORY_PUBLISH_MAX_BACKOFF_SECONDS = 1.0
+_WINDOWS_TRANSIENT_REPLACE_ERRORS = frozenset({5, 32})
 
 ELIGIBLE_BUCKET = "eligible_unanimous_valid"
 AMBIGUOUS_BUCKET = "intrinsic_surface_ambiguity"
@@ -99,6 +106,64 @@ def _canonical_jsonl_hash(records: Sequence[Mapping[str, Any]]) -> str:
         digest.update(canonical_json_bytes(record))
         digest.update(b"\n")
     return digest.hexdigest()
+
+
+def _rename_directory_without_overwrite(source: Path, target: Path) -> None:
+    """Atomically publish on Windows only when no target directory exists."""
+
+    # Windows ``rename`` fails if target exists, unlike ``replace``.  This
+    # closes the target-existence race between the precheck and the final move.
+    os.rename(source, target)
+
+
+def _is_transient_windows_rename_error(error: OSError) -> bool:
+    """Return whether Windows may release a locked directory shortly."""
+
+    return getattr(error, "winerror", None) in _WINDOWS_TRANSIENT_REPLACE_ERRORS
+
+
+def _directory_publish_retry_delay(attempt: int) -> float:
+    """Bound exponential backoff and jitter for a transient directory lock."""
+
+    maximum = min(
+        _DIRECTORY_PUBLISH_INITIAL_BACKOFF_SECONDS * (2**attempt),
+        _DIRECTORY_PUBLISH_MAX_BACKOFF_SECONDS,
+    )
+    return min(
+        _DIRECTORY_PUBLISH_MAX_BACKOFF_SECONDS,
+        maximum + random.uniform(0.0, maximum),
+    )
+
+
+def _publish_directory_atomically(
+    temporary: Path,
+    target: Path,
+    *,
+    immutable_message: str,
+) -> None:
+    """Move a complete temporary directory without replacing an existing target.
+
+    Windows virus scanners and indexers can briefly retain a directory handle
+    after its final file is closed.  Only the corresponding transient Windows
+    access/sharing failures are retried; every other error remains observable
+    to the caller immediately.
+    """
+
+    for attempt in range(_DIRECTORY_PUBLISH_MAX_ATTEMPTS):
+        if target.exists():
+            _fail(immutable_message)
+        try:
+            _rename_directory_without_overwrite(temporary, target)
+        except OSError as error:
+            if not _is_transient_windows_rename_error(error):
+                raise
+            if attempt + 1 == _DIRECTORY_PUBLISH_MAX_ATTEMPTS:
+                raise
+            time.sleep(_directory_publish_retry_delay(attempt))
+        else:
+            return
+
+    raise AssertionError("bounded directory publication loop reached no terminal state")
 
 
 def _strict_records(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -386,7 +451,11 @@ def publish_blind_teacher_queue_directory(
                 _canonical_payload(batch),
             )
         write_bytes_atomic(temporary / "manifest.json", _canonical_payload(manifest))
-        os.replace(temporary, target)
+        _publish_directory_atomically(
+            temporary,
+            target,
+            immutable_message="queue directory already exists and is immutable",
+        )
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
         raise
@@ -908,7 +977,11 @@ def publish_admissibility_partition_directory(
             )
             write_bytes_atomic(temporary / f"{name.replace('_', '-')}.jsonl", payload)
         write_bytes_atomic(temporary / "report.json", _canonical_payload(checked_report))
-        os.replace(temporary, target)
+        _publish_directory_atomically(
+            temporary,
+            target,
+            immutable_message="partition directory already exists and is immutable",
+        )
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
         raise
