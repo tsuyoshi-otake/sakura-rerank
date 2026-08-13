@@ -98,6 +98,37 @@ production candidates are also benchmarked on Windows CPU with GPU disabled,
 batch one, one ORT intra/inter-op thread, warmup, and at least 10,000 measured
 runs.
 
+## Local Japanese reranker comparison
+
+The following research-only comparison uses the public JMTEB-lite reranking
+tasks through MTEB 2.4.2. Quality is NDCG@10. Latency is standalone scoring of
+one query-document pair on the same Windows CPU, with GPU disabled, ONNX Runtime
+1.23.2, batch size one, one intra-op thread, one inter-op thread, 100 warmups,
+and 10,000 measured requests. Both runs had zero inference failures.
+
+| Model | Parameters | INT8 ONNX | JQaRA-lite | JaCWIR-lite | p50 / p95 / p99 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| [Japanese Reranker Tiny v2](https://huggingface.co/hotchpotch/japanese-reranker-tiny-v2) | 29.4M | 29.6 MB | 0.64372 | 0.93423 | 0.7005 / 1.0006 / 1.3109 |
+| [Japanese Reranker XSmall v2](https://huggingface.co/hotchpotch/japanese-reranker-xsmall-v2) | 36.8M | 37.4 MB | **0.73347** | not completed[^xsmall-jacwir] | 2.0740 / 3.2321 / 5.2856 |
+
+On the common completed task, XSmall improves JQaRA-lite NDCG@10 by 0.08975,
+but its p50 latency is 2.96x Tiny's and its p99 is 4.03x Tiny's. Tiny's JaCWIR
+result is shown as supplemental evidence only; it is not included in a
+cross-model average because XSmall did not complete the same task.
+
+[^xsmall-jacwir]: The XSmall two-task run reached the 3,600-second execution
+    limit while evaluating JaCWIR-lite. The unfinished task was explicitly
+    skipped; no score was estimated or reported.
+
+Exact model commits, ONNX hashes, dataset revisions, input-report hashes,
+software versions, CPU environment, and the fail-closed decision are recorded
+in
+[`reports/issue-19-local-reranker-benchmark.json`](reports/issue-19-local-reranker-benchmark.json)
+and tracked by [Issue #19](https://github.com/tsuyoshi-otake/sakura-rerank/issues/19).
+This is a general information-retrieval benchmark, not an IME conversion
+benchmark. It does not prove an improvement in Sakura Input, does not satisfy
+Gate B, and does not authorize a production or default-setting change.
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned

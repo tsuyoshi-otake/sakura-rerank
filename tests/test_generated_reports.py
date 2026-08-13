@@ -511,6 +511,67 @@ class GeneratedReportTests(unittest.TestCase):
             }.isdisjoint(object_keys(report))
         )
 
+    def test_local_reranker_comparison_is_pinned_fair_and_research_only(self) -> None:
+        path = REPORTS / "issue-19-local-reranker-benchmark.json"
+        raw = path.read_bytes()
+        report = json.loads(raw)
+        self.assertEqual(
+            raw,
+            (
+                json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode("utf-8"),
+        )
+        self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(report["report_kind"], "local_japanese_reranker_comparison")
+        self.assertEqual(report["status"], "research_only")
+        self.assertEqual(
+            report["benchmark"]["common_comparison_tasks"], ["JQaRARerankingLite"]
+        )
+        self.assertEqual(report["benchmark"]["quality_metric"], "NDCG@10")
+        self.assertEqual(report["benchmark"]["quality_evaluator"], "mteb==2.4.2")
+
+        models = {item["model"]["key"]: item for item in report["models"]}
+        self.assertEqual(set(models), {"tiny", "xsmall"})
+        self.assertEqual(models["tiny"]["quality"]["tasks"]["JQaRARerankingLite"], 0.64372)
+        self.assertEqual(models["xsmall"]["quality"]["tasks"]["JQaRARerankingLite"], 0.73347)
+        self.assertEqual(models["tiny"]["quality"]["tasks"]["JaCWIRRerankingLite"], 0.93423)
+        self.assertNotIn("JaCWIRRerankingLite", models["xsmall"]["quality"]["tasks"])
+        skipped = models["xsmall"]["quality"]["incomplete_tasks"]
+        self.assertEqual(len(skipped), 1)
+        self.assertEqual(skipped[0]["status"], "user_approved_skip_after_timeout")
+        self.assertFalse(skipped[0]["score_reported"])
+
+        comparison = report["common_task_comparison"]
+        self.assertEqual(comparison["xsmall_minus_tiny_ndcg_at_10"], 0.08975)
+        self.assertEqual(comparison["xsmall_over_tiny_p50_latency_ratio"], 2.960742)
+        self.assertEqual(comparison["xsmall_over_tiny_p99_latency_ratio"], 4.032039)
+        for model in models.values():
+            self.assertEqual(model["latency_measured_runs"], 10_000)
+            self.assertEqual(model["latency_failures"], 0)
+
+        self.assertFalse(report["decision"]["sakura_input_improvement_proven"])
+        self.assertFalse(report["decision"]["gate_b_evidence"])
+        self.assertFalse(report["decision"]["production_change_authorized"])
+        self.assertFalse(report["raw_text_in_report"])
+        self.assertEqual(len(report["inputs"]), 4)
+        for binding in report["inputs"]:
+            self.assertGreater(binding["bytes"], 0)
+            self.assertRegex(binding["sha256"], r"^[0-9a-f]{64}$")
+        self.assertTrue(
+            {
+                "query",
+                "document",
+                "text",
+                "surface",
+                "reading",
+                "left_context",
+                "stable_id",
+                "rows",
+                "notes",
+            }.isdisjoint(object_keys(report))
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
