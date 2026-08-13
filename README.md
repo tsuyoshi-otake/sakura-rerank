@@ -186,6 +186,32 @@ evidence is in
 [`reports/sakura-rerank-tiny-v1-jqara-ood.json`](reports/sakura-rerank-tiny-v1-jqara-ood.json).
 It is not Gate B evidence and authorizes no production change.
 
+### Three-model comparison on the Sakura IME dev benchmark
+
+The comparison direction was also reversed: all three models were evaluated on
+the immutable 1,788-row Sakura dev split with the same production top-6
+candidate snapshots, gold labels, and denominator. Sakura uses its native
+bounded IME features. The two general rerankers use one predeclared adapter,
+pairing `left context + "\n読み:" + reading` with each candidate surface. No
+adapter variant was tried after observing results.
+
+| Model | Parameters | Top-1 | MRR | NDCG@6 | Rescue / harm | CPU p50 / p95 / p99 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Sakura-Rerank-Tiny-v1 FP32 | 1.86M | **0.91723** | **0.95105** | **0.96241** | 77 / 23 | **3.1965 / 3.8472 / 4.5116** |
+| Japanese Reranker Tiny v2 INT8 | 29.4M | 0.20582 | 0.45131 | 0.58332 | 43 / 1,261 | 3.9580 / 6.0459 / 7.0596 |
+| Japanese Reranker XSmall v2 INT8 | 36.8M | 0.20861 | 0.46164 | 0.59174 | 38 / 1,251 | 11.9433 / 18.5500 / 22.6632 |
+
+The unchanged local candidate order scores 0.88702 Top-1. Both general-IR
+models severely damage that strong IME baseline, whereas the Sakura-specific
+model improves it. Latency is measured per complete 2--6-candidate conversion
+request, not per query-document pair: Windows CPU, GPU disabled, batch-one
+request, ORT intra/inter-op threads 1, 100 warmups, 10,000 measured requests,
+and zero failures for every model. Exact identities, hashes, aggregate metrics,
+and input-report bindings are recorded in
+[`reports/sakura-ime-three-model-comparison.json`](reports/sakura-ime-three-model-comparison.json).
+This remains dev-only evidence; the failed Gate A and untouched final holdout
+keep Gate B and production authorization false.
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned

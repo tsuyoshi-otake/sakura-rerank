@@ -60,3 +60,10 @@ bounded-character truncation counts, dataset revision, aggregate NDCG@10, and
 fail-closed limitations are explicit. The result is out of the IME training
 distribution and is neither a native-cross-encoder comparison nor Gate B
 evidence.
+
+`sakura-ime-three-model-comparison.json` compares Sakura-Rerank-Tiny-v1,
+Japanese Reranker Tiny v2, and Japanese Reranker XSmall v2 on the identical
+frozen Sakura dev rows and complete 2--6-candidate request latency contract.
+External models share one predeclared query/candidate adapter; Sakura uses its
+native IME inputs. The aggregate-only report binds all source reports and keeps
+the untouched final holdout, Gate B, and production authorization false.

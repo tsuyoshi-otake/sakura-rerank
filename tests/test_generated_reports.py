@@ -685,6 +685,50 @@ class GeneratedReportTests(unittest.TestCase):
         }
         self.assertTrue(forbidden.isdisjoint(object_keys(report)))
 
+    def test_sakura_ime_three_model_comparison_is_fair_bound_and_fail_closed(self) -> None:
+        path = REPORTS / "sakura-ime-three-model-comparison.json"
+        raw = path.read_bytes()
+        report = json.loads(raw)
+        self.assertEqual(
+            raw,
+            (
+                json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode("utf-8"),
+        )
+        self.assertEqual(report["status"], "research_only_dev")
+        benchmark = report["benchmark"]
+        self.assertEqual(benchmark["split"], "dev")
+        self.assertEqual(benchmark["record_count"], 1_788)
+        self.assertEqual(benchmark["candidate_limit"], 6)
+        self.assertFalse(benchmark["final_holdout_used"])
+        models = {model["key"]: model for model in report["models"]}
+        self.assertEqual(set(models), {"sakura", "tiny", "xsmall"})
+        self.assertAlmostEqual(models["sakura"]["quality"]["top1_accuracy"], 0.9172259508)
+        self.assertAlmostEqual(models["tiny"]["quality"]["top1_accuracy"], 0.2058165548)
+        self.assertAlmostEqual(models["xsmall"]["quality"]["top1_accuracy"], 0.2086129754)
+        self.assertEqual(models["sakura"]["input_adapter"], "native_sakura_ime_features")
+        self.assertEqual(models["tiny"]["input_adapter"], models["xsmall"]["input_adapter"])
+        for model in models.values():
+            self.assertEqual(model["quality"]["record_count"], 1_788)
+            self.assertGreater(model["latency_ms_per_conversion_request"]["p50"], 0)
+        self.assertEqual(report["decision"]["best_dev_top1_model"], "sakura")
+        self.assertFalse(report["decision"]["gate_b_evidence"])
+        self.assertFalse(report["decision"]["production_change_authorized"])
+        self.assertEqual(len(report["inputs"]), 3)
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
 
 if __name__ == "__main__":
     unittest.main()
