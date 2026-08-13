@@ -53,3 +53,10 @@ quality and Windows CPU batch-one measurements for the exported FP32 and INT8
 research models. It fails closed on Gates A, B, and C and authorizes no Sakura
 Input production change. The ignored binaries are referenced only by aggregate
 byte counts and SHA-256 values.
+
+`sakura-rerank-tiny-v1-jqara-ood.json` records the MTEB 2.4.2
+JQaRARerankingLite diagnostic for the fixed FP32 export. Its pointwise adapter,
+bounded-character truncation counts, dataset revision, aggregate NDCG@10, and
+fail-closed limitations are explicit. The result is out of the IME training
+distribution and is neither a native-cross-encoder comparison nor Gate B
+evidence.

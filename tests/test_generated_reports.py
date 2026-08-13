@@ -645,6 +645,46 @@ class GeneratedReportTests(unittest.TestCase):
         self.assertTrue(forbidden.isdisjoint(object_keys(manifest)))
         self.assertTrue(forbidden.isdisjoint(object_keys(report)))
 
+    def test_sakura_jqara_diagnostic_is_pinned_aggregate_only_and_out_of_domain(self) -> None:
+        path = REPORTS / "sakura-rerank-tiny-v1-jqara-ood.json"
+        raw = path.read_bytes()
+        report = json.loads(raw)
+        self.assertEqual(
+            raw,
+            (
+                json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode("utf-8"),
+        )
+        manifest = json.loads(
+            (MANIFESTS / "sakura-rerank-tiny-v1-research-prototype.json").read_bytes()
+        )
+        self.assertEqual(report["status"], "research_only_out_of_domain")
+        self.assertEqual(report["task"]["name"], "JQaRARerankingLite")
+        self.assertEqual(report["task"]["main_score"], "ndcg_at_10")
+        self.assertEqual(report["task"]["score"], 0.18492)
+        self.assertEqual(report["model"]["sha256"], manifest["exports"]["fp32"]["sha256"])
+        self.assertEqual(report["model"]["bytes"], manifest["exports"]["fp32"]["bytes"])
+        self.assertEqual(report["adapter"]["pair_count"], 98_941)
+        self.assertEqual(report["adapter"]["task_metadata_pair_count"], 91_353)
+        self.assertEqual(report["adapter"]["document_truncated_count"], 97_795)
+        self.assertFalse(report["limitations"]["directly_comparable_to_native_cross_encoders"])
+        self.assertFalse(report["limitations"]["gate_b_evidence"])
+        self.assertFalse(report["limitations"]["production_change_authorized"])
+        self.assertFalse(report["limitations"]["final_holdout_used"])
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
 
 if __name__ == "__main__":
     unittest.main()

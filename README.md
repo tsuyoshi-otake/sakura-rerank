@@ -161,6 +161,31 @@ information-retrieval table above.
 No repository/model license has been selected, so artifact distribution is not
 authorized by this result.
 
+### Out-of-domain JQaRA diagnostic
+
+For completeness, the FP32 Sakura model was also run on the identical pinned
+JQaRARerankingLite test revision with MTEB 2.4.2. Because the model accepts up
+to six IME candidates rather than arbitrary query-document pairs, every pair
+was scored independently as one real candidate plus five masked candidates.
+The query was mapped to both bounded left-context and reading encoders, the
+document to the 32-character candidate encoder, and rank/local-cost features
+were zeroed.
+
+| Model | JQaRA-lite NDCG@10 | Evaluation contract |
+| --- | ---: | --- |
+| Japanese Reranker Tiny v2 | 0.64372 | Native general-IR cross-encoder |
+| Japanese Reranker XSmall v2 | **0.73347** | Native general-IR cross-encoder |
+| Sakura-Rerank-Tiny-v1 FP32 | 0.18492 | Out-of-domain pointwise adapter |
+
+The Sakura result is intentionally not treated as directly comparable model
+quality: 97,795 of 98,941 documents were truncated by the production model's
+32-character candidate bound, JQaRA has no kana-reading input, and the model
+received no general-IR training. It demonstrates that this IME-specialized
+export should not be substituted for a general reranker. The aggregate-only
+evidence is in
+[`reports/sakura-rerank-tiny-v1-jqara-ood.json`](reports/sakura-rerank-tiny-v1-jqara-ood.json).
+It is not Gate B evidence and authorizes no production change.
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned
