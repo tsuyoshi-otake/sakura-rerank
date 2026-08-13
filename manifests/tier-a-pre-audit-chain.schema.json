@@ -55,11 +55,11 @@
     },
     "split": {
       "type": "object", "additionalProperties": false,
-      "required": ["report_sha256", "seed", "ratios", "record_count", "content_sha256", "split_counts", "split_content_sha256", "near_duplicate_threshold", "cross_split_leakage_count"],
+      "required": ["report_sha256", "seed", "ratios", "record_count", "tier_a_content_sha256", "content_sha256", "split_counts", "split_content_sha256", "near_duplicate_threshold", "cross_split_leakage_count"],
       "properties": {
         "report_sha256": {"$ref": "#/$defs/sha256"}, "seed": {"type": "integer", "minimum": 0, "maximum": 9223372036854775807},
         "ratios": {"allOf": [{"$ref": "#/$defs/splitNames"}], "properties": {"train": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}, "dev": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}, "final_holdout": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}}},
-        "record_count": {"$ref": "#/$defs/positiveCount"}, "content_sha256": {"$ref": "#/$defs/sha256"},
+        "record_count": {"$ref": "#/$defs/positiveCount"}, "tier_a_content_sha256": {"$ref": "#/$defs/sha256"}, "content_sha256": {"$ref": "#/$defs/sha256"},
         "split_counts": {"allOf": [{"$ref": "#/$defs/splitNames"}], "properties": {"train": {"$ref": "#/$defs/positiveCount"}, "dev": {"$ref": "#/$defs/positiveCount"}, "final_holdout": {"$ref": "#/$defs/positiveCount"}}},
         "split_content_sha256": {"allOf": [{"$ref": "#/$defs/splitNames"}], "properties": {"train": {"$ref": "#/$defs/sha256"}, "dev": {"$ref": "#/$defs/sha256"}, "final_holdout": {"$ref": "#/$defs/sha256"}}},
         "near_duplicate_threshold": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}, "cross_split_leakage_count": {"const": 0}

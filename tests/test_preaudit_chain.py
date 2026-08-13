@@ -18,6 +18,7 @@ def _sha(number: int) -> str:
 def _manifest(*, variant: str = "A") -> dict[str, object]:
     source_content = _sha(3)
     tier_a_content = _sha(5)
+    split_content = _sha(13)
     holdout_content = _sha(9)
     return {
         "schema_version": 1,
@@ -53,7 +54,8 @@ def _manifest(*, variant: str = "A") -> dict[str, object]:
             "seed": 20260813,
             "ratios": {"train": 0.7, "dev": 0.1, "final_holdout": 0.2},
             "record_count": 18_000,
-            "content_sha256": tier_a_content,
+            "tier_a_content_sha256": tier_a_content,
+            "content_sha256": split_content,
             "split_counts": {"train": 12_600, "dev": 1_800, "final_holdout": 3_600},
             "split_content_sha256": {
                 "train": _sha(8),
@@ -68,7 +70,7 @@ def _manifest(*, variant: str = "A") -> dict[str, object]:
             "seed": 20260813,
             "minimum_sample_size": 3_000,
             "dataset_record_count": 18_000,
-            "dataset_content_sha256": tier_a_content,
+            "dataset_content_sha256": split_content,
             "queue_record_count": 3_600,
             "final_holdout_count": 3_600,
             "queue_content_sha256": _sha(12),
@@ -99,9 +101,12 @@ class PreAuditChainTests(unittest.TestCase):
         source_hash = _manifest()
         source_hash["tier_a"]["source_span_content_sha256"] = _sha(99)  # type: ignore[index]
         cases.append(("source_spans.content_sha256", source_hash))
+        split_input_hash = _manifest()
+        split_input_hash["split"]["tier_a_content_sha256"] = _sha(99)  # type: ignore[index]
+        cases.append(("tier_a.content_sha256", split_input_hash))
         audit_dataset_hash = _manifest()
         audit_dataset_hash["human_audit"]["dataset_content_sha256"] = _sha(99)  # type: ignore[index]
-        cases.append(("tier_a.content_sha256", audit_dataset_hash))
+        cases.append(("split.content_sha256", audit_dataset_hash))
         holdout_hash = _manifest()
         holdout_hash["human_audit"]["final_holdout_content_sha256"] = _sha(99)  # type: ignore[index]
         cases.append(("final_holdout", holdout_hash))

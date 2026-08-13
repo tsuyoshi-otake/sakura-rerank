@@ -160,6 +160,7 @@ def _validate_split(value: Any, tier_a: Mapping[str, Any]) -> dict[str, Any]:
             "seed",
             "ratios",
             "record_count",
+            "tier_a_content_sha256",
             "content_sha256",
             "split_counts",
             "split_content_sha256",
@@ -187,9 +188,12 @@ def _validate_split(value: Any, tier_a: Mapping[str, Any]) -> dict[str, Any]:
         _fail("split.record_count", "does not bind tier_a.record_count")
     if sum(normalized_counts.values()) != record_count:
         _fail("split.split_counts", "must sum to split.record_count")
+    tier_a_content_sha256 = _sha256(
+        split["tier_a_content_sha256"], "split.tier_a_content_sha256"
+    )
+    if tier_a_content_sha256 != tier_a["content_sha256"]:
+        _fail("split.tier_a_content_sha256", "does not bind tier_a.content_sha256")
     content_sha256 = _sha256(split["content_sha256"], "split.content_sha256")
-    if content_sha256 != tier_a["content_sha256"]:
-        _fail("split.content_sha256", "does not bind tier_a.content_sha256")
     split_hashes = _object(
         split["split_content_sha256"],
         {"train", "dev", "final_holdout"},
@@ -205,6 +209,7 @@ def _validate_split(value: Any, tier_a: Mapping[str, Any]) -> dict[str, Any]:
         "seed": _integer(split["seed"], "split.seed", maximum=2**63 - 1),
         "ratios": normalized_ratios,
         "record_count": record_count,
+        "tier_a_content_sha256": tier_a_content_sha256,
         "content_sha256": content_sha256,
         "split_counts": normalized_counts,
         "split_content_sha256": {
@@ -216,7 +221,7 @@ def _validate_split(value: Any, tier_a: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _validate_human_audit(value: Any, tier_a: Mapping[str, Any], split: Mapping[str, Any]) -> dict[str, Any]:
+def _validate_human_audit(value: Any, split: Mapping[str, Any]) -> dict[str, Any]:
     human_audit = _object(
         value,
         {
@@ -240,13 +245,13 @@ def _validate_human_audit(value: Any, tier_a: Mapping[str, Any], split: Mapping[
     dataset_record_count = _integer(
         human_audit["dataset_record_count"], "human_audit.dataset_record_count", minimum=1
     )
-    if dataset_record_count != tier_a["record_count"]:
-        _fail("human_audit.dataset_record_count", "does not bind tier_a.record_count")
+    if dataset_record_count != split["record_count"]:
+        _fail("human_audit.dataset_record_count", "does not bind split.record_count")
     dataset_content_sha256 = _sha256(
         human_audit["dataset_content_sha256"], "human_audit.dataset_content_sha256"
     )
-    if dataset_content_sha256 != tier_a["content_sha256"]:
-        _fail("human_audit.dataset_content_sha256", "does not bind tier_a.content_sha256")
+    if dataset_content_sha256 != split["content_sha256"]:
+        _fail("human_audit.dataset_content_sha256", "does not bind split.content_sha256")
     queue_record_count = _integer(
         human_audit["queue_record_count"], "human_audit.queue_record_count", minimum=MINIMUM_FINAL_HOLDOUT_AUDIT_RECORDS
     )
@@ -318,7 +323,7 @@ def validate_pre_audit_chain_manifest(mapping: Mapping[str, Any]) -> dict[str, A
     source_spans = _validate_source_spans(manifest["source_spans"])
     tier_a = _validate_tier_a(manifest["tier_a"], source_spans)
     split = _validate_split(manifest["split"], tier_a)
-    human_audit = _validate_human_audit(manifest["human_audit"], tier_a, split)
+    human_audit = _validate_human_audit(manifest["human_audit"], split)
     return copy.deepcopy(
         {
             "schema_version": PRE_AUDIT_CHAIN_SCHEMA_VERSION,
