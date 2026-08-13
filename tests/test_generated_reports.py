@@ -572,6 +572,79 @@ class GeneratedReportTests(unittest.TestCase):
             }.isdisjoint(object_keys(report))
         )
 
+    def test_research_tiny_export_is_bound_measured_and_fail_closed(self) -> None:
+        manifest_path = MANIFESTS / "sakura-rerank-tiny-v1-research-prototype.json"
+        report_path = REPORTS / "sakura-rerank-tiny-v1-research-prototype.json"
+        manifest_raw = manifest_path.read_bytes()
+        report_raw = report_path.read_bytes()
+        manifest = json.loads(manifest_raw)
+        report = json.loads(report_raw)
+        for raw, value in ((manifest_raw, manifest), (report_raw, report)):
+            self.assertEqual(
+                raw,
+                (
+                    json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                    + "\n"
+                ).encode("utf-8"),
+            )
+        self.assertEqual(manifest["status"], "research_only_gate_a_failed")
+        self.assertEqual(manifest["parameter_count"], 1_861_377)
+        self.assertFalse(manifest["data"]["final_holdout_used"])
+        self.assertEqual(manifest["data"]["train_count"], 12_516)
+        self.assertEqual(manifest["data"]["dev_count"], 1_788)
+        implementation = manifest["implementation"]
+        implementation_path = ROOT / implementation["file"]
+        self.assertEqual(
+            implementation["sha256"], hashlib.sha256(implementation_path.read_bytes()).hexdigest()
+        )
+        self.assertFalse(manifest["distribution_authorized"])
+        self.assertEqual(
+            manifest["license_status"], "not_selected_no_distribution_authorized"
+        )
+        self.assertEqual(
+            report["model_manifest"],
+            {
+                "file": manifest_path.name,
+                "bytes": len(manifest_raw),
+                "sha256": hashlib.sha256(manifest_raw).hexdigest(),
+            },
+        )
+        quality = report["quality_dev_only"]
+        self.assertEqual(quality["fp32"]["top1_correct"], 1_640)
+        self.assertEqual(quality["fp32"]["harm_count"], 23)
+        self.assertEqual(quality["int8"]["top1_correct"], 1_636)
+        self.assertAlmostEqual(quality["relative_error_reduction"], 0.2673267327)
+        self.assertAlmostEqual(quality["baseline_correct_harm_rate"], 0.0145018916)
+        self.assertAlmostEqual(quality["int8_top1_loss_percentage_points"], 0.22371365)
+        cpu = report["windows_cpu_batch_one"]
+        self.assertEqual(cpu["contract"]["measured_runs"], 10_000)
+        self.assertEqual(cpu["contract"]["failure_count"], 0)
+        self.assertTrue(cpu["contract"]["gpu_disabled"])
+        self.assertEqual(cpu["contract"]["provider"], ["CPUExecutionProvider"])
+        self.assertFalse(report["gates"]["gate_a_pass"])
+        self.assertFalse(report["gates"]["gate_b_pass"])
+        self.assertFalse(report["gates"]["gate_c_pass"])
+        self.assertFalse(report["final_holdout_used"])
+        self.assertFalse(report["production_change_authorized"])
+        self.assertFalse(report["artifact_distribution_authorized"])
+        self.assertFalse(
+            report["gates"]["checks"]["production_worker_roundtrip_measured"]
+        )
+        self.assertFalse(report["gates"]["checks"]["production_peak_memory_measured"])
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(manifest)))
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
 
 if __name__ == "__main__":
     unittest.main()

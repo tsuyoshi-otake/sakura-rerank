@@ -51,3 +51,9 @@ identity is explicitly allowlisted. The owner calibration queue uses
 [`owner-calibration-queue-manifest.schema.json`](owner-calibration-queue-manifest.schema.json)
 to bind the source dataset, complete teacher state, deduplicated disagreement
 list, fixed-seed 100-row one-pass sample, and ordinary review queue content.
+
+[`sakura-rerank-tiny-v1-research-prototype.json`](sakura-rerank-tiny-v1-research-prototype.json)
+binds the research-only Tiny-v1 architecture, frozen train/dev data, GPU
+training environment, ignored checkpoint and FP32/INT8 ONNX hashes, parity
+measurements, and source reports. It explicitly records that Gate A failed and
+the final holdout was unused; it is not a production model approval.

@@ -129,6 +129,38 @@ This is a general information-retrieval benchmark, not an IME conversion
 benchmark. It does not prove an improvement in Sakura Input, does not satisfy
 Gate B, and does not authorize a production or default-setting change.
 
+## Sakura-Rerank-Tiny-v1 research export
+
+We also trained a Sakura-specific, research-only listwise reranker over the
+frozen v5 train/dev split. It is a 1,861,377-parameter shared character
+embedding + unidirectional GRU model with six candidates per example. Training
+used an RTX 4060 Ti; the frozen final holdout was neither cached nor evaluated.
+
+| Model | Dev top-1 | MRR | NDCG@6 | Rescue / harm | ONNX size | CPU p50 / p95 / p99 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Unchanged local rank | 0.88702 | — | — | — | — | — |
+| Sakura-Rerank-Tiny-v1 FP32 | **0.91723** | 0.95105 | 0.96241 | 77 / 23 | 7.47 MB | 3.1965 / 3.8472 / 4.5116 |
+| Sakura-Rerank-Tiny-v1 INT8 | 0.91499 | 0.94991 | 0.96156 | 77 / 27 | 2.19 MB | 3.2020 / 3.9188 / 4.5872 |
+
+Latency uses Windows CPU only, ONNX Runtime 1.23.2, batch one, one intra-op and
+one inter-op thread, 100 warmups, and 10,000 measured runs with zero failures.
+FP32 reduces dev errors by 26.7%, but harms 1.45% of baseline-correct rows. INT8
+loses 0.224 percentage points of top-1 accuracy. Gate A was already failed, the
+final holdout remains unused, and the harm, p95 latency, and INT8-loss checks
+miss their thresholds; therefore Gates A, B, and C all remain false. No Sakura
+Input production code, installer payload, settings UI, or default was changed.
+
+The binary checkpoint and ONNX files remain ignored generated artifacts. Exact
+architecture, training environment, artifact hashes, ONNX parity, benchmark
+contract, aggregate results, and fail-closed decision are bound by
+[`manifests/sakura-rerank-tiny-v1-research-prototype.json`](manifests/sakura-rerank-tiny-v1-research-prototype.json)
+and
+[`reports/sakura-rerank-tiny-v1-research-prototype.json`](reports/sakura-rerank-tiny-v1-research-prototype.json).
+This IME-specific dev result is not directly comparable with the public JMTEB
+information-retrieval table above.
+No repository/model license has been selected, so artifact distribution is not
+authorized by this result.
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned

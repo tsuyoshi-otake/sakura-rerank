@@ -47,3 +47,9 @@ precision and 94.379% Wilson lower bound miss the required thresholds, so both
 the human and owner-authorized AI gates remain false. Neither report contains
 raw Wikipedia text, stable IDs, reviewer notes, or reviewer identities; all raw
 queues, responses, and partition artifacts remain ignored generated data.
+
+`sakura-rerank-tiny-v1-research-prototype.json` records the train/dev-only
+quality and Windows CPU batch-one measurements for the exported FP32 and INT8
+research models. It fails closed on Gates A, B, and C and authorizes no Sakura
+Input production change. The ignored binaries are referenced only by aggregate
+byte counts and SHA-256 values.
