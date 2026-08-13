@@ -28,8 +28,14 @@ all 3,576 final-holdout rows: 3,402 were valid and 174 were non-valid. Point
 precision was 95.134% and the Wilson 95% lower bound was 94.379%, below the
 required 99.5% and 99.0% thresholds. This is owner-authorized AI evidence, not
 human review; both the human Gate A and owner-authorized AI Gate A remain false.
-Training, Gate B, protocol changes, and production enablement therefore remain
-blocked. The aggregate-only evidence is tracked in
+Gate B, protocol changes, and production enablement therefore remain blocked.
+At the owner's direction, a research-only Sakura-Rerank-Tiny-v1 challenge was
+nevertheless trained and exported locally for dev-only evaluation. It reaches
+91.72% Top-1 accuracy on the immutable Sakura IME dev split versus 88.70% for
+the unchanged local order, with 3.29 ms mean latency per complete 2--6-candidate
+request on Windows CPU. This is practical prototype performance, but it is not
+production authorization and the undistributed model artifacts remain bound by
+their tracked hashes. The aggregate-only evidence is tracked in
 [Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15),
 [`reports/issue-15-v5-admissibility-gate-a-evidence.json`](reports/issue-15-v5-admissibility-gate-a-evidence.json),
 and
@@ -38,8 +44,7 @@ Reviewers can use the loopback-only `human-audit serve` interface documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md); every
 click is atomically persisted and resumable without sending queue text to an
 external service.
-No Gate B result or production default is approved, and a trained
-Sakura-Rerank-Tiny-v1 model has not yet been selected or exported.
+No Gate B result or production default is approved.
 
 The evidence and decision are recorded in
 [`research/current-state-review.md`](research/current-state-review.md) and
