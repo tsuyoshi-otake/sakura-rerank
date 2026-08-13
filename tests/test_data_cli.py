@@ -12,8 +12,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import sakura_rerank.atomic_io as atomic_io
-from sakura_rerank.data.__main__ import main
-from sakura_rerank.data.contracts import canonical_json_bytes
+from sakura_rerank.data.__main__ import _parser, main
+from sakura_rerank.data.contracts import canonical_json_bytes, canonical_jsonl_bytes
 from sakura_rerank.data.corpus_v4 import (
     GATE_A_REVIEWER_ID,
     V4_SCHEMA_VERSION,
@@ -23,6 +23,13 @@ from sakura_rerank.data.corpus_v4 import (
     read_teacher_queue_directory,
     stage3_human_audit_items,
 )
+from sakura_rerank.data.corpus_v5 import (
+    CONFIRMATION_PASS,
+    FIRST_PASS,
+    V5_SCHEMA_VERSION,
+    V5_VERDICT_RECORD_TYPE,
+    read_blind_teacher_queue_directory,
+)
 from sakura_rerank.data.human_audit import (
     build_queue_manifest,
     publish_audit_queue,
@@ -30,7 +37,11 @@ from sakura_rerank.data.human_audit import (
 )
 from sakura_rerank.data.splitter import split_jsonl
 
-from tests.test_data_contracts import _rehash_snapshots, fixture_record, production_record
+from tests.test_data_contracts import (
+    _rehash_snapshots,
+    fixture_record,
+    production_record,
+)
 
 
 def _write_unassigned_input(path: Path) -> bytes:
@@ -41,7 +52,75 @@ def _write_unassigned_input(path: Path) -> bytes:
     return payload
 
 
+def _write_v5_dataset(
+    path: Path, *, count: int = 2, stable_id_prefix: str = "data-cli-v5"
+) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for index in range(count):
+        record = production_record()
+        record["stable_id"] = f"{stable_id_prefix}-{index:04d}"
+        record["split"] = None
+        exporter = record["candidate_snapshots"]["training_top32"]["exporter_run"]
+        exporter["verification_status"] = "verified"
+        exporter["exporter_git_sha"] = "06ff8c34417fb7dbc24e41d786dfb6434cdd6aa1"
+        exporter["exporter_binary_sha256"] = (
+            "0b26990a153df06c8e870b7e44abca386ada2ffd6f649c0232cea6a79960acbf"
+        )
+        _rehash_snapshots(record)
+        records.append(record)
+    path.write_bytes(
+        b"".join(canonical_json_bytes(record) + b"\n" for record in records)
+    )
+    return records
+
+
+def _write_v5_verdicts(
+    queue_directory: Path, verdict_directory: Path, reviewer_id: str
+) -> None:
+    batches, _ = read_blind_teacher_queue_directory(queue_directory)
+    verdict_directory.mkdir()
+    for batch in batches:
+        payload = {
+            "schema_version": V5_SCHEMA_VERSION,
+            "record_type": V5_VERDICT_RECORD_TYPE,
+            "batch_index": batch["batch_index"],
+            "reviewer_kind": "ai_teacher",
+            "reviewer_id": reviewer_id,
+            "verdicts": [
+                {"stable_id": item["stable_id"], "verdict": "valid", "note": ""}
+                for item in batch["items"]
+            ],
+        }
+        (verdict_directory / f"verdicts-{batch['batch_index']:03d}.json").write_bytes(
+            canonical_json_bytes(payload) + b"\n"
+        )
+
+
 class DataCliPathTests(unittest.TestCase):
+    def test_jawiki_preprocess_cli_accepts_sample_slot_start(self) -> None:
+        arguments = _parser().parse_args(
+            [
+                "jawiki-preprocess",
+                "dump.xml.bz2",
+                "source-spans.jsonl",
+                "--jawiki-manifest",
+                "jawiki-manifest.json",
+                "--allowed-root",
+                ".",
+                "--dictionary-index",
+                "dictionary.jsonl",
+                "--dictionary-manifest",
+                "dictionary-manifest.json",
+                "--report",
+                "report.json",
+                "--extractor-git-sha",
+                "0" * 40,
+                "--sample-slot-start",
+                "120",
+            ]
+        )
+        self.assertEqual(arguments.sample_slot_start, 120)
+
     def _run_split(self, input_path: Path, output_path: Path, report_path: Path) -> int:
         with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             return main(
@@ -238,6 +317,7 @@ class DataCliPathTests(unittest.TestCase):
             self.assertEqual(report_path.read_bytes(), original_report)
             self._assert_no_transaction_residue(root)
 
+
     def test_first_replace_failure_preserves_existing_pair(self) -> None:
         self._assert_replace_failure_preserves_pair(failure_call=1)
 
@@ -301,6 +381,280 @@ class DataCliPathTests(unittest.TestCase):
             report = json.loads(report_path.read_text(encoding="utf-8"))
             self.assertEqual(report["content_sha256"], output_hash)
             self._assert_no_transaction_residue(root)
+
+
+class CorpusV5DataCliTests(unittest.TestCase):
+    def _run(self, arguments: list[str]) -> tuple[int, str, str]:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            status = main(arguments)
+        return status, stdout.getvalue(), stderr.getvalue()
+
+    def _queue_arguments(
+        self,
+        dataset: Path,
+        output_directory: Path,
+        *,
+        pass_name: str,
+        reviewer_id: str,
+    ) -> list[str]:
+        return [
+            "corpus-v5",
+            "queue",
+            os.fspath(dataset),
+            os.fspath(output_directory),
+            "--pass-name",
+            pass_name,
+            "--reviewer-id",
+            reviewer_id,
+            "--batch-size",
+            "1",
+        ]
+
+    def _partition_arguments(
+        self,
+        dataset: Path,
+        first_queue: Path,
+        first_verdicts: Path,
+        confirmation_queue: Path,
+        confirmation_verdicts: Path,
+        output_directory: Path,
+    ) -> list[str]:
+        return [
+            "corpus-v5",
+            "partition",
+            os.fspath(dataset),
+            os.fspath(first_queue),
+            os.fspath(first_verdicts),
+            os.fspath(confirmation_queue),
+            os.fspath(confirmation_verdicts),
+            os.fspath(output_directory),
+        ]
+
+    def test_two_pass_cli_publishes_aggregate_only_status_and_immutable_partition(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "tier-a.jsonl"
+            records = _write_v5_dataset(dataset)
+            first_queue = root / "first-queue"
+            confirmation_queue = root / "confirmation-queue"
+            first_reviewer = "teacher-first"
+            confirmation_reviewer = "teacher-confirm"
+
+            status, stdout, stderr = self._run(
+                self._queue_arguments(
+                    dataset,
+                    first_queue,
+                    pass_name=FIRST_PASS,
+                    reviewer_id=first_reviewer,
+                )
+            )
+            self.assertEqual((status, stderr), (0, ""))
+            self.assertEqual(
+                set(json.loads(stdout)),
+                {
+                    "status",
+                    "record_count",
+                    "batch_count",
+                    "content_sha256",
+                    "source_dataset_content_sha256",
+                },
+            )
+            self.assertNotIn(records[0]["stable_id"], stdout)
+            self.assertNotIn(records[0]["reading"], stdout)
+            self.assertNotIn(first_reviewer, stdout)
+
+            status, _, stderr = self._run(
+                self._queue_arguments(
+                    dataset,
+                    confirmation_queue,
+                    pass_name=CONFIRMATION_PASS,
+                    reviewer_id=confirmation_reviewer,
+                )
+            )
+            self.assertEqual((status, stderr), (0, ""))
+
+            first_verdicts = root / "first-verdicts"
+            status, stdout, stderr = self._run(
+                [
+                    "corpus-v5",
+                    "verdict-status",
+                    os.fspath(first_queue),
+                    os.fspath(first_verdicts),
+                ]
+            )
+            self.assertEqual((status, stderr), (0, ""))
+            self.assertEqual(
+                json.loads(stdout),
+                {
+                    "completed_batch_count": 0,
+                    "completed_record_count": 0,
+                    "pending_batch_count": 2,
+                    "status": "resumable",
+                    "verdict_counts": {},
+                },
+            )
+
+            _write_v5_verdicts(first_queue, first_verdicts, first_reviewer)
+            status, stdout, stderr = self._run(
+                [
+                    "corpus-v5",
+                    "verdict-status",
+                    os.fspath(first_queue),
+                    os.fspath(first_verdicts),
+                ]
+            )
+            self.assertEqual((status, stderr), (0, ""))
+            self.assertEqual(
+                json.loads(stdout),
+                {
+                    "completed_batch_count": 2,
+                    "completed_record_count": 2,
+                    "pending_batch_count": 0,
+                    "status": "complete",
+                    "verdict_counts": {"valid": 2},
+                },
+            )
+            self.assertNotIn(records[0]["stable_id"], stdout)
+            self.assertNotIn(records[0]["reading"], stdout)
+            self.assertNotIn(first_reviewer, stdout)
+
+            confirmation_verdicts = root / "confirmation-verdicts"
+            output_directory = root / "partition"
+            status, _, stderr = self._run(
+                self._partition_arguments(
+                    dataset,
+                    first_queue,
+                    first_verdicts,
+                    confirmation_queue,
+                    confirmation_verdicts,
+                    output_directory,
+                )
+            )
+            self.assertEqual(status, 2)
+            self.assertIn("incomplete", stderr)
+            self.assertFalse(output_directory.exists())
+
+            _write_v5_verdicts(
+                confirmation_queue, confirmation_verdicts, confirmation_reviewer
+            )
+            status, stdout, stderr = self._run(
+                self._partition_arguments(
+                    dataset,
+                    first_queue,
+                    first_verdicts,
+                    confirmation_queue,
+                    confirmation_verdicts,
+                    output_directory,
+                )
+            )
+            self.assertEqual((status, stderr), (0, ""))
+            partition_status = json.loads(stdout)
+            self.assertEqual(partition_status["status"], "generated")
+            self.assertEqual(partition_status["input_record_count"], len(records))
+            self.assertEqual(
+                partition_status["bucket_record_counts"],
+                {
+                    "eligible_unanimous_valid": 2,
+                    "extraction_noise": 0,
+                    "intrinsic_surface_ambiguity": 0,
+                    "repairable_label_error": 0,
+                    "unresolved_disagreement": 0,
+                },
+            )
+            self.assertNotIn(records[0]["stable_id"], stdout)
+            self.assertNotIn(records[0]["reading"], stdout)
+            self.assertNotIn(first_reviewer, stdout)
+            self.assertNotIn(confirmation_reviewer, stdout)
+            self.assertTrue((output_directory / "report.json").is_file())
+
+            status, _, stderr = self._run(
+                self._partition_arguments(
+                    dataset,
+                    first_queue,
+                    first_verdicts,
+                    confirmation_queue,
+                    confirmation_verdicts,
+                    output_directory,
+                )
+            )
+            self.assertEqual(status, 2)
+            self.assertIn("immutable", stderr)
+
+    def test_historical_exclude_requires_explicit_commitments_and_reports_aggregates(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            historical_path = root / "historical.jsonl"
+            candidate_path = root / "candidate.jsonl"
+            historical = _write_v5_dataset(
+                historical_path, count=1, stable_id_prefix="historical-cli"
+            )
+            candidates = _write_v5_dataset(
+                candidate_path, count=2, stable_id_prefix="candidate-cli"
+            )
+            output_directory = root / "historical-exclusion"
+            arguments = [
+                "corpus-v5",
+                "historical-exclude",
+                os.fspath(historical_path),
+                os.fspath(candidate_path),
+                os.fspath(output_directory),
+                "--expected-historical-record-count",
+                "1",
+                "--expected-historical-content-sha256",
+                hashlib.sha256(canonical_jsonl_bytes(historical)).hexdigest(),
+                "--expected-candidate-record-count",
+                "2",
+                "--expected-candidate-content-sha256",
+                hashlib.sha256(canonical_jsonl_bytes(candidates)).hexdigest(),
+            ]
+            wrong_arguments = list(arguments)
+            wrong_arguments[4] = os.fspath(root / "wrong-commitment")
+            hash_index = wrong_arguments.index("--expected-candidate-content-sha256") + 1
+            wrong_arguments[hash_index] = "0" * 64
+            status, _, stderr = self._run(wrong_arguments)
+            self.assertEqual(status, 2)
+            self.assertIn("expected commitment", stderr)
+            self.assertFalse((root / "wrong-commitment").exists())
+
+            status, stdout, stderr = self._run(arguments)
+            self.assertEqual((status, stderr), (0, ""))
+            self.assertEqual(
+                json.loads(stdout),
+                {
+                    "status": "generated",
+                    "historical_record_count": 1,
+                    "candidate_record_count": 2,
+                    "eligible_record_count": 0,
+                    "excluded_record_count": 2,
+                    "report_content_sha256": hashlib.sha256(
+                        (output_directory / "report.json").read_bytes()
+                    ).hexdigest(),
+                },
+            )
+            self.assertNotIn(historical[0]["stable_id"], stdout)
+            self.assertNotIn(candidates[0]["stable_id"], stdout)
+            self.assertNotIn(historical[0]["reading"], stdout)
+            self.assertTrue((output_directory / "eligible.jsonl").is_file())
+            self.assertTrue((output_directory / "excluded.jsonl").is_file())
+
+            with redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as missing:
+                    _parser().parse_args(
+                        [
+                            "corpus-v5",
+                            "historical-exclude",
+                            os.fspath(historical_path),
+                            os.fspath(candidate_path),
+                            os.fspath(root / "missing-commitment"),
+                        ]
+                    )
+            self.assertEqual(missing.exception.code, 2)
 
 
 class GateADataCliTests(unittest.TestCase):

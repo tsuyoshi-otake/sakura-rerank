@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "report_kind": "tier_a_context_bound_ablation",
+  "status": "decision_recorded",
+  "issue": 15,
+  "measured_at": "2026-08-13",
+  "evidence": {
+    "source_span_manifest_file_sha256": "08a098932fddbb0a194b7dc6197140da27092cebe9ae92409d239deeb0daa17a",
+    "gate_a_queue_manifest_file_sha256": "fc5d88f4613cbb086fc775bb3a12a7d5801bc2f45179de126617c1a4cdfbe60e",
+    "gate_a_quality_report_file_sha256": "064ce8f18bccf196819f13b9fb671fae82f0cd68658c215d89bb918409a2c721",
+    "owner_calibration_import_report_file_sha256": "9613cffcc0121d54f01ad439f2e05a65e84ed9f5e1f21cf7f0b9dad86402d552",
+    "owner_calibration_result_report_file_sha256": "66d3a3d6ab7f7cf6690f2820ac3422d786b1249e45299873bf0683e49bd90f9f"
+  },
+  "context_contract": {
+    "adopted_left_context_max_unicode_scalars": 64,
+    "current_production_transmitted_raw_context_bytes": 0,
+    "dormant_session_context_max_utf8_bytes": 256,
+    "current_sakura_input_head": "8555bbcd5b1773dd7fff3780049528894fcea1b5",
+    "dataset_pinned_sakura_input_head": "8e966dff456e4e7165e025f97c1f73327ff3f550"
+  },
+  "gate_a_ambiguous_analysis": {
+    "record_count": 119,
+    "left_context_length": {
+      "mean": 20.9,
+      "median": 2,
+      "empty_count": 53,
+      "at_most_8_count": 69,
+      "below_current_bound_count": 97,
+      "at_current_bound_count": 22
+    },
+    "same_paragraph_source_expansion": {
+      "additional_source_available_count": 22,
+      "no_additional_source_available_count": 97,
+      "expected_resolved_by_bound_increase_count": 0
+    },
+    "semantic_categories": {
+      "context_dependent": 56,
+      "intrinsic_orthographic_or_notation": 59,
+      "accepted_same_intent_alternatives": 2,
+      "segmentation_or_parse": 2
+    }
+  },
+  "owner_calibration_analysis": {
+    "reviewed_record_count": 300,
+    "ambiguous_record_count": 125,
+    "wrong_segmentation_record_count": 31,
+    "ambiguous_left_context_length": {
+      "mean": 15.43,
+      "median": 7,
+      "empty_count": 45,
+      "at_current_bound_count": 10
+    }
+  },
+  "decision": {
+    "increase_left_context_bound": false,
+    "reason": "No observed Gate-A ambiguity was expected to be resolved by a simple bound increase, and a larger corpus bound is not implemented by the current production protocol.",
+    "next_intervention": "disjoint_source_pool_plus_historical_component_exclusion_plus_two_complete_blind_teacher_passes"
+  },
+  "raw_text_in_report": false,
+  "raw_stable_ids_in_report": false,
+  "raw_notes_in_report": false
+}

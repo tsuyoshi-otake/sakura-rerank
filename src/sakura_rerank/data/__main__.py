@@ -40,6 +40,14 @@ from .corpus_v4 import (
     teacher_verdict_state_sha256,
     validate_gate_a_teacher_queue_binding,
 )
+from .corpus_v5 import (
+    PASS_NAMES,
+    partition_blind_teacher_passes,
+    publish_admissibility_partition_directory,
+    publish_blind_teacher_queue_directory,
+    read_blind_teacher_queue_directory,
+    scan_blind_verdict_directory,
+)
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
 from .exporter_requests import (
     ensure_paths_under_root,
@@ -80,6 +88,7 @@ from .splitter import (
     SplitError,
     assign_splits,
     ensure_distinct_paths,
+    publish_historical_exclusion_directory,
     publish_split_artifacts,
 )
 from .research_exporter import validate_export_file
@@ -190,6 +199,7 @@ def _parser() -> argparse.ArgumentParser:
     preprocess.add_argument("--extractor-git-sha", required=True)
     preprocess.add_argument("--sample-modulus", type=int, default=1_000)
     preprocess.add_argument("--sample-slots", type=int, default=10)
+    preprocess.add_argument("--sample-slot-start", type=int, default=0)
     preprocess.add_argument("--max-records", type=int, default=200_000)
     preprocess.add_argument("--max-records-per-page", type=int, default=32)
     preprocess.add_argument("--max-output-bytes", type=int, default=240 * 1024 * 1024)
@@ -369,6 +379,58 @@ def _parser() -> argparse.ArgumentParser:
     v4_calibration.add_argument("--manifest", type=Path, required=True)
     v4_calibration.add_argument("--handoff-directory", type=Path, required=True)
     v4_calibration.add_argument("--seed", type=int, default=CALIBRATION_SEED)
+
+    corpus_v5 = commands.add_parser(
+        "corpus-v5", help="run the fail-closed symmetric blind teacher screen"
+    )
+    corpus_v5_commands = corpus_v5.add_subparsers(
+        dest="corpus_v5_command", required=True
+    )
+    v5_queue = corpus_v5_commands.add_parser(
+        "queue", help="publish one immutable full-corpus blind-pass queue"
+    )
+    v5_queue.add_argument("dataset", type=Path)
+    v5_queue.add_argument("output_directory", type=Path)
+    v5_queue.add_argument("--pass-name", choices=PASS_NAMES, required=True)
+    v5_queue.add_argument("--reviewer-id", required=True)
+    v5_queue.add_argument("--batch-size", type=int, default=40)
+
+    v5_status = corpus_v5_commands.add_parser(
+        "verdict-status", help="validate verdict batches and report aggregate progress"
+    )
+    v5_status.add_argument("queue_directory", type=Path)
+    v5_status.add_argument("verdict_directory", type=Path)
+
+    v5_partition = corpus_v5_commands.add_parser(
+        "partition", help="publish immutable buckets after two complete blind passes"
+    )
+    v5_partition.add_argument("dataset", type=Path)
+    v5_partition.add_argument("first_queue_directory", type=Path)
+    v5_partition.add_argument("first_verdict_directory", type=Path)
+    v5_partition.add_argument("confirmation_queue_directory", type=Path)
+    v5_partition.add_argument("confirmation_verdict_directory", type=Path)
+    v5_partition.add_argument("output_directory", type=Path)
+
+    v5_historical_exclude = corpus_v5_commands.add_parser(
+        "historical-exclude",
+        help="publish immutable historical-component exclusion evidence",
+    )
+    v5_historical_exclude.add_argument("historical_dataset", type=Path)
+    v5_historical_exclude.add_argument("candidate_dataset", type=Path)
+    v5_historical_exclude.add_argument("output_directory", type=Path)
+    v5_historical_exclude.add_argument(
+        "--expected-historical-record-count", type=int, required=True
+    )
+    v5_historical_exclude.add_argument(
+        "--expected-historical-content-sha256", required=True
+    )
+    v5_historical_exclude.add_argument(
+        "--expected-candidate-record-count", type=int, required=True
+    )
+    v5_historical_exclude.add_argument(
+        "--expected-candidate-content-sha256", required=True
+    )
+    v5_historical_exclude.add_argument("--near-duplicate-threshold", type=float, default=0.8)
 
     return parser
 
@@ -805,6 +867,134 @@ def _run(arguments: argparse.Namespace) -> int:
 
         raise TierAError("corpus v4: unsupported subcommand")
 
+    if arguments.command == "corpus-v5":
+        if arguments.corpus_v5_command == "queue":
+            manifest = publish_blind_teacher_queue_directory(
+                arguments.output_directory,
+                read_jsonl(arguments.dataset, require_split=False),
+                pass_name=arguments.pass_name,
+                reviewer_id=arguments.reviewer_id,
+                batch_size=arguments.batch_size,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": manifest["record_count"],
+                        "batch_count": manifest["batch_count"],
+                        "content_sha256": manifest["content_sha256"],
+                        "source_dataset_content_sha256": manifest[
+                            "source_dataset_content_sha256"
+                        ],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v5_command == "verdict-status":
+            completed, pending = scan_blind_verdict_directory(
+                arguments.queue_directory, arguments.verdict_directory
+            )
+            verdict_counts: dict[str, int] = {}
+            for payload in completed.values():
+                for entry in payload["verdicts"]:
+                    verdict_counts[entry["verdict"]] = (
+                        verdict_counts.get(entry["verdict"], 0) + 1
+                    )
+            print(
+                json.dumps(
+                    {
+                        "status": "complete" if not pending else "resumable",
+                        "completed_batch_count": len(completed),
+                        "pending_batch_count": len(pending),
+                        "completed_record_count": sum(
+                            len(payload["verdicts"]) for payload in completed.values()
+                        ),
+                        "verdict_counts": dict(sorted(verdict_counts.items())),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v5_command == "partition":
+            first_batches, first_manifest = read_blind_teacher_queue_directory(
+                arguments.first_queue_directory
+            )
+            (
+                confirmation_batches,
+                confirmation_manifest,
+            ) = read_blind_teacher_queue_directory(arguments.confirmation_queue_directory)
+            first_verdicts, first_pending = scan_blind_verdict_directory(
+                arguments.first_queue_directory, arguments.first_verdict_directory
+            )
+            confirmation_verdicts, confirmation_pending = scan_blind_verdict_directory(
+                arguments.confirmation_queue_directory,
+                arguments.confirmation_verdict_directory,
+            )
+            if first_pending or confirmation_pending:
+                raise TierAError("corpus v5: blind teacher verdicts are incomplete")
+            buckets, report = partition_blind_teacher_passes(
+                read_jsonl(arguments.dataset, require_split=False),
+                first_batches,
+                first_manifest,
+                first_verdicts,
+                confirmation_batches,
+                confirmation_manifest,
+                confirmation_verdicts,
+            )
+            publish_admissibility_partition_directory(
+                arguments.output_directory, buckets, report
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "input_record_count": report["source_dataset_record_count"],
+                        "bucket_record_counts": {
+                            name: summary["record_count"]
+                            for name, summary in sorted(report["buckets"].items())
+                        },
+                        "report_content_sha256": hashlib.sha256(
+                            canonical_json_bytes(report) + b"\n"
+                        ).hexdigest(),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v5_command == "historical-exclude":
+            report = publish_historical_exclusion_directory(
+                arguments.output_directory,
+                read_jsonl(arguments.historical_dataset, require_split=False),
+                read_jsonl(arguments.candidate_dataset, require_split=False),
+                expected_historical_record_count=arguments.expected_historical_record_count,
+                expected_historical_content_sha256=arguments.expected_historical_content_sha256,
+                expected_candidate_record_count=arguments.expected_candidate_record_count,
+                expected_candidate_content_sha256=arguments.expected_candidate_content_sha256,
+                near_duplicate_threshold=arguments.near_duplicate_threshold,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "historical_record_count": report["historical_input"]["count"],
+                        "candidate_record_count": report["candidate_input"]["count"],
+                        "eligible_record_count": report["eligible"]["count"],
+                        "excluded_record_count": report["excluded"]["count"],
+                        "report_content_sha256": hashlib.sha256(
+                            canonical_json_bytes(report) + b"\n"
+                        ).hexdigest(),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        raise TierAError("corpus v5: unsupported subcommand")
+
     if arguments.command == "human-audit":
         if arguments.human_audit_command == "serve":
             ensure_distinct_tier_a_paths(
@@ -1044,6 +1234,7 @@ def _run(arguments: argparse.Namespace) -> int:
             config=ExtractorConfig(
                 sample_modulus=arguments.sample_modulus,
                 sample_slots=arguments.sample_slots,
+                sample_slot_start=arguments.sample_slot_start,
                 max_records=arguments.max_records,
                 max_records_per_page=arguments.max_records_per_page,
                 max_output_bytes=arguments.max_output_bytes,

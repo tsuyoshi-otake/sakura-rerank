@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "manifest_kind", "verification_status", "snapshot_date", "jawiki_local_sha256", "dictionary_index_sha256", "extractor_git_sha", "cleaner_version", "config", "eligible_dictionary_surface_count", "record_count", "content_sha256", "counts", "raw_text_in_report"],
   "properties": {
-    "schema_version": {"enum": [1, 2, 3]},
+    "schema_version": {"enum": [1, 2, 3, 4]},
     "manifest_kind": {"const": "jawiki_tier_a_source_spans"},
     "verification_status": {"enum": ["measured", "verified"]},
     "snapshot_date": {"const": "2026-08-01"},
@@ -22,6 +22,7 @@
       "properties": {
         "sample_modulus": {"type": "integer", "minimum": 1, "maximum": 1000000},
         "sample_slots": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "sample_slot_start": {"type": "integer", "minimum": 0, "maximum": 999999},
         "max_records": {"type": "integer", "minimum": 1, "maximum": 1000000},
         "max_records_per_page": {"type": "integer", "minimum": 1, "maximum": 1000},
         "max_output_bytes": {"type": "integer", "minimum": 1, "maximum": 268435456},
@@ -66,7 +67,8 @@
             "not": {
               "anyOf": [
                 {"required": ["min_reading_chars"]},
-                {"required": ["max_reading_chars"]}
+                {"required": ["max_reading_chars"]},
+                {"required": ["sample_slot_start"]}
               ]
             }
           }
@@ -78,7 +80,12 @@
       "then": {
         "properties": {
           "cleaner_version": {"const": "conservative_wikitext_v3"},
-          "config": {"required": ["min_reading_chars", "max_reading_chars"]}
+          "config": {
+            "allOf": [
+              {"not": {"required": ["sample_slot_start"]}},
+              {"required": ["min_reading_chars", "max_reading_chars"]}
+            ]
+          }
         }
       }
     },
@@ -88,7 +95,22 @@
         "required": ["stage4_stable_id_exclusion"],
         "properties": {
           "cleaner_version": {"const": "conservative_wikitext_v4"},
-          "config": {"required": ["min_reading_chars", "max_reading_chars"]}
+          "config": {
+            "allOf": [
+              {"not": {"required": ["sample_slot_start"]}},
+              {"required": ["min_reading_chars", "max_reading_chars"]}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": 4}}},
+      "then": {
+        "required": ["stage4_stable_id_exclusion"],
+        "properties": {
+          "cleaner_version": {"const": "conservative_wikitext_v4"},
+          "config": {"required": ["sample_slot_start", "min_reading_chars", "max_reading_chars"]}
         }
       }
     }

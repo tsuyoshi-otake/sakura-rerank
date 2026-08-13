@@ -241,6 +241,85 @@ class GeneratedReportTests(unittest.TestCase):
             )
         )
 
+    def test_v4_context_bound_ablation_is_pinned_consistent_and_aggregate_only(self) -> None:
+        report = load_report("issue-15-context-bound-ablation-v4.json")
+
+        self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(report["report_kind"], "tier_a_context_bound_ablation")
+        self.assertEqual(report["status"], "decision_recorded")
+        self.assertEqual(report["issue"], 15)
+        self.assertEqual(report["measured_at"], "2026-08-13")
+
+        evidence_paths = {
+            "source_span_manifest_file_sha256": MANIFESTS
+            / "jawiki-tier-a-source-spans-expanded-v4-verified.json",
+            "gate_a_queue_manifest_file_sha256": ROOT
+            / "data/generated/tier-a-expanded-v4-a-audit-queue.manifest.json",
+            "gate_a_quality_report_file_sha256": REPORTS
+            / "issue-15-tier-a-owner-authorized-audit-v4.json",
+            "owner_calibration_import_report_file_sha256": ROOT
+            / "data/generated/v4-owner-calibration-import.report.json",
+            "owner_calibration_result_report_file_sha256": ROOT
+            / "data/generated/v4-owner-calibration-result.report.json",
+        }
+        self.assertEqual(set(report["evidence"]), set(evidence_paths))
+        for field, path in evidence_paths.items():
+            self.assertEqual(report["evidence"][field], hashlib.sha256(path.read_bytes()).hexdigest())
+
+        context = report["context_contract"]
+        self.assertEqual(context["adopted_left_context_max_unicode_scalars"], 64)
+        self.assertEqual(context["current_production_transmitted_raw_context_bytes"], 0)
+        self.assertEqual(context["dormant_session_context_max_utf8_bytes"], 256)
+        self.assertEqual(
+            context["current_sakura_input_head"],
+            "8555bbcd5b1773dd7fff3780049528894fcea1b5",
+        )
+        self.assertEqual(
+            context["dataset_pinned_sakura_input_head"],
+            "8e966dff456e4e7165e025f97c1f73327ff3f550",
+        )
+
+        gate_a = report["gate_a_ambiguous_analysis"]
+        self.assertEqual(gate_a["record_count"], 119)
+        source_expansion = gate_a["same_paragraph_source_expansion"]
+        self.assertEqual(
+            source_expansion["additional_source_available_count"]
+            + source_expansion["no_additional_source_available_count"],
+            gate_a["record_count"],
+        )
+        self.assertEqual(source_expansion["expected_resolved_by_bound_increase_count"], 0)
+        self.assertEqual(sum(gate_a["semantic_categories"].values()), gate_a["record_count"])
+        lengths = gate_a["left_context_length"]
+        self.assertEqual(
+            lengths["below_current_bound_count"] + lengths["at_current_bound_count"],
+            gate_a["record_count"],
+        )
+        self.assertLessEqual(lengths["empty_count"], lengths["at_most_8_count"])
+        self.assertLessEqual(lengths["at_most_8_count"], lengths["below_current_bound_count"])
+
+        calibration = report["owner_calibration_analysis"]
+        self.assertEqual(calibration["reviewed_record_count"], 300)
+        self.assertEqual(calibration["ambiguous_record_count"], 125)
+        self.assertEqual(calibration["wrong_segmentation_record_count"], 31)
+        self.assertLessEqual(
+            calibration["ambiguous_left_context_length"]["at_current_bound_count"],
+            calibration["ambiguous_record_count"],
+        )
+
+        self.assertFalse(report["decision"]["increase_left_context_bound"])
+        self.assertEqual(
+            report["decision"]["next_intervention"],
+            "disjoint_source_pool_plus_historical_component_exclusion_plus_two_complete_blind_teacher_passes",
+        )
+        self.assertFalse(report["raw_text_in_report"])
+        self.assertFalse(report["raw_stable_ids_in_report"])
+        self.assertFalse(report["raw_notes_in_report"])
+        self.assertTrue(
+            {"text", "surface", "reading", "left_context", "note", "stable_id", "rows"}.isdisjoint(
+                object_keys(report)
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

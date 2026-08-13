@@ -199,6 +199,7 @@ def load_stable_id_exclusion(
 class ExtractorConfig:
     sample_modulus: int = 1_000
     sample_slots: int = 10
+    sample_slot_start: int = 0
     max_records: int = 200_000
     max_records_per_page: int = 32
     max_output_bytes: int = 240 * 1024 * 1024
@@ -214,6 +215,10 @@ class ExtractorConfig:
             raise PreprocessingError("sample_modulus is outside the bound")
         if not 1 <= self.sample_slots <= self.sample_modulus:
             raise PreprocessingError("sample_slots is outside the modulus")
+        if not 0 <= self.sample_slot_start < self.sample_modulus:
+            raise PreprocessingError("sample_slot_start is outside the modulus")
+        if self.sample_slot_start + self.sample_slots > self.sample_modulus:
+            raise PreprocessingError("sample slot range wraps outside the modulus")
         if not 1 <= self.max_records <= 1_000_000:
             raise PreprocessingError("max_records is outside the bound")
         if not 1 <= self.max_records_per_page <= 1_000:
@@ -458,7 +463,8 @@ def _text(element: ET.Element, name: str) -> str | None:
 
 def _sampled(key: bytes, config: ExtractorConfig) -> bool:
     value = int.from_bytes(hashlib.sha256(key).digest()[:8], "big")
-    return value % config.sample_modulus < config.sample_slots
+    slot = value % config.sample_modulus
+    return config.sample_slot_start <= slot < config.sample_slot_start + config.sample_slots
 
 
 def _span_record(

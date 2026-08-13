@@ -36,8 +36,8 @@ from .research_exporter import MAX_EXPORT_RECORDS, validate_export_records
 
 SOURCE_SPAN_SCHEMA_VERSION = 1
 SOURCE_SPAN_RECORD_TYPE = "jawiki_tier_a_source_span"
-SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 3
-SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS = frozenset({1, 2, 3})
+SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 4
+SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4})
 SOURCE_SPAN_MANIFEST_KIND = "jawiki_tier_a_source_spans"
 SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v4"
 STABLE_ID_EXCLUSION_FORMAT_VERSION = 1
@@ -698,7 +698,7 @@ def validate_source_span_manifest(
         or manifest_schema_version not in SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS
     ):
         raise TierAError("source_span_manifest.schema_version: unsupported schema")
-    if manifest_schema_version == 3:
+    if manifest_schema_version in {3, 4}:
         fields.add("stage4_stable_id_exclusion")
     manifest = _strict_object(manifest, fields, "source_span_manifest")
     if manifest["manifest_kind"] != SOURCE_SPAN_MANIFEST_KIND:
@@ -743,8 +743,10 @@ def validate_source_span_manifest(
         raise TierAError("source_span_manifest: legacy schema requires a legacy cleaner")
     if manifest_schema_version == 2 and cleaner_version != "conservative_wikitext_v3":
         raise TierAError("source_span_manifest: schema v2 requires the v3 cleaner")
-    if manifest_schema_version == 3 and cleaner_version != SOURCE_SPAN_CLEANER_VERSION:
-        raise TierAError("source_span_manifest: schema v3 requires the v4 cleaner")
+    if manifest_schema_version in {3, 4} and cleaner_version != SOURCE_SPAN_CLEANER_VERSION:
+        raise TierAError(
+            "source_span_manifest: schema v3 and v4 require the v4 cleaner"
+        )
     config_fields = {
         "sample_modulus",
         "sample_slots",
@@ -756,8 +758,10 @@ def validate_source_span_manifest(
         "min_surface_chars",
         "max_surface_chars",
     }
-    if manifest_schema_version in {2, 3}:
+    if manifest_schema_version in {2, 3, 4}:
         config_fields.update({"min_reading_chars", "max_reading_chars"})
+    if manifest_schema_version == 4:
+        config_fields.add("sample_slot_start")
     config = _strict_object(
         manifest["config"],
         config_fields,
@@ -774,7 +778,9 @@ def validate_source_span_manifest(
         "min_surface_chars": 256,
         "max_surface_chars": 256,
     }
-    if manifest_schema_version in {2, 3}:
+    if manifest_schema_version == 4:
+        integer_bounds["sample_slot_start"] = 1_000_000
+    if manifest_schema_version in {2, 3, 4}:
         integer_bounds.update(
             {
                 "min_reading_chars": MAX_READING_CHARS,
@@ -787,6 +793,15 @@ def validate_source_span_manifest(
     }
     if not (
         1 <= normalized_config["sample_slots"] <= normalized_config["sample_modulus"]
+        and (
+            manifest_schema_version != 4
+            or (
+                0 <= normalized_config["sample_slot_start"] < normalized_config["sample_modulus"]
+                and normalized_config["sample_slot_start"]
+                + normalized_config["sample_slots"]
+                <= normalized_config["sample_modulus"]
+            )
+        )
         and 1 <= normalized_config["max_records"]
         and 1 <= normalized_config["max_records_per_page"]
         and 1 <= normalized_config["max_output_bytes"]
@@ -798,7 +813,7 @@ def validate_source_span_manifest(
         <= normalized_config["max_surface_chars"]
     ):
         raise TierAError("source_span_manifest.config: invalid bounds")
-    if manifest_schema_version in {2, 3} and not (
+    if manifest_schema_version in {2, 3, 4} and not (
         MIN_READING_CHARS
         <= normalized_config["min_reading_chars"]
         <= normalized_config["max_reading_chars"]
@@ -841,7 +856,7 @@ def validate_source_span_manifest(
         raise TierAError("source_span_manifest.raw_text_in_report: must be false")
     stable_id_exclusion = (
         validate_stable_id_exclusion_commitment(manifest["stage4_stable_id_exclusion"])
-        if manifest_schema_version == 3
+        if manifest_schema_version in {3, 4}
         else None
     )
     normalized = {

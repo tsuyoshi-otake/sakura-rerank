@@ -222,8 +222,13 @@ surfaces whose reading has 3--128 characters.
 The current matcher indexes only system-dictionary surfaces that have exactly
 one in-range reading. Manifest schema v2 pins both reading bounds; historical
 schema-v1 cleaner-v1/v2 manifests remain verifiable without being normalized to
-the current schema. Exporter request and non-fixture training validation repeat
-the same bound independently. Two-character prefix buckets and descending surface lengths select the
+the current schema. Schema v4 additionally pins `sample_slot_start`. Sampling
+therefore selects the half-open interval
+`[sample_slot_start, sample_slot_start + sample_slots)` in the fixed hash
+modulus, and rejects a range that wraps. The established `[0, 120)` source pool
+and the next `[120, 240)` pool are mechanically disjoint without depending on
+review outcomes. Exporter request and non-fixture training validation repeat
+the reading bound independently. Two-character prefix buckets and descending surface lengths select the
 longest non-overlapping exact match without materializing article-by-dictionary
 pairs. Hash sampling and per-page/global record bounds are deterministic. The
 canonical JSONL and text-free manifest are staged and committed as one
@@ -278,6 +283,32 @@ and separate canonical SHA-256 values for `train`, `dev`, and
 
 The splitter consumes only sentence shingle hashes after preprocessing. It
 does not copy raw sentence text into its report.
+
+Before assigning a successor corpus, `exclude_historical_components` builds
+the same article/paragraph/template/near-sentence relation closure over the
+union of every historically reviewed Tier-A row and every new candidate. A new
+candidate is ineligible if its component touches any historical row, including
+through a transitive chain. Its report contains only counts and canonical
+content hashes; it contains no raw text or identifiers.
+
+## Symmetric blind teacher confirmation
+
+`corpus_v5` replaces the asymmetric v4 second pass with two complete blind
+passes over the same pre-split provisional Tier-A rows. Each immutable queue is
+stable-ID ordered, has at most 40 rows per batch, and is bound to a distinct
+`ai_teacher` identity. Queue rows contain no split, previous verdict, previous
+note, or historical label. Every present verdict file is checked for exact
+reviewer provenance, order, six-value enum, coverage, and a 200-character note
+bound; missing files alone are resumable.
+
+Only `valid`/`valid` reaches `eligible_unanimous_valid`. Extraction noise,
+repairable label errors, and intrinsic surface ambiguity have distinct terminal
+sidecars. Teachers never author replacement labels, and multi-positive labels
+are not silently introduced into the singleton-gold contract. The aggregate
+partition report binds the source dataset, both queues, both complete verdict
+states, and every bucket by count and SHA-256 without recording raw text,
+stable IDs, or notes. These checks prepare a new leakage-safe split; they do not
+turn any previously reviewed material into a new final holdout.
 
 ## CLI examples
 

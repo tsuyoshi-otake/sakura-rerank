@@ -20,6 +20,7 @@ from sakura_rerank.data.jawiki_preprocess import (
     extract_source_spans,
     iter_source_spans,
     load_stable_id_exclusion,
+    _sampled,
 )
 from sakura_rerank.data.tier_a import (
     TierABlockedError,
@@ -89,6 +90,33 @@ def config() -> ExtractorConfig:
 
 
 class CleanerAndMatcherTests(unittest.TestCase):
+    def test_sample_slot_ranges_are_bounded_and_disjoint(self) -> None:
+        ExtractorConfig(sample_modulus=240, sample_slots=120, sample_slot_start=0).validate()
+        ExtractorConfig(sample_modulus=240, sample_slots=1, sample_slot_start=239).validate()
+        with self.assertRaisesRegex(PreprocessingError, "sample_slot_start"):
+            ExtractorConfig(sample_modulus=240, sample_slots=1, sample_slot_start=-1).validate()
+        with self.assertRaisesRegex(PreprocessingError, "sample_slot_start"):
+            ExtractorConfig(sample_modulus=240, sample_slots=1, sample_slot_start=240).validate()
+        with self.assertRaisesRegex(PreprocessingError, "wraps"):
+            ExtractorConfig(sample_modulus=240, sample_slots=120, sample_slot_start=121).validate()
+
+        first = ExtractorConfig(sample_modulus=240, sample_slots=120, sample_slot_start=0)
+        second = ExtractorConfig(sample_modulus=240, sample_slots=120, sample_slot_start=120)
+        first_keys = {key for key in range(10_000) if _sampled(str(key).encode(), first)}
+        second_keys = {key for key in range(10_000) if _sampled(str(key).encode(), second)}
+        self.assertTrue(first_keys)
+        self.assertTrue(second_keys)
+        self.assertFalse(first_keys & second_keys)
+
+        legacy_default = ExtractorConfig(sample_modulus=240, sample_slots=120)
+        for key in range(1_000):
+            digest = hashlib.sha256(str(key).encode()).digest()
+            self.assertEqual(
+                _sampled(str(key).encode(), legacy_default),
+                int.from_bytes(digest[:8], "big") % legacy_default.sample_modulus
+                < legacy_default.sample_slots,
+            )
+
     def test_cleaner_removes_supported_markup_and_rejects_ambiguous_markup(self) -> None:
         paragraphs, counts = clean_wikitext(
             "Before {{drop}} [[Target|Alpha]]<ref>citation</ref>。\n\n"
@@ -233,8 +261,9 @@ class StreamingExtractionTests(unittest.TestCase):
             self.assertEqual((root / "first.jsonl").read_bytes(), (root / "second.jsonl").read_bytes())
             first_report = json.loads((root / "first-report.json").read_text(encoding="utf-8"))
             self.assertIs(first_report["raw_text_in_report"], False)
-            self.assertEqual(first_report["schema_version"], 3)
+            self.assertEqual(first_report["schema_version"], 4)
             self.assertEqual(first_report["cleaner_version"], "conservative_wikitext_v4")
+            self.assertEqual(first_report["config"]["sample_slot_start"], 0)
             self.assertEqual(first_report["config"]["min_reading_chars"], 3)
             self.assertEqual(first_report["config"]["max_reading_chars"], 128)
             self.assertEqual(first_report["stage4_stable_id_exclusion"]["count"], 0)
@@ -364,6 +393,16 @@ class SourceSpanManifestTests(unittest.TestCase):
             dictionary_manifest=dictionary_manifest(),
             require_verified=False,
         )
+        manifest["config"]["sample_slot_start"] = 0
+        with self.assertRaisesRegex(TierAError, "fields do not match"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+        del manifest["config"]["sample_slot_start"]
         with self.assertRaisesRegex(TierABlockedError, "allowlisted verified"):
             validate_source_span_manifest(
                 manifest,
@@ -402,6 +441,16 @@ class SourceSpanManifestTests(unittest.TestCase):
         )
         self.assertEqual(normalized["schema_version"], 2)
         self.assertEqual(normalized["config"]["min_reading_chars"], 3)
+        manifest["config"]["sample_slot_start"] = 0
+        with self.assertRaisesRegex(TierAError, "fields do not match"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+        del manifest["config"]["sample_slot_start"]
 
         manifest["cleaner_version"] = "conservative_wikitext_v2"
         with self.assertRaisesRegex(TierAError, "requires the v3 cleaner"):
@@ -434,7 +483,7 @@ class SourceSpanManifestTests(unittest.TestCase):
                 require_verified=False,
             )
 
-    def test_v4_manifest_requires_a_strict_stable_id_exclusion_commitment(self) -> None:
+    def test_v3_manifest_requires_a_strict_stable_id_exclusion_commitment(self) -> None:
         records = self.records()
         manifest = self.measured_manifest(records)
         manifest["schema_version"] = 3
@@ -456,6 +505,16 @@ class SourceSpanManifestTests(unittest.TestCase):
             require_verified=False,
         )
         self.assertEqual(normalized["stage4_stable_id_exclusion"]["count"], 0)
+        manifest["config"]["sample_slot_start"] = 0
+        with self.assertRaisesRegex(TierAError, "fields do not match"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+        del manifest["config"]["sample_slot_start"]
         manifest["verification_status"] = "verified"
         with self.assertRaisesRegex(TierAError, "outside the allowlist"):
             validate_source_span_manifest(
@@ -467,6 +526,54 @@ class SourceSpanManifestTests(unittest.TestCase):
         manifest["verification_status"] = "measured"
         with self.assertRaisesRegex(TierAError, "fields do not match schema"):
             del manifest["stage4_stable_id_exclusion"]
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+
+    def test_v4_manifest_requires_a_bounded_sample_slot_start(self) -> None:
+        records = self.records()
+        manifest = self.measured_manifest(records)
+        manifest["schema_version"] = 4
+        manifest["cleaner_version"] = "conservative_wikitext_v4"
+        manifest["config"].update(
+            {
+                "sample_slot_start": 0,
+                "min_reading_chars": 3,
+                "max_reading_chars": 128,
+            }
+        )
+        manifest["stage4_stable_id_exclusion"] = {
+            "format_version": 1,
+            "canonicalization": "utf8_lf_sorted_unique_stable_id_jsonl_v1",
+            "count": 0,
+            "content_sha256": hashlib.sha256(b"").hexdigest(),
+            "raw_stable_ids_in_report": False,
+        }
+        normalized = validate_source_span_manifest(
+            manifest,
+            records,
+            jawiki_manifest=jawiki_manifest(),
+            dictionary_manifest=dictionary_manifest(),
+            require_verified=False,
+        )
+        self.assertEqual(normalized["config"]["sample_slot_start"], 0)
+
+        del manifest["config"]["sample_slot_start"]
+        with self.assertRaisesRegex(TierAError, "fields do not match"):
+            validate_source_span_manifest(
+                manifest,
+                records,
+                jawiki_manifest=jawiki_manifest(),
+                dictionary_manifest=dictionary_manifest(),
+                require_verified=False,
+            )
+
+        manifest["config"]["sample_slot_start"] = 1
+        with self.assertRaisesRegex(TierAError, "invalid bounds"):
             validate_source_span_manifest(
                 manifest,
                 records,
