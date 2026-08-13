@@ -15,7 +15,7 @@ import re
 import shutil
 import tempfile
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -525,16 +525,22 @@ def validate_gate_a_teacher_queue_binding(
     queue: Sequence[Mapping[str, Any]],
     batches: Sequence[Mapping[str, Any]],
     manifest: Mapping[str, Any],
+    *,
+    reviewer_id: str = GATE_A_REVIEWER_ID,
+    manifest_kind: str = V4_QUEUE_MANIFEST_KIND,
 ) -> list[dict[str, Any]]:
     """Bind a strict Gate-A teacher queue to one standard audit queue exactly."""
 
     normalized_queue = validate_audit_queue(queue)
     normalized_batches = validate_teacher_batches(batches)
+    _, expected_reviewer_id = _reviewer("ai_teacher", reviewer_id)
+    expected_manifest_kind = _identifier(manifest_kind, "manifest_kind")
     if (
         not isinstance(manifest, Mapping)
+        or manifest.get("manifest_kind") != expected_manifest_kind
         or manifest.get("stage") != "gate_a"
         or manifest.get("reviewer_kind") != "ai_teacher"
-        or manifest.get("reviewer_id") != GATE_A_REVIEWER_ID
+        or manifest.get("reviewer_id") != expected_reviewer_id
         or manifest.get("record_count") != len(normalized_queue)
     ):
         _fail("Gate-A teacher queue provenance is invalid")
@@ -576,10 +582,12 @@ def finalize_gate_a_teacher_responses(
     verdicts: Mapping[int, Mapping[str, Any]],
     *,
     reviewed_at: str,
+    reviewer_id: str = GATE_A_REVIEWER_ID,
 ) -> list[dict[str, Any]]:
     """Finalize one complete Gate-A teacher pass as standard audit responses."""
 
     normalized = validate_teacher_batches(batches)
+    _, normalized_reviewer_id = _reviewer("ai_teacher", reviewer_id)
     if not isinstance(verdicts, Mapping) or set(verdicts) != set(range(len(normalized))):
         _fail("gate_a verdicts must cover every batch exactly")
     timestamp = _gate_a_reviewed_at(reviewed_at)
@@ -589,7 +597,7 @@ def finalize_gate_a_teacher_responses(
             batch,
             verdicts[batch["batch_index"]],
             reviewer_kind="ai_teacher",
-            reviewer_id=GATE_A_REVIEWER_ID,
+            reviewer_id=normalized_reviewer_id,
         )
         responses.extend(
             {
@@ -597,7 +605,7 @@ def finalize_gate_a_teacher_responses(
                 "record_type": RESPONSE_RECORD_TYPE,
                 "stable_id": outcome["stable_id"],
                 "verdict": outcome["verdict"],
-                "reviewer_id": GATE_A_REVIEWER_ID,
+                "reviewer_id": normalized_reviewer_id,
                 "reviewer_kind": "ai_teacher",
                 "reviewed_at": timestamp,
                 "note": outcome["note"],
@@ -612,17 +620,20 @@ def publish_gate_a_teacher_evidence(
     report_path: str | Path,
     queue: Sequence[Mapping[str, Any]],
     responses: Sequence[Mapping[str, Any]],
+    *,
+    reviewer_id: str = GATE_A_REVIEWER_ID,
 ) -> tuple[str, str, dict[str, Any]]:
     """Publish canonical AI responses and their aggregate Gate-A report as one pair."""
 
     normalized_queue = validate_audit_queue(queue)
     normalized_responses = validate_audit_responses(responses)
+    _, normalized_reviewer_id = _reviewer("ai_teacher", reviewer_id)
     if (
         not normalized_responses
         or len(normalized_responses) != len(normalized_queue)
         or any(
             response["reviewer_kind"] != "ai_teacher"
-            or response["reviewer_id"] != GATE_A_REVIEWER_ID
+            or response["reviewer_id"] != normalized_reviewer_id
             for response in normalized_responses
         )
     ):
@@ -708,19 +719,30 @@ def validate_teacher_batches(batches: Sequence[Mapping[str, Any]]) -> list[dict[
     return result
 
 
-def _manifest(batches: Sequence[Mapping[str, Any]], *, stage: str, reviewer_kind: str, reviewer_id: str) -> dict[str, Any]:
+def _manifest(
+    batches: Sequence[Mapping[str, Any]],
+    *,
+    stage: str,
+    reviewer_kind: str,
+    reviewer_id: str,
+    manifest_kind: str = V4_QUEUE_MANIFEST_KIND,
+    source_provenance: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     normalized = validate_teacher_batches(batches)
     kind, identifier = _reviewer(reviewer_kind, reviewer_id)
+    checked_manifest_kind = _identifier(manifest_kind, "manifest_kind")
     if stage not in STAGES:
         _fail("stage is unsupported")
+    if checked_manifest_kind == V4_QUEUE_MANIFEST_KIND and source_provenance is not None:
+        _fail("v4 queue manifests cannot contain source provenance")
     files = []
     for batch in normalized:
         name = f"batch-{batch['batch_index']:03d}.json"
         payload = _canonical_payload(batch)
         files.append({"name": name, "item_count": len(batch["items"]), "content_sha256": hashlib.sha256(payload).hexdigest()})
-    return {
+    manifest = {
         "schema_version": V4_SCHEMA_VERSION,
-        "manifest_kind": V4_QUEUE_MANIFEST_KIND,
+        "manifest_kind": checked_manifest_kind,
         "stage": stage,
         "reviewer_kind": kind,
         "reviewer_id": identifier,
@@ -733,9 +755,30 @@ def _manifest(batches: Sequence[Mapping[str, Any]], *, stage: str, reviewer_kind
         ),
         "raw_text_in_manifest": False,
     }
+    if source_provenance is not None:
+        if not isinstance(source_provenance, Mapping):
+            _fail("queue source provenance must be an object")
+        try:
+            canonical_json_bytes(source_provenance)
+        except (TypeError, ValueError) as error:
+            raise TierAError("corpus v4: queue source provenance is not canonicalizable") from error
+        manifest["source_provenance"] = json.loads(
+            json.dumps(source_provenance, ensure_ascii=False, sort_keys=True)
+        )
+    return manifest
 
 
-def publish_teacher_queue_directory(directory: str | Path, batches: Sequence[Mapping[str, Any]], *, stage: str, reviewer_kind: str, reviewer_id: str) -> dict[str, Any]:
+def publish_teacher_queue_directory(
+    directory: str | Path,
+    batches: Sequence[Mapping[str, Any]],
+    *,
+    stage: str,
+    reviewer_kind: str,
+    reviewer_id: str,
+    manifest_kind: str = V4_QUEUE_MANIFEST_KIND,
+    source_provenance: Mapping[str, Any] | None = None,
+    directory_publisher: Callable[[Path, Path], None] | None = None,
+) -> dict[str, Any]:
     """Publish an immutable queue directory by one final same-parent rename."""
 
     target = Path(directory)
@@ -744,20 +787,30 @@ def publish_teacher_queue_directory(directory: str | Path, batches: Sequence[Map
     if not target.parent.is_dir():
         _fail("queue parent directory does not exist")
     normalized = validate_teacher_batches(batches)
-    manifest = _manifest(normalized, stage=stage, reviewer_kind=reviewer_kind, reviewer_id=reviewer_id)
+    manifest = _manifest(
+        normalized,
+        stage=stage,
+        reviewer_kind=reviewer_kind,
+        reviewer_id=reviewer_id,
+        manifest_kind=manifest_kind,
+        source_provenance=source_provenance,
+    )
     temporary = Path(tempfile.mkdtemp(prefix=f".{target.name}.", dir=target.parent))
     try:
         for batch in normalized:
             write_bytes_atomic(temporary / f"batch-{batch['batch_index']:03d}.json", _canonical_payload(batch))
         write_bytes_atomic(temporary / "manifest.json", _canonical_payload(manifest))
-        os.replace(temporary, target)
+        if directory_publisher is None:
+            os.replace(temporary, target)
+        else:
+            directory_publisher(temporary, target)
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
         raise
     return manifest
 
 
-def _read_json(path: Path, maximum: int) -> Any:
+def _read_json(path: Path, maximum: int, *, require_canonical_bytes: bool = False) -> Any:
     try:
         payload = path.read_bytes()
     except OSError as error:
@@ -765,25 +818,48 @@ def _read_json(path: Path, maximum: int) -> Any:
     if not payload or len(payload) > maximum:
         _fail(f"{path.name} is empty or outside the byte bound")
     try:
-        return json.loads(payload)
+        value = json.loads(payload)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         _fail(f"{path.name} is not valid UTF-8 JSON ({type(error).__name__})")
+    if require_canonical_bytes and payload != _canonical_payload(value):
+        _fail(f"{path.name} is not canonical JSON with LF")
+    return value
 
 
-def read_teacher_queue_directory(directory: str | Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def read_teacher_queue_directory(
+    directory: str | Path,
+    *,
+    expected_manifest_kind: str = V4_QUEUE_MANIFEST_KIND,
+    require_source_provenance: bool = False,
+    require_canonical_bytes: bool = False,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     root = Path(directory)
     if not root.is_dir():
         _fail("queue directory is missing")
     names = {entry.name for entry in root.iterdir()}
     if "manifest.json" not in names or any(name != "manifest.json" and _BATCH_NAME.fullmatch(name) is None for name in names):
         _fail("queue directory contains unexpected files")
-    manifest = _read_json(root / "manifest.json", MAX_MANIFEST_BYTES)
+    checked_manifest_kind = _identifier(expected_manifest_kind, "manifest_kind")
+    manifest = _read_json(
+        root / "manifest.json",
+        MAX_MANIFEST_BYTES,
+        require_canonical_bytes=require_canonical_bytes,
+    )
     expected = {"schema_version", "manifest_kind", "stage", "reviewer_kind", "reviewer_id", "batch_size_limit", "batch_count", "record_count", "batch_files", "content_sha256", "raw_text_in_manifest"}
-    if not isinstance(manifest, Mapping) or set(manifest) != expected or manifest.get("schema_version") != V4_SCHEMA_VERSION or manifest.get("manifest_kind") != V4_QUEUE_MANIFEST_KIND:
+    required_fields = expected | ({"source_provenance"} if require_source_provenance else set())
+    if not isinstance(manifest, Mapping) or set(manifest) != required_fields or manifest.get("schema_version") != V4_SCHEMA_VERSION or manifest.get("manifest_kind") != checked_manifest_kind:
         _fail("queue manifest fields do not match schema")
     if manifest.get("stage") not in STAGES or manifest.get("batch_size_limit") != MAX_BATCH_ITEMS or manifest.get("raw_text_in_manifest") is not False:
         _fail("queue manifest values are invalid")
     _reviewer(manifest.get("reviewer_kind"), manifest.get("reviewer_id"))
+    if require_source_provenance:
+        provenance = manifest["source_provenance"]
+        if not isinstance(provenance, Mapping):
+            _fail("queue source provenance must be an object")
+        try:
+            canonical_json_bytes(provenance)
+        except (TypeError, ValueError) as error:
+            raise TierAError("corpus v4: queue source provenance is not canonicalizable") from error
     files = manifest.get("batch_files")
     if not isinstance(files, list) or manifest.get("batch_count") != len(files) or not files:
         _fail("queue manifest batch files are invalid")
@@ -795,7 +871,11 @@ def read_teacher_queue_directory(directory: str | Path) -> tuple[list[dict[str, 
             _fail("queue manifest batch entry is invalid")
         expected_names.add(name)
         batch_path = root / name
-        batch = _read_json(batch_path, MAX_BATCH_BYTES)
+        batch = _read_json(
+            batch_path,
+            MAX_BATCH_BYTES,
+            require_canonical_bytes=require_canonical_bytes,
+        )
         if hashlib.sha256(_canonical_payload(batch)).hexdigest() != entry["content_sha256"]:
             _fail("queue batch hash mismatch")
         batches.append(batch)
@@ -838,14 +918,26 @@ def validate_teacher_verdict_batch(batch: Mapping[str, Any], verdict_payload: Ma
     return {"schema_version": V4_SCHEMA_VERSION, "record_type": V4_VERDICT_RECORD_TYPE, "batch_index": batch["batch_index"], "reviewer_kind": kind, "reviewer_id": identifier, "verdicts": output}
 
 
-def scan_verdict_directory(queue_directory: str | Path, verdict_directory: str | Path) -> tuple[dict[int, dict[str, Any]], list[int]]:
+def scan_verdict_directory(
+    queue_directory: str | Path,
+    verdict_directory: str | Path,
+    *,
+    expected_manifest_kind: str = V4_QUEUE_MANIFEST_KIND,
+    require_source_provenance: bool = False,
+    require_canonical_bytes: bool = False,
+) -> tuple[dict[int, dict[str, Any]], list[int]]:
     """Return mechanically valid completed batches and pending indexes.
 
     Missing expected files are resumable.  Every present file is validated;
     malformed, foreign, or extra output is an error rather than a skip.
     """
 
-    batches, manifest = read_teacher_queue_directory(queue_directory)
+    batches, manifest = read_teacher_queue_directory(
+        queue_directory,
+        expected_manifest_kind=expected_manifest_kind,
+        require_source_provenance=require_source_provenance,
+        require_canonical_bytes=require_canonical_bytes,
+    )
     root = Path(verdict_directory)
     if not root.exists():
         return {}, list(range(len(batches)))
@@ -863,7 +955,11 @@ def scan_verdict_directory(queue_directory: str | Path, verdict_directory: str |
         if not path.exists():
             pending.append(index)
             continue
-        value = _read_json(path, MAX_BATCH_BYTES)
+        value = _read_json(
+            path,
+            MAX_BATCH_BYTES,
+            require_canonical_bytes=require_canonical_bytes,
+        )
         try:
             completed[index] = validate_teacher_verdict_batch(
                 batch,

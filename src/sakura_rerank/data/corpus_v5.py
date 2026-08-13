@@ -27,8 +27,25 @@ from pathlib import Path
 from typing import Any
 
 from ..atomic_io import write_bytes_atomic
-from .contracts import ContractError, canonical_json_bytes, validate_records
-from .human_audit import VERDICTS
+from .contracts import (
+    ContractError,
+    canonical_json_bytes,
+    canonical_jsonl_bytes,
+    validate_records,
+)
+from .corpus_v4 import (
+    GATE_A_REVIEWER_ID,
+    build_gate_a_teacher_batches,
+    publish_teacher_queue_directory,
+    validate_gate_a_teacher_queue_binding,
+)
+from .human_audit import (
+    VERDICTS,
+    select_audit_records,
+    validate_audit_queue,
+    validate_queue_manifest,
+)
+from .splitter import SplitError, assign_splits
 from .tier_a import TierAError
 
 
@@ -40,6 +57,8 @@ V5_QUEUE_MANIFEST_KIND = "tier_a_v5_blind_teacher_queue"
 V5_PARTITION_REPORT_KIND = "tier_a_v5_admissibility_partition"
 V5_QUEUE_ALGORITHM = "full_stable_id_order_blind_batches_v1"
 V5_PARTITION_ALGORITHM = "two_full_blind_passes_precedence_v1"
+V5_GATE_A_PROVENANCE_KIND = "tier_a_v5_gate_a_source_provenance"
+V5_GATE_A_QUEUE_MANIFEST_KIND = "tier_a_v5_gate_a_teacher_queue"
 
 FIRST_PASS = "first_screen"
 CONFIRMATION_PASS = "blind_confirmation"
@@ -52,6 +71,10 @@ MAX_BATCHES = 100_000
 MAX_BATCH_BYTES = 4 * 1024 * 1024
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_NOTE_CHARS = 200
+V5_SPLIT_SEED = 20260811
+V5_SPLIT_RATIOS = {"train": 0.70, "dev": 0.10, "final-holdout": 0.20}
+V5_GATE_A_AUDIT_SEED = 20260812
+V5_GATE_A_MINIMUM_SAMPLE_SIZE = 3_000
 
 _DIRECTORY_PUBLISH_MAX_ATTEMPTS = 8
 _DIRECTORY_PUBLISH_INITIAL_BACKOFF_SECONDS = 0.05
@@ -923,6 +946,258 @@ def _validate_partition_report_intrinsic(report: Any) -> dict[str, Any]:
 
     canonical_json_bytes(report)
     return json.loads(json.dumps(report, ensure_ascii=False, sort_keys=True))
+
+
+def validate_partition_report_intrinsic(report: Any) -> dict[str, Any]:
+    """Public aggregate-only validator for a completed v5 partition report."""
+
+    return _validate_partition_report_intrinsic(report)
+
+
+def read_admissibility_partition_report(path: str | Path) -> dict[str, Any]:
+    """Read one canonical bounded v5 partition report and validate it intrinsically."""
+
+    value = _read_canonical_json(Path(path), MAX_MANIFEST_BYTES)
+    return validate_partition_report_intrinsic(value)
+
+
+def read_v5_split_report(path: str | Path) -> dict[str, Any]:
+    """Read canonical split metadata; full semantic checks occur against its inputs."""
+
+    value = _read_canonical_json(Path(path), MAX_MANIFEST_BYTES)
+    if not isinstance(value, Mapping):
+        _fail("split report must be an object")
+    return dict(value)
+
+
+def _validate_v5_split_and_audit_chain(
+    partition_eligible_records: Sequence[Mapping[str, Any]],
+    split_dataset: Sequence[Mapping[str, Any]],
+    split_report: Mapping[str, Any],
+    queue: Sequence[Mapping[str, Any]],
+    queue_manifest: Mapping[str, Any],
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, Any],
+    list[dict[str, Any]],
+]:
+    """Reproduce the frozen v5 split and its complete final-holdout queue."""
+
+    eligible = _strict_records(partition_eligible_records)
+    normalized_split = validate_records(split_dataset, require_split=True)
+    unsplit = []
+    for record in eligible:
+        value = dict(record)
+        value["split"] = None
+        unsplit.append(value)
+    try:
+        expected_split, expected_report = assign_splits(
+            unsplit,
+            seed=V5_SPLIT_SEED,
+            split_ratios=V5_SPLIT_RATIOS,
+        )
+    except SplitError as error:
+        raise TierAError(f"corpus v5: frozen split reproduction failed: {error}") from error
+    if normalized_split != expected_split or dict(split_report) != expected_report:
+        _fail("split dataset/report do not reproduce the partition eligible bucket")
+
+    normalized_queue = validate_audit_queue(queue)
+    validate_queue_manifest(queue_manifest, normalized_queue)
+    final_holdout_count = expected_report["split_counts"]["final-holdout"]
+    if final_holdout_count < V5_GATE_A_MINIMUM_SAMPLE_SIZE:
+        _fail(
+            f"frozen split has fewer than {V5_GATE_A_MINIMUM_SAMPLE_SIZE} "
+            "final-holdout records"
+        )
+    expected_queue = select_audit_records(
+        normalized_split,
+        seed=V5_GATE_A_AUDIT_SEED,
+        minimum_sample_size=V5_GATE_A_MINIMUM_SAMPLE_SIZE,
+    )
+    if normalized_queue != expected_queue:
+        _fail("Gate-A audit queue is not the frozen complete final holdout")
+    if (
+        queue_manifest.get("seed") != V5_GATE_A_AUDIT_SEED
+        or queue_manifest.get("minimum_sample_size") != V5_GATE_A_MINIMUM_SAMPLE_SIZE
+        or queue_manifest.get("dataset_record_count") != len(normalized_split)
+        or queue_manifest.get("dataset_content_sha256")
+        != hashlib.sha256(canonical_jsonl_bytes(normalized_split)).hexdigest()
+        or queue_manifest.get("record_count") != final_holdout_count
+        or queue_manifest.get("final_holdout_count") != final_holdout_count
+        or queue_manifest.get("split_counts")
+        != {"final-holdout": final_holdout_count}
+    ):
+        _fail("Gate-A audit manifest does not bind the frozen complete final holdout")
+    return eligible, normalized_split, expected_report, normalized_queue
+
+
+def _validate_gate_a_reviewer_id(
+    partition_report: Mapping[str, Any], reviewer_id: Any
+) -> tuple[dict[str, Any], str]:
+    checked_report = validate_partition_report_intrinsic(partition_report)
+    checked_reviewer_id = _identifier(reviewer_id, "Gate-A reviewer_id")
+    forbidden = {
+        GATE_A_REVIEWER_ID,
+        checked_report["passes"][FIRST_PASS]["reviewer_id"],
+        checked_report["passes"][CONFIRMATION_PASS]["reviewer_id"],
+    }
+    if checked_reviewer_id in forbidden:
+        _fail("Gate-A reviewer_id must be fresh and distinct from both blind passes")
+    return checked_report, checked_reviewer_id
+
+
+def _gate_a_source_provenance(
+    partition_report: Mapping[str, Any],
+    partition_eligible_records: Sequence[Mapping[str, Any]],
+    split_dataset: Sequence[Mapping[str, Any]],
+    split_report: Mapping[str, Any],
+    queue: Sequence[Mapping[str, Any]],
+    queue_manifest: Mapping[str, Any],
+    *,
+    reviewer_id: Any,
+) -> tuple[dict[str, Any], str]:
+    checked_report, checked_reviewer_id = _validate_gate_a_reviewer_id(
+        partition_report, reviewer_id
+    )
+    eligible = checked_report["buckets"][ELIGIBLE_BUCKET]
+    (
+        normalized_eligible,
+        normalized_split,
+        checked_split_report,
+        normalized_queue,
+    ) = _validate_v5_split_and_audit_chain(
+        partition_eligible_records,
+        split_dataset,
+        split_report,
+        queue,
+        queue_manifest,
+    )
+    if (
+        eligible["record_count"] != len(normalized_eligible)
+        or eligible["content_sha256"] != _canonical_jsonl_hash(normalized_eligible)
+    ):
+        _fail("partition eligible artifact does not match the partition report")
+    split_dataset_sha = hashlib.sha256(
+        canonical_jsonl_bytes(normalized_split)
+    ).hexdigest()
+    provenance = {
+        "schema_version": V5_SCHEMA_VERSION,
+        "provenance_kind": V5_GATE_A_PROVENANCE_KIND,
+        "partition_report_content_sha256": hashlib.sha256(
+            _canonical_payload(checked_report)
+        ).hexdigest(),
+        "partition_source_dataset_content_sha256": checked_report[
+            "source_dataset_content_sha256"
+        ],
+        "eligible_record_count": eligible["record_count"],
+        "eligible_content_sha256": eligible["content_sha256"],
+        "split_seed": checked_split_report["seed"],
+        "split_ratios": checked_split_report["split_ratios"],
+        "split_dataset_record_count": len(normalized_split),
+        "split_dataset_content_sha256": split_dataset_sha,
+        "split_report_content_sha256": hashlib.sha256(
+            _canonical_payload(checked_split_report)
+        ).hexdigest(),
+        "split_counts": checked_split_report["split_counts"],
+        "split_content_sha256": checked_split_report["split_content_sha256"],
+        "near_duplicate_threshold": checked_split_report[
+            "near_duplicate_threshold"
+        ],
+        "cross_split_leakage": checked_split_report["cross_split_leakage"],
+        "audit_queue_manifest_content_sha256": hashlib.sha256(
+            _canonical_payload(queue_manifest)
+        ).hexdigest(),
+        "audit_queue_record_count": len(normalized_queue),
+        "audit_queue_content_sha256": queue_manifest["content_sha256"],
+        "raw_text_in_provenance": False,
+        "raw_stable_ids_in_provenance": False,
+        "raw_notes_in_provenance": False,
+    }
+    canonical_json_bytes(provenance)
+    return provenance, checked_reviewer_id
+
+
+def publish_v5_gate_a_teacher_queue_directory(
+    directory: str | Path,
+    partition_eligible_records: Sequence[Mapping[str, Any]],
+    split_dataset: Sequence[Mapping[str, Any]],
+    split_report: Mapping[str, Any],
+    queue: Sequence[Mapping[str, Any]],
+    queue_manifest: Mapping[str, Any],
+    partition_report: Mapping[str, Any],
+    *,
+    reviewer_id: str,
+    batch_size: int = MAX_BATCH_ITEMS,
+) -> dict[str, Any]:
+    """Publish one fresh, partition-bound v5 Gate-A queue immutably."""
+
+    normalized_queue = validate_audit_queue(queue)
+    provenance, checked_reviewer_id = _gate_a_source_provenance(
+        partition_report,
+        partition_eligible_records,
+        split_dataset,
+        split_report,
+        normalized_queue,
+        queue_manifest,
+        reviewer_id=reviewer_id,
+    )
+    batches = build_gate_a_teacher_batches(normalized_queue, batch_size=batch_size)
+
+    def publish_directory(temporary: Path, target: Path) -> None:
+        _publish_directory_atomically(
+            temporary,
+            target,
+            immutable_message="queue directory already exists and is immutable",
+        )
+
+    return publish_teacher_queue_directory(
+        directory,
+        batches,
+        stage="gate_a",
+        reviewer_kind=REVIEWER_KIND,
+        reviewer_id=checked_reviewer_id,
+        manifest_kind=V5_GATE_A_QUEUE_MANIFEST_KIND,
+        source_provenance=provenance,
+        directory_publisher=publish_directory,
+    )
+
+
+def validate_v5_gate_a_teacher_queue_binding(
+    partition_eligible_records: Sequence[Mapping[str, Any]],
+    split_dataset: Sequence[Mapping[str, Any]],
+    split_report: Mapping[str, Any],
+    queue: Sequence[Mapping[str, Any]],
+    queue_manifest: Mapping[str, Any],
+    batches: Sequence[Mapping[str, Any]],
+    teacher_manifest: Mapping[str, Any],
+    partition_report: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], str]:
+    """Rebind a v5 Gate-A queue to its partition, audit queue, and manifest ID."""
+
+    normalized_queue = validate_audit_queue(queue)
+    if not isinstance(teacher_manifest, Mapping):
+        _fail("Gate-A teacher manifest must be an object")
+    reviewer_id = teacher_manifest.get("reviewer_id")
+    expected_provenance, checked_reviewer_id = _gate_a_source_provenance(
+        partition_report,
+        partition_eligible_records,
+        split_dataset,
+        split_report,
+        normalized_queue,
+        queue_manifest,
+        reviewer_id=reviewer_id,
+    )
+    if teacher_manifest.get("source_provenance") != expected_provenance:
+        _fail("Gate-A teacher queue source provenance does not match")
+    normalized_batches = validate_gate_a_teacher_queue_binding(
+        normalized_queue,
+        batches,
+        teacher_manifest,
+        reviewer_id=checked_reviewer_id,
+        manifest_kind=V5_GATE_A_QUEUE_MANIFEST_KIND,
+    )
+    return normalized_batches, checked_reviewer_id
 
 
 def publish_admissibility_partition_directory(

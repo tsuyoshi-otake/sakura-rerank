@@ -532,6 +532,51 @@ strict verdict coverage and pair-publish canonical responses with an
 aggregate-only report. Finalization requires the explicit
 `--allow-ai-teacher` policy switch and can never set the human gate.
 
+For corpus v5, bind a fresh Gate-A identity to the completed admissibility
+partition and the complete final-holdout audit queue. The reviewer ID must differ
+from both blind-pass identities and the legacy v4 Gate-A identity. Queue
+publication uses bounded Windows transient-lock retries, never overwrites an
+existing target, and stores only aggregate provenance: hashes, counts,
+algorithm parameters, and leakage results from the source artifacts.
+Both commands reproduce the eligible-bucket split with seed `20260811`, ratios
+`0.70/0.10/0.20`, and the current near-duplicate threshold. They then reproduce
+the full final-holdout audit selection with seed `20260812` and require at least
+3,000 final-holdout rows:
+
+```powershell
+python -m sakura_rerank.data corpus-v5 gate-a-queue `
+  data\generated\v5-final-holdout-audit-queue.jsonl `
+  data\generated\v5-gate-a-teacher-queue `
+  --partition-report data\generated\v5-admissibility-partition\report.json `
+  --partition-eligible data\generated\v5-admissibility-partition\eligible-unanimous-valid.jsonl `
+  --split-dataset data\generated\v5-frozen-split.jsonl `
+  --split-report reports\v5-frozen-split.json `
+  --queue-manifest data\generated\v5-final-holdout-audit-queue.manifest.json `
+  --reviewer-id <fresh-owner-assigned-reviewer-id> `
+  --batch-size 40
+
+python -m sakura_rerank.data corpus-v5 gate-a-finalize `
+  data\generated\v5-final-holdout-audit-queue.jsonl `
+  data\generated\v5-gate-a-teacher-queue `
+  data\generated\v5-gate-a-teacher-verdicts `
+  data\generated\v5-gate-a-responses.jsonl `
+  reports\v5-gate-a-quality.json `
+  --partition-report data\generated\v5-admissibility-partition\report.json `
+  --partition-eligible data\generated\v5-admissibility-partition\eligible-unanimous-valid.jsonl `
+  --split-dataset data\generated\v5-frozen-split.jsonl `
+  --split-report reports\v5-frozen-split.json `
+  --queue-manifest data\generated\v5-final-holdout-audit-queue.manifest.json `
+  --reviewed-at <timezone-qualified-ISO-8601> `
+  --allow-ai-teacher
+```
+
+Finalization accepts no reviewer-ID argument. It infers the identity from the
+immutable teacher-queue manifest, revalidates the partition and audit-manifest
+commitments, requires canonical LF-terminated teacher artifacts, and fails if any
+verdict batch is missing, foreign, malformed, or out of order. The canonical
+response/report pair remains owner-authorized AI evidence and can never set the
+human Gate-A result.
+
 The manifest command returns status 3 for a structured blocker. The split
 command rejects any normalized or filesystem-alias collision among input,
 output, and report before writing. Output and report payloads are fully staged

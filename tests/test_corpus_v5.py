@@ -11,6 +11,13 @@ from unittest.mock import patch
 
 from sakura_rerank.data import corpus_v5
 from sakura_rerank.data.contracts import canonical_json_bytes
+from sakura_rerank.data.corpus_v4 import (
+    GATE_A_REVIEWER_ID,
+    V4_SCHEMA_VERSION,
+    V4_VERDICT_RECORD_TYPE,
+    read_teacher_queue_directory,
+    scan_verdict_directory,
+)
 from sakura_rerank.data.corpus_v5 import (
     AMBIGUOUS_BUCKET,
     CONFIRMATION_PASS,
@@ -20,18 +27,27 @@ from sakura_rerank.data.corpus_v5 import (
     NOISE_BUCKET,
     REPAIRABLE_BUCKET,
     UNRESOLVED_BUCKET,
+    V5_GATE_A_AUDIT_SEED,
+    V5_GATE_A_QUEUE_MANIFEST_KIND,
     V5_SCHEMA_VERSION,
+    V5_SPLIT_RATIOS,
+    V5_SPLIT_SEED,
     V5_VERDICT_RECORD_TYPE,
     build_blind_queue_manifest,
     build_blind_teacher_batches,
     partition_blind_teacher_passes,
     publish_admissibility_partition_directory,
     publish_blind_teacher_queue_directory,
+    publish_v5_gate_a_teacher_queue_directory,
     read_blind_teacher_queue_directory,
     scan_blind_verdict_directory,
     validate_blind_teacher_queue_binding,
     validate_blind_teacher_verdict_batch,
+    validate_partition_report_intrinsic,
+    validate_v5_gate_a_teacher_queue_binding,
 )
+from sakura_rerank.data.human_audit import build_queue_manifest, select_audit_records
+from sakura_rerank.data.splitter import assign_splits
 from sakura_rerank.data.tier_a import TierAError
 from tests.test_data_contracts import _rehash_snapshots, production_record
 
@@ -48,6 +64,20 @@ def records(count: int = 45) -> list[dict[str, object]]:
         item = production_record()
         item["stable_id"] = f"v5-{index:04d}"
         item["split"] = None
+        source = item["source"]
+        source["article_id"] = f"v5-article-{index:04d}"
+        source["page_id"] = f"v5-page-{index:04d}"
+        source["revision_id"] = f"v5-revision-{index:04d}"
+        source["paragraph_hash"] = hashlib.sha256(
+            f"v5-paragraph-{index:04d}".encode("utf-8")
+        ).hexdigest()
+        source["sentence_hash"] = hashlib.sha256(
+            f"v5-sentence-{index:04d}".encode("utf-8")
+        ).hexdigest()
+        source["sentence_shingle_hashes"] = [
+            hashlib.sha256(f"v5-shingle-{index:04d}".encode("utf-8")).hexdigest()
+        ]
+        source["template_cluster_id"] = None
         exporter = item["candidate_snapshots"]["training_top32"]["exporter_run"]
         exporter["verification_status"] = "verified"
         exporter["exporter_git_sha"] = "06ff8c34417fb7dbc24e41d786dfb6434cdd6aa1"
@@ -95,6 +125,411 @@ def write_canonical_json(path: Path, value: object) -> None:
 
 
 class CorpusV5Tests(unittest.TestCase):
+    def _all_valid_partition_report(
+        self, source: list[dict[str, object]]
+    ) -> dict[str, object]:
+        batches = build_blind_teacher_batches(source)
+        first_manifest = build_blind_queue_manifest(
+            source, batches, pass_name=FIRST_PASS, reviewer_id=FIRST_REVIEWER
+        )
+        confirmation_manifest = build_blind_queue_manifest(
+            source,
+            batches,
+            pass_name=CONFIRMATION_PASS,
+            reviewer_id=CONFIRMATION_REVIEWER,
+        )
+        _, report = partition_blind_teacher_passes(
+            source,
+            batches,
+            first_manifest,
+            verdict_set(batches, reviewer=FIRST_REVIEWER),
+            batches,
+            confirmation_manifest,
+            verdict_set(batches, reviewer=CONFIRMATION_REVIEWER),
+        )
+        return report
+
+    def _gate_a_inputs(
+        self,
+        source: list[dict[str, object]],
+        *,
+        minimum_sample_size: int = 2,
+    ) -> tuple[
+        dict[str, object],
+        list[dict[str, object]],
+        list[dict[str, object]],
+        dict[str, object],
+        list[dict[str, object]],
+        dict[str, object],
+    ]:
+        report = self._all_valid_partition_report(source)
+        eligible = copy.deepcopy(source)
+        split_dataset, split_report = assign_splits(
+            eligible,
+            seed=V5_SPLIT_SEED,
+            split_ratios=V5_SPLIT_RATIOS,
+        )
+        queue = select_audit_records(
+            split_dataset,
+            seed=V5_GATE_A_AUDIT_SEED,
+            minimum_sample_size=minimum_sample_size,
+        )
+        queue_manifest = build_queue_manifest(
+            split_dataset,
+            queue,
+            seed=V5_GATE_A_AUDIT_SEED,
+            minimum_sample_size=minimum_sample_size,
+        )
+        return (
+            report,
+            eligible,
+            split_dataset,
+            split_report,
+            queue,
+            queue_manifest,
+        )
+
+    def test_v5_gate_a_queue_is_fresh_partition_bound_bounded_and_race_safe(self) -> None:
+        source = records(205)
+        (
+            report,
+            eligible,
+            split_dataset,
+            split_report,
+            queue,
+            queue_manifest,
+        ) = self._gate_a_inputs(source)
+        self.assertEqual(validate_partition_report_intrinsic(report), report)
+        self.assertEqual(split_report["split_counts"]["final-holdout"], 41)
+        self.assertEqual(len(queue), 41)
+        reviewer_id = "fresh-v5-gate-a"
+        with patch(
+            "sakura_rerank.data.corpus_v5.V5_GATE_A_MINIMUM_SAMPLE_SIZE", 2
+        ), tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "gate-a"
+            manifest = publish_v5_gate_a_teacher_queue_directory(
+                target,
+                eligible,
+                split_dataset,
+                split_report,
+                queue,
+                queue_manifest,
+                report,
+                reviewer_id=reviewer_id,
+            )
+            self.assertEqual(manifest["reviewer_id"], reviewer_id)
+            self.assertEqual(
+                manifest["manifest_kind"], V5_GATE_A_QUEUE_MANIFEST_KIND
+            )
+            self.assertEqual(manifest["batch_count"], 2)
+            self.assertEqual(
+                [entry["item_count"] for entry in manifest["batch_files"]], [40, 1]
+            )
+            provenance = manifest["source_provenance"]
+            self.assertFalse(provenance["raw_text_in_provenance"])
+            self.assertFalse(provenance["raw_stable_ids_in_provenance"])
+            self.assertFalse(provenance["raw_notes_in_provenance"])
+            with self.assertRaisesRegex(TierAError, "manifest fields"):
+                read_teacher_queue_directory(target)
+            batches, loaded_manifest = read_teacher_queue_directory(
+                target,
+                expected_manifest_kind=V5_GATE_A_QUEUE_MANIFEST_KIND,
+                require_source_provenance=True,
+                require_canonical_bytes=True,
+            )
+            bound, inferred = validate_v5_gate_a_teacher_queue_binding(
+                eligible,
+                split_dataset,
+                split_report,
+                queue,
+                queue_manifest,
+                batches,
+                loaded_manifest,
+                report,
+            )
+            self.assertEqual(bound, batches)
+            self.assertEqual(inferred, reviewer_id)
+            with self.assertRaisesRegex(TierAError, "immutable"):
+                publish_v5_gate_a_teacher_queue_directory(
+                    target,
+                    eligible,
+                    split_dataset,
+                    split_report,
+                    queue,
+                    queue_manifest,
+                    report,
+                    reviewer_id=reviewer_id,
+                )
+
+            tampered_manifest = copy.deepcopy(loaded_manifest)
+            tampered_manifest["source_provenance"][
+                "audit_queue_content_sha256"
+            ] = "0" * 64
+            with self.assertRaisesRegex(TierAError, "source provenance"):
+                validate_v5_gate_a_teacher_queue_binding(
+                    eligible,
+                    split_dataset,
+                    split_report,
+                    queue,
+                    queue_manifest,
+                    batches,
+                    tampered_manifest,
+                    report,
+                )
+
+            swapped_report = self._all_valid_partition_report(records(2))
+            with self.assertRaisesRegex(TierAError, "partition eligible artifact"):
+                validate_v5_gate_a_teacher_queue_binding(
+                    eligible,
+                    split_dataset,
+                    split_report,
+                    queue,
+                    queue_manifest,
+                    batches,
+                    loaded_manifest,
+                    swapped_report,
+                )
+
+            retry_target = root / "retry-gate-a"
+            attempts = 0
+
+            def transient_then_publish(source_path: Path, target_path: Path) -> None:
+                nonlocal attempts
+                attempts += 1
+                if attempts == 1:
+                    error = PermissionError("simulated directory lock")
+                    error.winerror = 32
+                    raise error
+                os.rename(source_path, target_path)
+
+            with (
+                patch(
+                    "sakura_rerank.data.corpus_v5._rename_directory_without_overwrite",
+                    side_effect=transient_then_publish,
+                ) as rename,
+                patch("sakura_rerank.data.corpus_v5.random.uniform", return_value=0.0),
+                patch("sakura_rerank.data.corpus_v5.time.sleep") as sleep,
+            ):
+                publish_v5_gate_a_teacher_queue_directory(
+                    retry_target,
+                    eligible,
+                    split_dataset,
+                    split_report,
+                    queue,
+                    queue_manifest,
+                    report,
+                    reviewer_id=reviewer_id,
+                )
+            self.assertEqual(rename.call_count, 2)
+            sleep.assert_called_once_with(0.05)
+
+        for forbidden in (
+            GATE_A_REVIEWER_ID,
+            FIRST_REVIEWER,
+            CONFIRMATION_REVIEWER,
+        ):
+            with self.subTest(forbidden=forbidden), self.assertRaisesRegex(
+                TierAError, "fresh and distinct"
+            ):
+                publish_v5_gate_a_teacher_queue_directory(
+                    Path("unused"),
+                    eligible,
+                    split_dataset,
+                    split_report,
+                    queue,
+                    queue_manifest,
+                    report,
+                    reviewer_id=forbidden,
+                )
+        with patch(
+            "sakura_rerank.data.corpus_v5.V5_GATE_A_MINIMUM_SAMPLE_SIZE", 2
+        ), self.assertRaisesRegex(TierAError, "batch_size"):
+            publish_v5_gate_a_teacher_queue_directory(
+                Path("unused"),
+                eligible,
+                split_dataset,
+                split_report,
+                queue,
+                queue_manifest,
+                report,
+                reviewer_id=reviewer_id,
+                batch_size=41,
+            )
+
+    def test_v5_gate_a_rejects_unrelated_split_audit_and_partition_artifacts(self) -> None:
+        source = records(10)
+        (
+            report,
+            eligible,
+            split_dataset,
+            split_report,
+            queue,
+            queue_manifest,
+        ) = self._gate_a_inputs(source)
+        reviewer_id = "fresh-v5-gate-a"
+        with patch(
+            "sakura_rerank.data.corpus_v5.V5_GATE_A_MINIMUM_SAMPLE_SIZE", 2
+        ):
+            unrelated_eligible = records(11)
+            with self.assertRaisesRegex(TierAError, "split dataset/report"):
+                publish_v5_gate_a_teacher_queue_directory(
+                    Path("unused"),
+                    unrelated_eligible,
+                    split_dataset,
+                    split_report,
+                    queue,
+                    queue_manifest,
+                    report,
+                    reviewer_id=reviewer_id,
+                )
+
+            unrelated_split = copy.deepcopy(split_dataset)
+            unrelated_split[0]["split"] = (
+                "dev" if unrelated_split[0]["split"] != "dev" else "train"
+            )
+            with self.assertRaisesRegex(TierAError, "split dataset/report"):
+                publish_v5_gate_a_teacher_queue_directory(
+                    Path("unused"),
+                    eligible,
+                    unrelated_split,
+                    split_report,
+                    queue,
+                    queue_manifest,
+                    report,
+                    reviewer_id=reviewer_id,
+                )
+
+            tampered_split_report = copy.deepcopy(split_report)
+            tampered_split_report["seed"] += 1
+            with self.assertRaisesRegex(TierAError, "split dataset/report"):
+                publish_v5_gate_a_teacher_queue_directory(
+                    Path("unused"),
+                    eligible,
+                    split_dataset,
+                    tampered_split_report,
+                    queue,
+                    queue_manifest,
+                    report,
+                    reviewer_id=reviewer_id,
+                )
+
+            unrelated_queue = queue[:-1]
+            unrelated_manifest = build_queue_manifest(
+                split_dataset,
+                unrelated_queue,
+                seed=V5_GATE_A_AUDIT_SEED,
+                minimum_sample_size=2,
+            )
+            with self.assertRaisesRegex(TierAError, "complete final holdout"):
+                publish_v5_gate_a_teacher_queue_directory(
+                    Path("unused"),
+                    eligible,
+                    split_dataset,
+                    split_report,
+                    unrelated_queue,
+                    unrelated_manifest,
+                    report,
+                    reviewer_id=reviewer_id,
+                )
+
+        with self.assertRaisesRegex(TierAError, "fewer than 3000"):
+            publish_v5_gate_a_teacher_queue_directory(
+                Path("unused"),
+                eligible,
+                split_dataset,
+                split_report,
+                queue,
+                queue_manifest,
+                report,
+                reviewer_id=reviewer_id,
+            )
+
+    def test_v5_gate_a_reader_requires_canonical_queue_and_verdict_bytes(self) -> None:
+        (
+            report,
+            eligible,
+            split_dataset,
+            split_report,
+            queue,
+            queue_manifest,
+        ) = self._gate_a_inputs(records(10))
+        reviewer_id = "fresh-v5-gate-a-canonical"
+        with patch(
+            "sakura_rerank.data.corpus_v5.V5_GATE_A_MINIMUM_SAMPLE_SIZE", 2
+        ), tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            teacher_directory = root / "teacher"
+            publish_v5_gate_a_teacher_queue_directory(
+                teacher_directory,
+                eligible,
+                split_dataset,
+                split_report,
+                queue,
+                queue_manifest,
+                report,
+                reviewer_id=reviewer_id,
+            )
+            read_options = {
+                "expected_manifest_kind": V5_GATE_A_QUEUE_MANIFEST_KIND,
+                "require_source_provenance": True,
+                "require_canonical_bytes": True,
+            }
+
+            manifest_path = teacher_directory / "manifest.json"
+            canonical_manifest = manifest_path.read_bytes()
+            manifest_value = json.loads(canonical_manifest)
+            manifest_path.write_text(
+                json.dumps(manifest_value, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            with self.assertRaisesRegex(TierAError, "not canonical JSON with LF"):
+                read_teacher_queue_directory(teacher_directory, **read_options)
+            manifest_path.write_bytes(canonical_manifest)
+
+            batch_path = teacher_directory / "batch-000.json"
+            canonical_batch = batch_path.read_bytes()
+            batch_value = json.loads(canonical_batch)
+            batch_path.write_text(
+                json.dumps(batch_value, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            with self.assertRaisesRegex(TierAError, "not canonical JSON with LF"):
+                read_teacher_queue_directory(teacher_directory, **read_options)
+            batch_path.write_bytes(canonical_batch)
+
+            batches, _ = read_teacher_queue_directory(
+                teacher_directory, **read_options
+            )
+            verdict_directory = root / "verdicts"
+            verdict_directory.mkdir()
+            payload = {
+                "schema_version": V4_SCHEMA_VERSION,
+                "record_type": V4_VERDICT_RECORD_TYPE,
+                "batch_index": 0,
+                "reviewer_kind": "ai_teacher",
+                "reviewer_id": reviewer_id,
+                "verdicts": [
+                    {
+                        "stable_id": item["stable_id"],
+                        "verdict": "valid",
+                        "note": "",
+                    }
+                    for item in batches[0]["items"]
+                ],
+            }
+            (verdict_directory / "verdicts-000.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            with self.assertRaisesRegex(TierAError, "not canonical JSON with LF"):
+                scan_verdict_directory(
+                    teacher_directory, verdict_directory, **read_options
+                )
+
     def test_pre_split_queue_is_nonfixture_blind_stable_and_bounded(self) -> None:
         source = records(81)
         batches = build_blind_teacher_batches(list(reversed(source)))

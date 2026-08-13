@@ -26,16 +26,24 @@ from sakura_rerank.data.corpus_v4 import (
 from sakura_rerank.data.corpus_v5 import (
     CONFIRMATION_PASS,
     FIRST_PASS,
+    V5_GATE_A_AUDIT_SEED,
+    V5_GATE_A_QUEUE_MANIFEST_KIND,
     V5_SCHEMA_VERSION,
+    V5_SPLIT_RATIOS,
+    V5_SPLIT_SEED,
     V5_VERDICT_RECORD_TYPE,
+    build_blind_queue_manifest,
+    build_blind_teacher_batches,
+    partition_blind_teacher_passes,
     read_blind_teacher_queue_directory,
 )
 from sakura_rerank.data.human_audit import (
     build_queue_manifest,
     publish_audit_queue,
     read_audit_responses,
+    select_audit_records,
 )
-from sakura_rerank.data.splitter import split_jsonl
+from sakura_rerank.data.splitter import assign_splits, split_jsonl
 
 from tests.test_data_contracts import (
     _rehash_snapshots,
@@ -53,13 +61,34 @@ def _write_unassigned_input(path: Path) -> bytes:
 
 
 def _write_v5_dataset(
-    path: Path, *, count: int = 2, stable_id_prefix: str = "data-cli-v5"
+    path: Path,
+    *,
+    count: int = 2,
+    stable_id_prefix: str = "data-cli-v5",
+    independent_sources: bool = False,
 ) -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
     for index in range(count):
         record = production_record()
         record["stable_id"] = f"{stable_id_prefix}-{index:04d}"
         record["split"] = None
+        if independent_sources:
+            source = record["source"]
+            source["article_id"] = f"{stable_id_prefix}-article-{index:04d}"
+            source["page_id"] = f"{stable_id_prefix}-page-{index:04d}"
+            source["revision_id"] = f"{stable_id_prefix}-revision-{index:04d}"
+            source["paragraph_hash"] = hashlib.sha256(
+                f"{stable_id_prefix}-paragraph-{index:04d}".encode("utf-8")
+            ).hexdigest()
+            source["sentence_hash"] = hashlib.sha256(
+                f"{stable_id_prefix}-sentence-{index:04d}".encode("utf-8")
+            ).hexdigest()
+            source["sentence_shingle_hashes"] = [
+                hashlib.sha256(
+                    f"{stable_id_prefix}-shingle-{index:04d}".encode("utf-8")
+                ).hexdigest()
+            ]
+            source["template_cluster_id"] = None
         exporter = record["candidate_snapshots"]["training_top32"]["exporter_run"]
         exporter["verification_status"] = "verified"
         exporter["exporter_git_sha"] = "06ff8c34417fb7dbc24e41d786dfb6434cdd6aa1"
@@ -658,6 +687,105 @@ class CorpusV5DataCliTests(unittest.TestCase):
 
 
 class GateADataCliTests(unittest.TestCase):
+    FRESH_V5_REVIEWER_ID = "fresh-v5-gate-a-cli"
+
+    def _write_v5_gate_a_inputs(
+        self,
+        root: Path,
+        *,
+        count: int = 10,
+        suffix: str = "",
+        minimum_sample_size: int = 2,
+    ) -> tuple[Path, Path, Path, Path, Path, Path, list[dict[str, object]]]:
+        eligible_path = root / f"v5-eligible{suffix}.jsonl"
+        source = _write_v5_dataset(
+            eligible_path,
+            count=count,
+            stable_id_prefix=f"gate-a-cli{suffix}",
+            independent_sources=True,
+        )
+        batches = build_blind_teacher_batches(source)
+        first_reviewer = f"v5-first{suffix}"
+        confirmation_reviewer = f"v5-confirmation{suffix}"
+        first_manifest = build_blind_queue_manifest(
+            source,
+            batches,
+            pass_name=FIRST_PASS,
+            reviewer_id=first_reviewer,
+        )
+        confirmation_manifest = build_blind_queue_manifest(
+            source,
+            batches,
+            pass_name=CONFIRMATION_PASS,
+            reviewer_id=confirmation_reviewer,
+        )
+
+        def verdicts(reviewer_id: str) -> dict[int, dict[str, object]]:
+            return {
+                batch["batch_index"]: {
+                    "schema_version": V5_SCHEMA_VERSION,
+                    "record_type": V5_VERDICT_RECORD_TYPE,
+                    "batch_index": batch["batch_index"],
+                    "reviewer_kind": "ai_teacher",
+                    "reviewer_id": reviewer_id,
+                    "verdicts": [
+                        {
+                            "stable_id": item["stable_id"],
+                            "verdict": "valid",
+                            "note": "",
+                        }
+                        for item in batch["items"]
+                    ],
+                }
+                for batch in batches
+            }
+
+        _, report = partition_blind_teacher_passes(
+            source,
+            batches,
+            first_manifest,
+            verdicts(first_reviewer),
+            batches,
+            confirmation_manifest,
+            verdicts(confirmation_reviewer),
+        )
+        report_path = root / f"v5-partition-report{suffix}.json"
+        report_path.write_bytes(canonical_json_bytes(report) + b"\n")
+
+        split_dataset, split_report = assign_splits(
+            source,
+            seed=V5_SPLIT_SEED,
+            split_ratios=V5_SPLIT_RATIOS,
+        )
+        split_dataset_path = root / f"v5-split{suffix}.jsonl"
+        split_dataset_path.write_bytes(canonical_jsonl_bytes(split_dataset))
+        split_report_path = root / f"v5-split-report{suffix}.json"
+        split_report_path.write_bytes(canonical_json_bytes(split_report) + b"\n")
+
+        queue = select_audit_records(
+            split_dataset,
+            seed=V5_GATE_A_AUDIT_SEED,
+            minimum_sample_size=minimum_sample_size,
+        )
+        queue_manifest = build_queue_manifest(
+            split_dataset,
+            queue,
+            seed=V5_GATE_A_AUDIT_SEED,
+            minimum_sample_size=minimum_sample_size,
+        )
+        queue_path = root / f"v5-audit-queue{suffix}.jsonl"
+        queue_manifest_path = root / f"v5-audit-manifest{suffix}.json"
+        publish_audit_queue(queue_path, queue_manifest_path, queue, queue_manifest)
+        return (
+            queue_path,
+            queue_manifest_path,
+            report_path,
+            eligible_path,
+            split_dataset_path,
+            split_report_path,
+            queue,
+        )
+
     def _write_audit_inputs(
         self, root: Path, *, count: int = 2
     ) -> tuple[Path, Path, list[dict[str, object]]]:
@@ -702,9 +830,25 @@ class GateADataCliTests(unittest.TestCase):
         )
 
     def _write_complete_verdicts(
-        self, teacher_queue_directory: Path, verdict_directory: Path
+        self,
+        teacher_queue_directory: Path,
+        verdict_directory: Path,
+        *,
+        reviewer_id: str = GATE_A_REVIEWER_ID,
+        v5: bool = False,
     ) -> None:
-        batches, _ = read_teacher_queue_directory(teacher_queue_directory)
+        read_options = (
+            {
+                "expected_manifest_kind": V5_GATE_A_QUEUE_MANIFEST_KIND,
+                "require_source_provenance": True,
+                "require_canonical_bytes": True,
+            }
+            if v5
+            else {}
+        )
+        batches, _ = read_teacher_queue_directory(
+            teacher_queue_directory, **read_options
+        )
         verdict_directory.mkdir()
         for batch in batches:
             payload = {
@@ -712,7 +856,7 @@ class GateADataCliTests(unittest.TestCase):
                 "record_type": V4_VERDICT_RECORD_TYPE,
                 "batch_index": batch["batch_index"],
                 "reviewer_kind": "ai_teacher",
-                "reviewer_id": GATE_A_REVIEWER_ID,
+                "reviewer_id": reviewer_id,
                 "verdicts": [
                     {
                         "stable_id": item["stable_id"],
@@ -725,6 +869,211 @@ class GateADataCliTests(unittest.TestCase):
             (verdict_directory / f"verdicts-{batch['batch_index']:03d}.json").write_bytes(
                 canonical_json_bytes(payload) + b"\n"
             )
+
+    def _v5_finalize_arguments(
+        self,
+        queue_path: Path,
+        manifest_path: Path,
+        partition_report_path: Path,
+        partition_eligible_path: Path,
+        split_dataset_path: Path,
+        split_report_path: Path,
+        teacher_queue_directory: Path,
+        verdict_directory: Path,
+        responses_path: Path,
+        report_path: Path,
+        *,
+        authorize: bool = True,
+    ) -> list[str]:
+        arguments = [
+            "corpus-v5",
+            "gate-a-finalize",
+            os.fspath(queue_path),
+            os.fspath(teacher_queue_directory),
+            os.fspath(verdict_directory),
+            os.fspath(responses_path),
+            os.fspath(report_path),
+            "--partition-report",
+            os.fspath(partition_report_path),
+            "--partition-eligible",
+            os.fspath(partition_eligible_path),
+            "--split-dataset",
+            os.fspath(split_dataset_path),
+            "--split-report",
+            os.fspath(split_report_path),
+            "--queue-manifest",
+            os.fspath(manifest_path),
+            "--reviewed-at",
+            "2026-08-13T12:34:56+09:00",
+        ]
+        if authorize:
+            arguments.append("--allow-ai-teacher")
+        return arguments
+
+    def test_v5_gate_a_cli_is_fresh_bound_complete_and_aggregate_only(self) -> None:
+        with patch(
+            "sakura_rerank.data.corpus_v5.V5_GATE_A_MINIMUM_SAMPLE_SIZE", 2
+        ), tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (
+                queue_path,
+                manifest_path,
+                partition_report_path,
+                partition_eligible_path,
+                split_dataset_path,
+                split_report_path,
+                queue,
+            ) = self._write_v5_gate_a_inputs(root)
+            teacher_queue_directory = root / "v5-teacher-queue"
+            queue_stdout = io.StringIO()
+            queue_stderr = io.StringIO()
+            with redirect_stdout(queue_stdout), redirect_stderr(queue_stderr):
+                queue_status = main(
+                    [
+                        "corpus-v5",
+                        "gate-a-queue",
+                        os.fspath(queue_path),
+                        os.fspath(teacher_queue_directory),
+                        "--partition-report",
+                        os.fspath(partition_report_path),
+                        "--partition-eligible",
+                        os.fspath(partition_eligible_path),
+                        "--split-dataset",
+                        os.fspath(split_dataset_path),
+                        "--split-report",
+                        os.fspath(split_report_path),
+                        "--queue-manifest",
+                        os.fspath(manifest_path),
+                        "--reviewer-id",
+                        self.FRESH_V5_REVIEWER_ID,
+                        "--batch-size",
+                        "40",
+                    ]
+                )
+            self.assertEqual((queue_status, queue_stderr.getvalue()), (0, ""))
+            queue_summary = json.loads(queue_stdout.getvalue())
+            self.assertEqual(queue_summary["reviewer_id"], self.FRESH_V5_REVIEWER_ID)
+            self.assertEqual(queue_summary["batch_count"], 1)
+            self.assertNotIn("left_context", queue_summary)
+            self.assertNotIn(queue[0]["stable_id"], queue_stdout.getvalue())
+            batches, teacher_manifest = read_teacher_queue_directory(
+                teacher_queue_directory,
+                expected_manifest_kind=V5_GATE_A_QUEUE_MANIFEST_KIND,
+                require_source_provenance=True,
+                require_canonical_bytes=True,
+            )
+            self.assertEqual(teacher_manifest["reviewer_id"], self.FRESH_V5_REVIEWER_ID)
+            self.assertLessEqual(max(len(batch["items"]) for batch in batches), 40)
+            self.assertFalse(
+                teacher_manifest["source_provenance"]["raw_text_in_provenance"]
+            )
+
+            verdict_directory = root / "v5-verdicts"
+            responses_path = root / "v5-responses.jsonl"
+            quality_report_path = root / "v5-quality.json"
+            incomplete_stderr = io.StringIO()
+            with redirect_stdout(io.StringIO()), redirect_stderr(incomplete_stderr):
+                incomplete_status = main(
+                    self._v5_finalize_arguments(
+                        queue_path,
+                        manifest_path,
+                        partition_report_path,
+                        partition_eligible_path,
+                        split_dataset_path,
+                        split_report_path,
+                        teacher_queue_directory,
+                        verdict_directory,
+                        responses_path,
+                        quality_report_path,
+                    )
+                )
+            self.assertEqual(incomplete_status, 2)
+            self.assertIn("incomplete", incomplete_stderr.getvalue())
+            self.assertFalse(responses_path.exists())
+
+            self._write_complete_verdicts(
+                teacher_queue_directory,
+                verdict_directory,
+                reviewer_id=self.FRESH_V5_REVIEWER_ID,
+                v5=True,
+            )
+            unauthorized_stderr = io.StringIO()
+            with redirect_stdout(io.StringIO()), redirect_stderr(unauthorized_stderr):
+                unauthorized_status = main(
+                    self._v5_finalize_arguments(
+                        queue_path,
+                        manifest_path,
+                        partition_report_path,
+                        partition_eligible_path,
+                        split_dataset_path,
+                        split_report_path,
+                        teacher_queue_directory,
+                        verdict_directory,
+                        responses_path,
+                        quality_report_path,
+                        authorize=False,
+                    )
+                )
+            self.assertEqual(unauthorized_status, 2)
+            self.assertIn("explicit owner authorization", unauthorized_stderr.getvalue())
+
+            swapped_partition = self._write_v5_gate_a_inputs(
+                root, suffix="-swapped"
+            )[2]
+            swapped_stderr = io.StringIO()
+            with redirect_stdout(io.StringIO()), redirect_stderr(swapped_stderr):
+                swapped_status = main(
+                    self._v5_finalize_arguments(
+                        queue_path,
+                        manifest_path,
+                        swapped_partition,
+                        partition_eligible_path,
+                        split_dataset_path,
+                        split_report_path,
+                        teacher_queue_directory,
+                        verdict_directory,
+                        responses_path,
+                        quality_report_path,
+                    )
+                )
+            self.assertEqual(swapped_status, 2)
+            self.assertIn("partition eligible artifact", swapped_stderr.getvalue())
+
+            finalize_stdout = io.StringIO()
+            finalize_stderr = io.StringIO()
+            with redirect_stdout(finalize_stdout), redirect_stderr(finalize_stderr):
+                finalize_status = main(
+                    self._v5_finalize_arguments(
+                        queue_path,
+                        manifest_path,
+                        partition_report_path,
+                        partition_eligible_path,
+                        split_dataset_path,
+                        split_report_path,
+                        teacher_queue_directory,
+                        verdict_directory,
+                        responses_path,
+                        quality_report_path,
+                    )
+                )
+            self.assertEqual((finalize_status, finalize_stderr.getvalue()), (0, ""))
+            summary = json.loads(finalize_stdout.getvalue())
+            self.assertEqual(summary["reviewer_id"], self.FRESH_V5_REVIEWER_ID)
+            self.assertEqual(summary["completed_record_count"], len(queue))
+            self.assertEqual(summary["pending_record_count"], 0)
+            self.assertFalse(summary["gate_a_human_audit_pass"])
+            self.assertNotIn("left_context", summary)
+            self.assertNotIn(queue[0]["stable_id"], finalize_stdout.getvalue())
+            responses = read_audit_responses(responses_path)
+            self.assertTrue(
+                all(
+                    response["reviewer_id"] == self.FRESH_V5_REVIEWER_ID
+                    for response in responses
+                )
+            )
+            quality = json.loads(quality_report_path.read_text(encoding="utf-8"))
+            self.assertTrue(quality["ai_teacher_authorized_by_owner"])
+            self.assertFalse(quality["gate_a_human_audit_pass"])
 
     def _finalize_arguments(
         self,

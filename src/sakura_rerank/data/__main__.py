@@ -42,11 +42,16 @@ from .corpus_v4 import (
 )
 from .corpus_v5 import (
     PASS_NAMES,
+    V5_GATE_A_QUEUE_MANIFEST_KIND,
     partition_blind_teacher_passes,
     publish_admissibility_partition_directory,
     publish_blind_teacher_queue_directory,
+    publish_v5_gate_a_teacher_queue_directory,
+    read_admissibility_partition_report,
     read_blind_teacher_queue_directory,
+    read_v5_split_report,
     scan_blind_verdict_directory,
+    validate_v5_gate_a_teacher_queue_binding,
 )
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
 from .exporter_requests import (
@@ -410,6 +415,35 @@ def _parser() -> argparse.ArgumentParser:
     v5_partition.add_argument("confirmation_queue_directory", type=Path)
     v5_partition.add_argument("confirmation_verdict_directory", type=Path)
     v5_partition.add_argument("output_directory", type=Path)
+
+    v5_gate_a_queue = corpus_v5_commands.add_parser(
+        "gate-a-queue", help="publish a fresh partition-bound Gate-A teacher queue"
+    )
+    v5_gate_a_queue.add_argument("queue", type=Path)
+    v5_gate_a_queue.add_argument("output_directory", type=Path)
+    v5_gate_a_queue.add_argument("--partition-report", type=Path, required=True)
+    v5_gate_a_queue.add_argument("--partition-eligible", type=Path, required=True)
+    v5_gate_a_queue.add_argument("--split-dataset", type=Path, required=True)
+    v5_gate_a_queue.add_argument("--split-report", type=Path, required=True)
+    v5_gate_a_queue.add_argument("--queue-manifest", type=Path, required=True)
+    v5_gate_a_queue.add_argument("--reviewer-id", required=True)
+    v5_gate_a_queue.add_argument("--batch-size", type=int, default=40)
+
+    v5_gate_a_finalize = corpus_v5_commands.add_parser(
+        "gate-a-finalize", help="finalize complete partition-bound Gate-A evidence"
+    )
+    v5_gate_a_finalize.add_argument("queue", type=Path)
+    v5_gate_a_finalize.add_argument("teacher_queue_directory", type=Path)
+    v5_gate_a_finalize.add_argument("verdict_directory", type=Path)
+    v5_gate_a_finalize.add_argument("responses", type=Path)
+    v5_gate_a_finalize.add_argument("report", type=Path)
+    v5_gate_a_finalize.add_argument("--partition-report", type=Path, required=True)
+    v5_gate_a_finalize.add_argument("--partition-eligible", type=Path, required=True)
+    v5_gate_a_finalize.add_argument("--split-dataset", type=Path, required=True)
+    v5_gate_a_finalize.add_argument("--split-report", type=Path, required=True)
+    v5_gate_a_finalize.add_argument("--queue-manifest", type=Path, required=True)
+    v5_gate_a_finalize.add_argument("--reviewed-at", required=True)
+    v5_gate_a_finalize.add_argument("--allow-ai-teacher", action="store_true")
 
     v5_historical_exclude = corpus_v5_commands.add_parser(
         "historical-exclude",
@@ -959,6 +993,147 @@ def _run(arguments: argparse.Namespace) -> int:
                         "report_content_sha256": hashlib.sha256(
                             canonical_json_bytes(report) + b"\n"
                         ).hexdigest(),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v5_command == "gate-a-queue":
+            ensure_distinct_tier_a_paths(
+                {
+                    "queue": arguments.queue,
+                    "queue_manifest": arguments.queue_manifest,
+                    "partition_report": arguments.partition_report,
+                    "partition_eligible": arguments.partition_eligible,
+                    "split_dataset": arguments.split_dataset,
+                    "split_report": arguments.split_report,
+                    "output_directory": arguments.output_directory,
+                }
+            )
+            queue = read_audit_queue(arguments.queue)
+            queue_manifest = read_queue_manifest(arguments.queue_manifest)
+            validate_queue_manifest(queue_manifest, queue)
+            partition_report = read_admissibility_partition_report(
+                arguments.partition_report
+            )
+            partition_eligible = read_jsonl(
+                arguments.partition_eligible, require_split=False
+            )
+            split_dataset = read_jsonl(arguments.split_dataset, require_split=True)
+            split_report = read_v5_split_report(arguments.split_report)
+            manifest = publish_v5_gate_a_teacher_queue_directory(
+                arguments.output_directory,
+                partition_eligible,
+                split_dataset,
+                split_report,
+                queue,
+                queue_manifest,
+                partition_report,
+                reviewer_id=arguments.reviewer_id,
+                batch_size=arguments.batch_size,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": manifest["record_count"],
+                        "batch_count": manifest["batch_count"],
+                        "content_sha256": manifest["content_sha256"],
+                        "reviewer_kind": manifest["reviewer_kind"],
+                        "reviewer_id": manifest["reviewer_id"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v5_command == "gate-a-finalize":
+            ensure_distinct_tier_a_paths(
+                {
+                    "queue": arguments.queue,
+                    "queue_manifest": arguments.queue_manifest,
+                    "partition_report": arguments.partition_report,
+                    "partition_eligible": arguments.partition_eligible,
+                    "split_dataset": arguments.split_dataset,
+                    "split_report": arguments.split_report,
+                    "teacher_queue_directory": arguments.teacher_queue_directory,
+                    "verdict_directory": arguments.verdict_directory,
+                    "responses": arguments.responses,
+                    "report": arguments.report,
+                }
+            )
+            if not arguments.allow_ai_teacher:
+                raise TierAError(
+                    "corpus v5: Gate-A AI teacher finalization requires explicit owner authorization"
+                )
+            queue = read_audit_queue(arguments.queue)
+            queue_manifest = read_queue_manifest(arguments.queue_manifest)
+            validate_queue_manifest(queue_manifest, queue)
+            partition_report = read_admissibility_partition_report(
+                arguments.partition_report
+            )
+            partition_eligible = read_jsonl(
+                arguments.partition_eligible, require_split=False
+            )
+            split_dataset = read_jsonl(arguments.split_dataset, require_split=True)
+            split_report = read_v5_split_report(arguments.split_report)
+            teacher_batches, teacher_manifest = read_teacher_queue_directory(
+                arguments.teacher_queue_directory,
+                expected_manifest_kind=V5_GATE_A_QUEUE_MANIFEST_KIND,
+                require_source_provenance=True,
+                require_canonical_bytes=True,
+            )
+            teacher_batches, reviewer_id = validate_v5_gate_a_teacher_queue_binding(
+                partition_eligible,
+                split_dataset,
+                split_report,
+                queue,
+                queue_manifest,
+                teacher_batches,
+                teacher_manifest,
+                partition_report,
+            )
+            verdicts, pending = scan_verdict_directory(
+                arguments.teacher_queue_directory,
+                arguments.verdict_directory,
+                expected_manifest_kind=V5_GATE_A_QUEUE_MANIFEST_KIND,
+                require_source_provenance=True,
+                require_canonical_bytes=True,
+            )
+            if pending:
+                raise TierAError("corpus v5: Gate-A teacher verdicts are incomplete")
+            responses = finalize_gate_a_teacher_responses(
+                teacher_batches,
+                verdicts,
+                reviewed_at=arguments.reviewed_at,
+                reviewer_id=reviewer_id,
+            )
+            response_sha, report_sha, report = publish_gate_a_teacher_evidence(
+                arguments.responses,
+                arguments.report,
+                queue,
+                responses,
+                reviewer_id=reviewer_id,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "finalized",
+                        "completed_record_count": report["completed_record_count"],
+                        "pending_record_count": report["pending_record_count"],
+                        "valid_record_count": report["valid_record_count"],
+                        "invalid_record_count": report["invalid_record_count"],
+                        "point_precision": report["point_precision"],
+                        "wilson_95_lower_bound": report["wilson_95_lower_bound"],
+                        "gate_a_human_audit_pass": report["gate_a_human_audit_pass"],
+                        "gate_a_owner_authorized_audit_pass": report[
+                            "gate_a_owner_authorized_audit_pass"
+                        ],
+                        "response_sha256": response_sha,
+                        "report_sha256": report_sha,
+                        "reviewer_kind": "ai_teacher",
+                        "reviewer_id": reviewer_id,
                     },
                     sort_keys=True,
                 )

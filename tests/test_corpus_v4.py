@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from sakura_rerank.data.contracts import canonical_json_bytes
 from sakura_rerank.data.corpus_v4 import (
     ADJUDICATION_REVIEWER_ID,
     GATE_A_REVIEWER_ID,
@@ -95,6 +96,38 @@ class CorpusV4Tests(unittest.TestCase):
                 reviewer_id=GATE_A_REVIEWER_ID,
             )
         self.assertEqual(manifest["stage"], "gate_a")
+        self.assertNotIn("source_provenance", manifest)
+
+    def test_v4_reader_rejects_optional_source_provenance(self) -> None:
+        queue = stage3_human_audit_items(records(2), ["v4-0000", "v4-0001"])
+        batches = build_gate_a_teacher_batches(queue)
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "gate-a"
+            publish_teacher_queue_directory(
+                target,
+                batches,
+                stage="gate_a",
+                reviewer_kind="ai_teacher",
+                reviewer_id=GATE_A_REVIEWER_ID,
+            )
+            manifest_path = target / "manifest.json"
+            manifest = json.loads(manifest_path.read_bytes())
+            manifest["source_provenance"] = {"schema_version": 1}
+            manifest_path.write_bytes(canonical_json_bytes(manifest) + b"\n")
+            with self.assertRaisesRegex(TierAError, "manifest fields"):
+                read_teacher_queue_directory(target)
+
+        with tempfile.TemporaryDirectory() as directory, self.assertRaisesRegex(
+            TierAError, "v4 queue manifests cannot contain source provenance"
+        ):
+            publish_teacher_queue_directory(
+                Path(directory) / "gate-a",
+                batches,
+                stage="gate_a",
+                reviewer_kind="ai_teacher",
+                reviewer_id=GATE_A_REVIEWER_ID,
+                source_provenance={"schema_version": 1},
+            )
 
     def test_gate_a_finalizer_requires_complete_bound_verdicts_and_canonical_responses(self) -> None:
         queue = stage3_human_audit_items(
@@ -141,6 +174,56 @@ class CorpusV4Tests(unittest.TestCase):
         with self.assertRaisesRegex(TierAError, "outside the bound"):
             finalize_gate_a_teacher_responses(
                 batches, verdicts, reviewed_at="2" * 65
+            )
+
+    def test_gate_a_core_accepts_one_bounded_caller_supplied_reviewer_id(self) -> None:
+        reviewer_id = "fresh-gate-a-teacher"
+        queue = stage3_human_audit_items(records(2), ["v4-0000", "v4-0001"])
+        batches = build_gate_a_teacher_batches(queue)
+        verdicts = {
+            batch["batch_index"]: verdict(batch, reviewer=reviewer_id)
+            for batch in batches
+        }
+        responses = finalize_gate_a_teacher_responses(
+            batches,
+            verdicts,
+            reviewed_at="2026-08-13T12:34:56+09:00",
+            reviewer_id=reviewer_id,
+        )
+        self.assertTrue(
+            all(response["reviewer_id"] == reviewer_id for response in responses)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            teacher = root / "teacher"
+            publish_teacher_queue_directory(
+                teacher,
+                batches,
+                stage="gate_a",
+                reviewer_kind="ai_teacher",
+                reviewer_id=reviewer_id,
+            )
+            loaded, manifest = read_teacher_queue_directory(teacher)
+            self.assertEqual(
+                validate_gate_a_teacher_queue_binding(
+                    queue, loaded, manifest, reviewer_id=reviewer_id
+                ),
+                batches,
+            )
+            _, _, report = publish_gate_a_teacher_evidence(
+                root / "responses.jsonl",
+                root / "report.json",
+                queue,
+                responses,
+                reviewer_id=reviewer_id,
+            )
+            self.assertFalse(report["gate_a_human_audit_pass"])
+        with self.assertRaisesRegex(TierAError, "bounded identifier"):
+            finalize_gate_a_teacher_responses(
+                batches,
+                verdicts,
+                reviewed_at="2026-08-13T12:34:56+09:00",
+                reviewer_id="x" * 129,
             )
 
     def test_gate_a_binding_and_pair_publication_are_fail_closed(self) -> None:
