@@ -43,6 +43,7 @@ from .corpus_v4 import (
 from .corpus_v5 import (
     PASS_NAMES,
     V5_GATE_A_QUEUE_MANIFEST_KIND,
+    V5_VERDICT_RECORD_TYPE,
     partition_blind_teacher_passes,
     publish_admissibility_partition_directory,
     publish_blind_teacher_queue_directory,
@@ -1100,6 +1101,7 @@ def _run(arguments: argparse.Namespace) -> int:
                 expected_manifest_kind=V5_GATE_A_QUEUE_MANIFEST_KIND,
                 require_source_provenance=True,
                 require_canonical_bytes=True,
+                expected_verdict_record_type=V5_VERDICT_RECORD_TYPE,
             )
             if pending:
                 raise TierAError("corpus v5: Gate-A teacher verdicts are incomplete")
@@ -1108,6 +1110,7 @@ def _run(arguments: argparse.Namespace) -> int:
                 verdicts,
                 reviewed_at=arguments.reviewed_at,
                 reviewer_id=reviewer_id,
+                verdict_record_type=V5_VERDICT_RECORD_TYPE,
             )
             response_sha, report_sha, report = publish_gate_a_teacher_evidence(
                 arguments.responses,

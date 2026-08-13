@@ -583,6 +583,7 @@ def finalize_gate_a_teacher_responses(
     *,
     reviewed_at: str,
     reviewer_id: str = GATE_A_REVIEWER_ID,
+    verdict_record_type: str = V4_VERDICT_RECORD_TYPE,
 ) -> list[dict[str, Any]]:
     """Finalize one complete Gate-A teacher pass as standard audit responses."""
 
@@ -598,6 +599,7 @@ def finalize_gate_a_teacher_responses(
             verdicts[batch["batch_index"]],
             reviewer_kind="ai_teacher",
             reviewer_id=normalized_reviewer_id,
+            verdict_record_type=verdict_record_type,
         )
         responses.extend(
             {
@@ -892,14 +894,22 @@ def read_teacher_queue_directory(
     return normalized, dict(manifest)
 
 
-def validate_teacher_verdict_batch(batch: Mapping[str, Any], verdict_payload: Mapping[str, Any], *, reviewer_kind: str, reviewer_id: str) -> dict[str, Any]:
+def validate_teacher_verdict_batch(
+    batch: Mapping[str, Any],
+    verdict_payload: Mapping[str, Any],
+    *,
+    reviewer_kind: str,
+    reviewer_id: str,
+    verdict_record_type: str = V4_VERDICT_RECORD_TYPE,
+) -> dict[str, Any]:
     """Require exact in-order coverage and reviewer-bound, versioned verdicts."""
 
     expected = {"schema_version", "record_type", "batch_index", "reviewer_kind", "reviewer_id", "verdicts"}
     if not isinstance(verdict_payload, Mapping) or set(verdict_payload) != expected:
         _fail("verdict fields do not match schema")
     kind, identifier = _reviewer(reviewer_kind, reviewer_id)
-    if verdict_payload.get("schema_version") != V4_SCHEMA_VERSION or verdict_payload.get("record_type") != V4_VERDICT_RECORD_TYPE or verdict_payload.get("batch_index") != batch.get("batch_index") or verdict_payload.get("reviewer_kind") != kind or verdict_payload.get("reviewer_id") != identifier:
+    expected_record_type = _identifier(verdict_record_type, "verdict_record_type")
+    if verdict_payload.get("schema_version") != V4_SCHEMA_VERSION or verdict_payload.get("record_type") != expected_record_type or verdict_payload.get("batch_index") != batch.get("batch_index") or verdict_payload.get("reviewer_kind") != kind or verdict_payload.get("reviewer_id") != identifier:
         _fail("verdict batch provenance does not match queue")
     verdicts = verdict_payload.get("verdicts")
     items = batch.get("items")
@@ -915,7 +925,7 @@ def validate_teacher_verdict_batch(batch: Mapping[str, Any], verdict_payload: Ma
         if not isinstance(note, str) or len(note) > MAX_NOTE_CHARS or "\0" in note or "\n" in note or "\r" in note:
             _fail("verdict note is invalid")
         output.append(dict(verdict))
-    return {"schema_version": V4_SCHEMA_VERSION, "record_type": V4_VERDICT_RECORD_TYPE, "batch_index": batch["batch_index"], "reviewer_kind": kind, "reviewer_id": identifier, "verdicts": output}
+    return {"schema_version": V4_SCHEMA_VERSION, "record_type": expected_record_type, "batch_index": batch["batch_index"], "reviewer_kind": kind, "reviewer_id": identifier, "verdicts": output}
 
 
 def scan_verdict_directory(
@@ -925,6 +935,7 @@ def scan_verdict_directory(
     expected_manifest_kind: str = V4_QUEUE_MANIFEST_KIND,
     require_source_provenance: bool = False,
     require_canonical_bytes: bool = False,
+    expected_verdict_record_type: str = V4_VERDICT_RECORD_TYPE,
 ) -> tuple[dict[int, dict[str, Any]], list[int]]:
     """Return mechanically valid completed batches and pending indexes.
 
@@ -966,6 +977,7 @@ def scan_verdict_directory(
                 value,
                 reviewer_kind=manifest["reviewer_kind"],
                 reviewer_id=manifest["reviewer_id"],
+                verdict_record_type=expected_verdict_record_type,
             )
         except TierAError as exc:
             _fail(f"verdict batch {index:03d}: {exc}")

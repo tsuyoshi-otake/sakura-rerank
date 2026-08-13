@@ -852,8 +852,8 @@ class GateADataCliTests(unittest.TestCase):
         verdict_directory.mkdir()
         for batch in batches:
             payload = {
-                "schema_version": V4_SCHEMA_VERSION,
-                "record_type": V4_VERDICT_RECORD_TYPE,
+                "schema_version": V5_SCHEMA_VERSION if v5 else V4_SCHEMA_VERSION,
+                "record_type": V5_VERDICT_RECORD_TYPE if v5 else V4_VERDICT_RECORD_TYPE,
                 "batch_index": batch["batch_index"],
                 "reviewer_kind": "ai_teacher",
                 "reviewer_id": reviewer_id,

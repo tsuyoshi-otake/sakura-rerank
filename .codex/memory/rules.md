@@ -27,3 +27,8 @@
   working context. A confirmation pass had reviewed 400 rows while its resumable
   scanner still reported zero files; pausing further review and publishing one
   batch at a time restored the intended crash-safe boundary.
+- When a generic scanner or finalizer is reused across versioned evidence
+  contracts, make the expected record type an explicit bounded parameter with a
+  backward-compatible legacy default. Test both mismatch directions so a newer
+  artifact cannot silently enter the legacy path and a legacy artifact cannot
+  enter the newer path.

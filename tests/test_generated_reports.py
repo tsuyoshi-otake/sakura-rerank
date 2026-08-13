@@ -241,6 +241,135 @@ class GeneratedReportTests(unittest.TestCase):
             )
         )
 
+    def test_v5_gate_a_evidence_is_bound_aggregate_only_and_fails_closed(self) -> None:
+        quality_path = REPORTS / "issue-15-tier-a-owner-authorized-audit-v5.json"
+        quality_bytes = quality_path.read_bytes()
+        quality = load_report("issue-15-tier-a-owner-authorized-audit-v5.json")
+        evidence = load_report("issue-15-v5-admissibility-gate-a-evidence.json")
+
+        self.assertEqual(quality["schema_version"], 2)
+        self.assertEqual(quality["report_kind"], "tier_a_audit_quality")
+        self.assertEqual(quality["selected_record_count"], 3_576)
+        self.assertEqual(quality["completed_record_count"], 3_576)
+        self.assertEqual(quality["pending_record_count"], 0)
+        self.assertEqual(quality["valid_record_count"], 3_402)
+        self.assertEqual(quality["invalid_record_count"], 174)
+        self.assertEqual(
+            quality["verdict_counts"],
+            {
+                "valid": 3_402,
+                "ambiguous": 166,
+                "wrong_reading": 0,
+                "wrong_segmentation": 2,
+                "wrong_gold_surface": 0,
+                "extraction_noise": 6,
+            },
+        )
+        self.assertEqual(quality["reviewer_kind_counts"], {"ai_teacher": 3_576, "human": 0})
+        self.assertAlmostEqual(quality["point_precision"], 0.9513422818791947)
+        self.assertAlmostEqual(quality["wilson_95_lower_bound"], 0.9437934216764428)
+        self.assertTrue(quality["checks"]["minimum_completed"])
+        self.assertTrue(quality["checks"]["minimum_final_holdout_valid"])
+        self.assertTrue(quality["checks"]["accepted_reviewer_provenance"])
+        self.assertFalse(quality["checks"]["label_precision"])
+        self.assertTrue(quality["ai_teacher_authorized_by_owner"])
+        self.assertFalse(quality["gate_a_human_audit_pass"])
+        self.assertFalse(quality["gate_a_owner_authorized_audit_pass"])
+        self.assertFalse(quality["raw_text_in_report"])
+
+        self.assertEqual(
+            set(evidence),
+            {
+                "schema_version",
+                "report_kind",
+                "status",
+                "issue",
+                "partition",
+                "split",
+                "audit_queue",
+                "gate_a",
+                "raw_text_in_report",
+                "raw_stable_ids_in_report",
+                "raw_notes_in_report",
+            },
+        )
+        self.assertEqual(evidence["schema_version"], 1)
+        self.assertEqual(evidence["report_kind"], "tier_a_v5_admissibility_gate_a_evidence")
+        self.assertEqual(evidence["status"], "gate_a_failed")
+        self.assertEqual(evidence["issue"], 15)
+
+        partition = evidence["partition"]
+        self.assertEqual(
+            sum(bucket["record_count"] for bucket in partition["buckets"].values()),
+            partition["source_dataset_record_count"],
+        )
+        for pass_evidence in partition["passes"].values():
+            self.assertEqual(pass_evidence["record_count"], partition["source_dataset_record_count"])
+            self.assertEqual(
+                sum(pass_evidence["verdict_counts"].values()),
+                pass_evidence["record_count"],
+            )
+        self.assertEqual(
+            partition["buckets"]["eligible_unanimous_valid"]["record_count"],
+            17_880,
+        )
+        self.assertFalse(partition["raw_text_in_report"])
+        self.assertFalse(partition["raw_stable_ids_in_report"])
+        self.assertFalse(partition["raw_notes_in_report"])
+
+        split = evidence["split"]
+        self.assertEqual(split["dataset_record_count"], 17_880)
+        self.assertEqual(sum(split["counts"].values()), split["dataset_record_count"])
+        self.assertAlmostEqual(sum(split["ratios"].values()), 1.0)
+        self.assertEqual(split["seed"], 20260811)
+        self.assertEqual(split["counts"]["final_holdout"], 3_576)
+        self.assertTrue(all(value == 0 for value in split["cross_split_leakage"].values()))
+
+        audit = evidence["audit_queue"]
+        self.assertEqual(audit["seed"], 20260812)
+        self.assertEqual(audit["dataset_record_count"], split["dataset_record_count"])
+        self.assertEqual(audit["dataset_content_sha256"], split["dataset_content_sha256"])
+        self.assertEqual(audit["record_count"], audit["final_holdout_count"])
+        self.assertEqual(audit["record_count"], split["counts"]["final_holdout"])
+        self.assertGreaterEqual(audit["record_count"], audit["minimum_sample_size"])
+        self.assertFalse(audit["raw_text_in_manifest"])
+
+        gate = evidence["gate_a"]
+        self.assertEqual(gate["record_count"], audit["record_count"])
+        self.assertEqual(gate["batch_size_limit"], 40)
+        self.assertEqual(gate["batch_count"], 90)
+        tracked_quality = gate["quality_report"]
+        self.assertEqual(tracked_quality["file"], "reports/issue-15-tier-a-owner-authorized-audit-v5.json")
+        self.assertEqual(tracked_quality["bytes"], len(quality_bytes))
+        self.assertEqual(tracked_quality["sha256"], hashlib.sha256(quality_bytes).hexdigest())
+        self.assertEqual(tracked_quality["completed_record_count"], quality["completed_record_count"])
+        self.assertEqual(tracked_quality["pending_record_count"], quality["pending_record_count"])
+        self.assertEqual(tracked_quality["valid_record_count"], quality["valid_record_count"])
+        self.assertEqual(tracked_quality["invalid_record_count"], quality["invalid_record_count"])
+        self.assertEqual(tracked_quality["point_precision"], quality["point_precision"])
+        self.assertEqual(
+            tracked_quality["wilson_95_lower_bound"], quality["wilson_95_lower_bound"]
+        )
+        self.assertFalse(tracked_quality["human_pass"])
+        self.assertFalse(tracked_quality["owner_authorized_ai_pass"])
+        self.assertEqual(quality["queue_content_sha256"], audit["content_sha256"])
+
+        self.assertFalse(evidence["raw_text_in_report"])
+        self.assertFalse(evidence["raw_stable_ids_in_report"])
+        self.assertFalse(evidence["raw_notes_in_report"])
+        forbidden = {
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "note",
+            "reviewer_id",
+            "stable_id",
+            "rows",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(quality)))
+        self.assertTrue(forbidden.isdisjoint(object_keys(evidence)))
+
     def test_v4_context_bound_ablation_is_pinned_consistent_and_aggregate_only(self) -> None:
         report = load_report("issue-15-context-bound-ablation-v4.json")
 

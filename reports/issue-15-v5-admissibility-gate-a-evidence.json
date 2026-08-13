@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "report_kind": "tier_a_v5_admissibility_gate_a_evidence",
+  "status": "gate_a_failed",
+  "issue": 15,
+  "partition": {
+    "report_bytes": 2912,
+    "report_sha256": "61a16340a74faf272e771195cf4ab4214680d48c2d968f6fb8c97d6093111f2d",
+    "source_dataset_record_count": 21425,
+    "source_dataset_content_sha256": "731178e1f3956c5e66b5881fdb4afc85e87287239f21fe3efd60eb8e1ed017aa",
+    "queue_content_sha256": "e7bbdf04490bb0bd587a181d46cbb151497e67892b64ec54c3123181444fd155",
+    "passes": {
+      "first_screen": {
+        "record_count": 21425,
+        "queue_manifest_content_sha256": "729ca50bdf94b84318d96d7f7e52df381b9a258dda376956760f6a5625db5cff",
+        "verdict_state_content_sha256": "7704dd17f660c03378962de00baa557d177aec384ade213c800d3a859abf820e",
+        "verdict_counts": {
+          "valid": 19435,
+          "ambiguous": 1378,
+          "wrong_reading": 246,
+          "wrong_segmentation": 275,
+          "wrong_gold_surface": 23,
+          "extraction_noise": 68
+        }
+      },
+      "blind_confirmation": {
+        "record_count": 21425,
+        "queue_manifest_content_sha256": "37e757f3443bcef129e421b8fb585de96eea80b1517827f2306ed31985ca64d4",
+        "verdict_state_content_sha256": "77b5b775a4665deaa68887ac172155048c626c8276e52ecd6428829a6b1064c1",
+        "verdict_counts": {
+          "valid": 18715,
+          "ambiguous": 1836,
+          "wrong_reading": 315,
+          "wrong_segmentation": 409,
+          "wrong_gold_surface": 88,
+          "extraction_noise": 62
+        }
+      }
+    },
+    "buckets": {
+      "eligible_unanimous_valid": {
+        "record_count": 17880,
+        "content_sha256": "224cc74d47aca4c554cba7bbad8a303b9375302bf7fa42f61bccae8bad3c78e9"
+      },
+      "intrinsic_surface_ambiguity": {
+        "record_count": 2569,
+        "content_sha256": "21cd35e6a512e0bf72965c0ef4ce01da4867bdd1fd4db51c6f61e84fa4c563ab"
+      },
+      "repairable_label_error": {
+        "record_count": 850,
+        "content_sha256": "59fb8dcceecbbd941c814ae421c5b55d5ba52615408c3e278e7f3ea0979b92fd"
+      },
+      "extraction_noise": {
+        "record_count": 126,
+        "content_sha256": "d5f0f6c757e2df7c03ba2e132e5b95aff6751be6f8cdeff18b2229bd251f9481"
+      },
+      "unresolved_disagreement": {
+        "record_count": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "raw_text_in_report": false,
+    "raw_stable_ids_in_report": false,
+    "raw_notes_in_report": false
+  },
+  "split": {
+    "report_bytes": 1161852,
+    "report_sha256": "ac0e1dd95f9f4db1d1dbbae46a310764731218599bcb5190b4707dbeb71b65e0",
+    "dataset_record_count": 17880,
+    "dataset_content_sha256": "0651bfaa3fb67da7980dcbbe4ad5de6e383e2878c726ace53a189d74519b1d82",
+    "seed": 20260811,
+    "ratios": {
+      "train": 0.7,
+      "dev": 0.1,
+      "final_holdout": 0.2
+    },
+    "counts": {
+      "train": 12516,
+      "dev": 1788,
+      "final_holdout": 3576
+    },
+    "content_sha256": {
+      "train": "ba0a1c3e00daa8372d05553cb24fca3e7e55b0aaffc7c2a88ff4857523b9f6ab",
+      "dev": "f85e42031a1ece939aa1dfa0cfaceda727347027d929dc0ac730bd0af03bb424",
+      "final_holdout": "dede02cb205dfd970537d74e72e715792dcd6f9ea82c1d275ce4ee1e0309a8a3"
+    },
+    "near_duplicate_threshold": 0.8,
+    "cross_split_leakage": {
+      "article": 0,
+      "paragraph_exact": 0,
+      "sentence_near_duplicate": 0,
+      "template_cluster": 0
+    }
+  },
+  "audit_queue": {
+    "manifest_bytes": 891,
+    "manifest_sha256": "124765901093ae2fc7e9d94aaa8cac653d10dc71396808eddc12fdfb58c39822",
+    "seed": 20260812,
+    "minimum_sample_size": 3000,
+    "dataset_record_count": 17880,
+    "dataset_content_sha256": "0651bfaa3fb67da7980dcbbe4ad5de6e383e2878c726ace53a189d74519b1d82",
+    "final_holdout_count": 3576,
+    "record_count": 3576,
+    "content_sha256": "638acaa276074288ad7c57688a7a583a45680455c9b61989fb3cf97b15261c09",
+    "raw_text_in_manifest": false
+  },
+  "gate_a": {
+    "queue_manifest_bytes": 13219,
+    "queue_manifest_sha256": "752466b067cd144bd66d14a10cca59c127944a070c7b48165c16c22f1f791e7b",
+    "queue_content_sha256": "a72def25393f0898a0ebd988b3136abd6625a62df7ffc0e3ea91215aa2f5c42d",
+    "record_count": 3576,
+    "batch_count": 90,
+    "batch_size_limit": 40,
+    "quality_report": {
+      "file": "reports/issue-15-tier-a-owner-authorized-audit-v5.json",
+      "bytes": 1513,
+      "sha256": "4f52d4999f50ee6d1c2efc45e7c5a4b3e69fb8c463dcb099180b7e8faf81f869",
+      "completed_record_count": 3576,
+      "pending_record_count": 0,
+      "valid_record_count": 3402,
+      "invalid_record_count": 174,
+      "point_precision": 0.9513422818791947,
+      "wilson_95_lower_bound": 0.9437934216764428,
+      "human_pass": false,
+      "owner_authorized_ai_pass": false
+    }
+  },
+  "raw_text_in_report": false,
+  "raw_stable_ids_in_report": false,
+  "raw_notes_in_report": false
+}

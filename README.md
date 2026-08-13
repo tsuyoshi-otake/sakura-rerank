@@ -16,25 +16,24 @@ reproducible research-only top-32 exporter. The first expanded Tier A snapshot
 retained 33,553 of 40,703 source rows, assigned 5,033 rows to the final holdout
 with zero measured cross-split leakage, and measured Oracle Recall@6 at 99.064%.
 
-Gate A is still pending. At the owner's direction, Codex inspected the first 120
-expanded-v1 queue rows as an explicitly identified `ai_teacher`: 115 were valid
-and five were rejected (95.83% point precision, 90.62% Wilson lower bound).
-Cleaner v2 then reproduced 30,003 corrected source spans and the complete
-downstream chain twice byte-identically. It yielded 23,081 automatic Tier A rows,
-a 3,462-row final holdout, and zero measured cross-split leakage. The next
-teacher pass stopped after finding a contract-level failure: 9,486 Tier A rows
-had readings shorter than the specified three-character minimum, and residual
-MediaWiki emphasis/file markup remained. Cleaner v3 filters dictionary readings
-to 3--128 characters before matching, export, and non-fixture training, and has
-now reproduced 24,069 corrected source spans twice with byte-identical output
-and report pairs. Its downstream candidate snapshot and a fresh teacher queue
-must still be regenerated and audited before model training. None of this is
-reported as human review. The queue, aggregate
-evidence, and remaining quality gate are tracked in
-[Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15) and
-[`reports/issue-15-tier-a-pre-review.json`](reports/issue-15-tier-a-pre-review.json).
-The first teacher-audit result is recorded in
-[`reports/issue-15-tier-a-teacher-audit-120.json`](reports/issue-15-tier-a-teacher-audit-120.json).
+Gate A remains fail-closed. Cleaner v5 reproduced 24,064 source spans twice
+byte-identically, regenerated the complete Tier A chain, and subjected all
+21,425 historically eligible rows to two distinct full blind AI-teacher passes.
+Only the 17,880 unanimous-valid rows were admitted. The frozen 70/10/20 split
+contains 12,516 train, 1,788 dev, and 3,576 final-holdout rows with zero measured
+article, exact-paragraph, sentence-near-duplicate, or template-cluster leakage.
+
+At the owner's direction, a fresh and separately identified AI teacher reviewed
+all 3,576 final-holdout rows: 3,402 were valid and 174 were non-valid. Point
+precision was 95.134% and the Wilson 95% lower bound was 94.379%, below the
+required 99.5% and 99.0% thresholds. This is owner-authorized AI evidence, not
+human review; both the human Gate A and owner-authorized AI Gate A remain false.
+Training, Gate B, protocol changes, and production enablement therefore remain
+blocked. The aggregate-only evidence is tracked in
+[Issue #15](https://github.com/tsuyoshi-otake/sakura-rerank/issues/15),
+[`reports/issue-15-v5-admissibility-gate-a-evidence.json`](reports/issue-15-v5-admissibility-gate-a-evidence.json),
+and
+[`reports/issue-15-tier-a-owner-authorized-audit-v5.json`](reports/issue-15-tier-a-owner-authorized-audit-v5.json).
 Reviewers can use the loopback-only `human-audit serve` interface documented in
 [`src/sakura_rerank/data/README.md`](src/sakura_rerank/data/README.md); every
 click is atomically persisted and resumable without sending queue text to an

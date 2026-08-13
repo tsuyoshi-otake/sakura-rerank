@@ -35,3 +35,15 @@ counts and hashes, records 3,304 valid / 183 non-valid labels, and keeps both
 the human Gate A and owner-authorized AI audit gate false. The canonical raw
 responses remain ignored. Reviewer ambiguity and rejection are valid outcomes;
 human perfection is not a quality criterion.
+
+Issue #15's cleaner-v5 regeneration and fail-closed Gate A result are recorded
+by `issue-15-v5-admissibility-gate-a-evidence.json` and
+`issue-15-tier-a-owner-authorized-audit-v5.json`. The evidence report binds the
+two full blind passes, five-way admissibility partition, frozen 70/10/20 split,
+full final-holdout queue, immutable Gate A batches, and final quality report by
+aggregate counts and SHA-256 commitments. The quality report records 3,402 valid
+and 174 non-valid outcomes across all 3,576 final-holdout rows. Its 95.134% point
+precision and 94.379% Wilson lower bound miss the required thresholds, so both
+the human and owner-authorized AI gates remain false. Neither report contains
+raw Wikipedia text, stable IDs, reviewer notes, or reviewer identities; all raw
+queues, responses, and partition artifacts remain ignored generated data.

@@ -13,7 +13,6 @@ from sakura_rerank.data import corpus_v5
 from sakura_rerank.data.contracts import canonical_json_bytes
 from sakura_rerank.data.corpus_v4 import (
     GATE_A_REVIEWER_ID,
-    V4_SCHEMA_VERSION,
     V4_VERDICT_RECORD_TYPE,
     read_teacher_queue_directory,
     scan_verdict_directory,
@@ -506,8 +505,8 @@ class CorpusV5Tests(unittest.TestCase):
             verdict_directory = root / "verdicts"
             verdict_directory.mkdir()
             payload = {
-                "schema_version": V4_SCHEMA_VERSION,
-                "record_type": V4_VERDICT_RECORD_TYPE,
+                "schema_version": V5_SCHEMA_VERSION,
+                "record_type": V5_VERDICT_RECORD_TYPE,
                 "batch_index": 0,
                 "reviewer_kind": "ai_teacher",
                 "reviewer_id": reviewer_id,
@@ -527,7 +526,32 @@ class CorpusV5Tests(unittest.TestCase):
             )
             with self.assertRaisesRegex(TierAError, "not canonical JSON with LF"):
                 scan_verdict_directory(
+                    teacher_directory,
+                    verdict_directory,
+                    expected_verdict_record_type=V5_VERDICT_RECORD_TYPE,
+                    **read_options,
+                )
+            write_canonical_json(verdict_directory / "verdicts-000.json", payload)
+            completed, pending = scan_verdict_directory(
+                teacher_directory,
+                verdict_directory,
+                expected_verdict_record_type=V5_VERDICT_RECORD_TYPE,
+                **read_options,
+            )
+            self.assertEqual((len(completed), pending), (1, []))
+
+            with self.assertRaisesRegex(TierAError, "provenance does not match queue"):
+                scan_verdict_directory(
                     teacher_directory, verdict_directory, **read_options
+                )
+            payload["record_type"] = V4_VERDICT_RECORD_TYPE
+            write_canonical_json(verdict_directory / "verdicts-000.json", payload)
+            with self.assertRaisesRegex(TierAError, "provenance does not match queue"):
+                scan_verdict_directory(
+                    teacher_directory,
+                    verdict_directory,
+                    expected_verdict_record_type=V5_VERDICT_RECORD_TYPE,
+                    **read_options,
                 )
 
     def test_pre_split_queue_is_nonfixture_blind_stable_and_bounded(self) -> None:
