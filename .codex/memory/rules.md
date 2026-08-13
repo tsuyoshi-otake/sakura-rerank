@@ -22,3 +22,8 @@
   outputs open. Before restarting or deleting anything, inspect the exact process
   ancestry and command lines, assign cleanup ownership, and prove the descendants
   have exited.
+- For long explicit-review queues, durable progress means one published and
+  mechanically validated verdict batch, not judgments retained in an agent's
+  working context. A confirmation pass had reviewed 400 rows while its resumable
+  scanner still reported zero files; pausing further review and publishing one
+  batch at a time restored the intended crash-safe boundary.
