@@ -195,6 +195,52 @@ class GeneratedReportTests(unittest.TestCase):
             )
         )
 
+    def test_v4_owner_authorized_audit_is_complete_text_free_and_fails_gate(self) -> None:
+        report = load_report("issue-15-tier-a-owner-authorized-audit-v4.json")
+
+        self.assertEqual(report["schema_version"], 2)
+        self.assertEqual(report["report_kind"], "tier_a_audit_quality")
+        self.assertEqual(report["selected_record_count"], 3_487)
+        self.assertEqual(report["completed_record_count"], 3_487)
+        self.assertEqual(report["pending_record_count"], 0)
+        self.assertEqual(report["valid_record_count"], 3_304)
+        self.assertEqual(report["invalid_record_count"], 183)
+        self.assertEqual(
+            report["verdict_counts"],
+            {
+                "valid": 3_304,
+                "wrong_reading": 15,
+                "wrong_segmentation": 6,
+                "wrong_gold_surface": 4,
+                "ambiguous": 119,
+                "extraction_noise": 39,
+            },
+        )
+        self.assertEqual(report["reviewer_kind_counts"], {"ai_teacher": 3_487, "human": 0})
+        self.assertEqual(
+            report["queue_content_sha256"],
+            "5843a969a050f19e897b0d0f8dc2c173d4fedb759bcc7b04ba142c8d9ffebaa2",
+        )
+        self.assertEqual(
+            report["response_content_sha256"],
+            "6e36955e6d678d0cc45d1997a233e670c1d372a1ae322fc807f1a70418c2f25b",
+        )
+        self.assertAlmostEqual(report["point_precision"], 0.9475193576139949)
+        self.assertAlmostEqual(report["wilson_95_lower_bound"], 0.9396131571026306)
+        self.assertTrue(report["checks"]["minimum_completed"])
+        self.assertTrue(report["checks"]["minimum_final_holdout_valid"])
+        self.assertTrue(report["checks"]["accepted_reviewer_provenance"])
+        self.assertFalse(report["checks"]["label_precision"])
+        self.assertTrue(report["ai_teacher_authorized_by_owner"])
+        self.assertFalse(report["gate_a_human_audit_pass"])
+        self.assertFalse(report["gate_a_owner_authorized_audit_pass"])
+        self.assertFalse(report["raw_text_in_report"])
+        self.assertTrue(
+            {"text", "surface", "reading", "left_context", "note", "reviewer_id", "stable_id"}.isdisjoint(
+                object_keys(report)
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

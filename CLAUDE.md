@@ -30,6 +30,8 @@ research boundary.
   `manifests/tier-a-human-audit-queue-expanded-v3-verified.json`
 - Expanded v3 teacher audit result:
   `reports/issue-15-tier-a-teacher-audit-v3.json`
+- Corpus v4 owner-authorized AI audit result:
+  `reports/issue-15-tier-a-owner-authorized-audit-v4.json`
 
 The old expanded-v1 chain produced 33,553 automatic Tier A records and a
 5,033-row final holdout with zero measured article, exact-paragraph,
@@ -61,6 +63,13 @@ production decision.
 The teacher result is explicitly not human review. Automatic verification is
 prerequisite evidence, not a Gate A/B result and not approval for production
 integration. No Sakura-Rerank-Tiny-v1 model has been selected or exported yet.
+
+Stage 4 then reproduced a precision-first v4 chain with a complete 3,487-row
+final holdout. A separately owner-assigned fresh GPT-5.6 Sol audit reviewed all
+rows without external context or reused responses: 3,304 valid and 183
+non-valid, point precision 0.947519 and Wilson lower bound 0.939613. The
+owner-authorized AI audit and the human Gate A are both false. Gate A therefore
+remains closed; no training, Gate B, or production integration is unblocked.
 
 ## Data and privacy
 

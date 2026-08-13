@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,17 +11,22 @@ from unittest.mock import patch
 
 from sakura_rerank.data.corpus_v4 import (
     ADJUDICATION_REVIEWER_ID,
+    GATE_A_REVIEWER_ID,
     MAX_BATCH_ITEMS,
     SCREEN_REVIEWER_ID,
+    V4_QUEUE_RECORD_TYPE,
     V4_SCHEMA_VERSION,
     V4_VERDICT_RECORD_TYPE,
     analyze_stage0_dev_rules,
     build_stage3_calibration_queue,
     build_stage2_batches,
+    build_gate_a_teacher_batches,
     build_teacher_batches,
     discover_teacher_disagreements,
+    finalize_gate_a_teacher_responses,
     partition_stage2,
     publish_partition_directory,
+    publish_gate_a_teacher_evidence,
     publish_teacher_queue_directory,
     read_teacher_queue_directory,
     scan_verdict_directory,
@@ -27,6 +34,7 @@ from sakura_rerank.data.corpus_v4 import (
     stage0_probe_report,
     stage3_one_pass_only_ids,
     stage3_human_audit_items,
+    validate_gate_a_teacher_queue_binding,
 )
 from sakura_rerank.data.tier_a import TierAError
 from tests.test_data_contracts import _rehash_snapshots, production_record
@@ -62,6 +70,170 @@ def verdict(batch: dict[str, object], *, nonvalid: set[str] = set(), reviewer: s
 
 
 class CorpusV4Tests(unittest.TestCase):
+    def test_gate_a_adapter_preserves_standard_queue_rows_and_uses_40_item_batches(self) -> None:
+        source = records(88)
+        queue = stage3_human_audit_items(
+            source, [item["stable_id"] for item in source]
+        )
+        batches = build_gate_a_teacher_batches(queue)
+
+        self.assertEqual([len(batch["items"]) for batch in batches], [40, 40, 8])
+        flattened = [item for batch in batches for item in batch["items"]]
+        self.assertEqual([item["stable_id"] for item in flattened], [item["stable_id"] for item in queue])
+        for original, adapted in zip(queue, flattened, strict=True):
+            expected = dict(original)
+            expected["schema_version"] = 2
+            expected["record_type"] = V4_QUEUE_RECORD_TYPE
+            self.assertEqual(adapted, expected)
+
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = publish_teacher_queue_directory(
+                Path(directory) / "gate-a",
+                batches,
+                stage="gate_a",
+                reviewer_kind="ai_teacher",
+                reviewer_id=GATE_A_REVIEWER_ID,
+            )
+        self.assertEqual(manifest["stage"], "gate_a")
+
+    def test_gate_a_finalizer_requires_complete_bound_verdicts_and_canonical_responses(self) -> None:
+        queue = stage3_human_audit_items(
+            records(41), [f"v4-{index:04d}" for index in range(41)]
+        )
+        batches = build_gate_a_teacher_batches(queue)
+        verdicts = {
+            batch["batch_index"]: verdict(batch, reviewer=GATE_A_REVIEWER_ID)
+            for batch in reversed(batches)
+        }
+        responses = finalize_gate_a_teacher_responses(
+            batches, verdicts, reviewed_at="2026-08-13T12:34:56+09:00"
+        )
+
+        self.assertEqual([response["stable_id"] for response in responses], sorted(item["stable_id"] for item in queue))
+        self.assertTrue(all(response["schema_version"] == 2 for response in responses))
+        self.assertTrue(all(response["record_type"] == "tier_a_audit_response" for response in responses))
+        self.assertTrue(all(response["reviewer_kind"] == "ai_teacher" for response in responses))
+        self.assertTrue(all(response["reviewer_id"] == GATE_A_REVIEWER_ID for response in responses))
+        self.assertTrue(all(response["reviewed_at"] == "2026-08-13T12:34:56+09:00" for response in responses))
+
+        missing = dict(verdicts)
+        del missing[0]
+        with self.assertRaisesRegex(TierAError, "cover every batch exactly"):
+            finalize_gate_a_teacher_responses(
+                batches, missing, reviewed_at="2026-08-13T12:34:56+09:00"
+            )
+        extra = dict(verdicts)
+        extra[99] = verdicts[0]
+        with self.assertRaisesRegex(TierAError, "cover every batch exactly"):
+            finalize_gate_a_teacher_responses(
+                batches, extra, reviewed_at="2026-08-13T12:34:56+09:00"
+            )
+        wrong_identity = dict(verdicts)
+        wrong_identity[0] = verdict(batches[0], reviewer=SCREEN_REVIEWER_ID)
+        with self.assertRaisesRegex(TierAError, "provenance"):
+            finalize_gate_a_teacher_responses(
+                batches, wrong_identity, reviewed_at="2026-08-13T12:34:56+09:00"
+            )
+        with self.assertRaisesRegex(TierAError, "needs timezone"):
+            finalize_gate_a_teacher_responses(
+                batches, verdicts, reviewed_at="2026-08-13T12:34:56"
+            )
+        with self.assertRaisesRegex(TierAError, "outside the bound"):
+            finalize_gate_a_teacher_responses(
+                batches, verdicts, reviewed_at="2" * 65
+            )
+
+    def test_gate_a_binding_and_pair_publication_are_fail_closed(self) -> None:
+        queue = stage3_human_audit_items(
+            records(41), [f"v4-{index:04d}" for index in range(41)]
+        )
+        batches = build_gate_a_teacher_batches(queue)
+        verdicts = {
+            batch["batch_index"]: verdict(batch, reviewer=GATE_A_REVIEWER_ID)
+            for batch in batches
+        }
+        responses = finalize_gate_a_teacher_responses(
+            batches, verdicts, reviewed_at="2026-08-13T12:34:56+09:00"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            teacher_queue = root / "teacher"
+            manifest = publish_teacher_queue_directory(
+                teacher_queue,
+                batches,
+                stage="gate_a",
+                reviewer_kind="ai_teacher",
+                reviewer_id=GATE_A_REVIEWER_ID,
+            )
+            loaded, loaded_manifest = read_teacher_queue_directory(teacher_queue)
+            self.assertEqual(
+                validate_gate_a_teacher_queue_binding(queue, loaded, loaded_manifest),
+                batches,
+            )
+            changed = copy.deepcopy(queue)
+            changed[0]["left_context"] = "changed"
+            with self.assertRaisesRegex(TierAError, "bind"):
+                validate_gate_a_teacher_queue_binding(changed, loaded, loaded_manifest)
+            wrong_manifest = dict(manifest)
+            wrong_manifest["stage"] = "stage1"
+            with self.assertRaisesRegex(TierAError, "provenance"):
+                validate_gate_a_teacher_queue_binding(queue, loaded, wrong_manifest)
+
+            response_path = root / "responses.jsonl"
+            report_path = root / "report.json"
+            response_sha, report_sha, report = publish_gate_a_teacher_evidence(
+                response_path, report_path, queue, responses
+            )
+            self.assertEqual(response_sha, hashlib.sha256(response_path.read_bytes()).hexdigest())
+            self.assertEqual(report_sha, hashlib.sha256(report_path.read_bytes()).hexdigest())
+            self.assertFalse(report["gate_a_human_audit_pass"])
+            self.assertEqual(report["reviewer_kind_counts"], {"human": 0, "ai_teacher": 41})
+
+            wrong_responses = copy.deepcopy(responses)
+            wrong_responses[0]["reviewer_id"] = SCREEN_REVIEWER_ID
+            with self.assertRaisesRegex(TierAError, "provenance"):
+                publish_gate_a_teacher_evidence(
+                    root / "bad.jsonl", root / "bad.json", queue, wrong_responses
+                )
+            with self.assertRaisesRegex(TierAError, "provenance"):
+                publish_gate_a_teacher_evidence(
+                    root / "short.jsonl", root / "short.json", queue, responses[:-1]
+                )
+
+    def test_gate_a_pair_publication_rolls_back_on_second_replace_failure(self) -> None:
+        queue = stage3_human_audit_items(records(1), ["v4-0000"])
+        batches = build_gate_a_teacher_batches(queue)
+        responses = finalize_gate_a_teacher_responses(
+            batches,
+            {0: verdict(batches[0], reviewer=GATE_A_REVIEWER_ID)},
+            reviewed_at="2026-08-13T12:34:56+09:00",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            response_path = root / "responses.jsonl"
+            report_path = root / "report.json"
+            response_path.write_bytes(b"old-response\n")
+            report_path.write_bytes(b"old-report\n")
+            original_replace = os.replace
+            calls = 0
+
+            def fail_second_replace(source: object, destination: object) -> None:
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    raise OSError("injected")
+                original_replace(source, destination)
+
+            with patch(
+                "sakura_rerank.atomic_io.os.replace", side_effect=fail_second_replace
+            ):
+                with self.assertRaisesRegex(OSError, "injected"):
+                    publish_gate_a_teacher_evidence(
+                        response_path, report_path, queue, responses
+                    )
+            self.assertEqual(response_path.read_bytes(), b"old-response\n")
+            self.assertEqual(report_path.read_bytes(), b"old-report\n")
+
     def test_stage0_is_aggregate_only_and_batches_are_complete_stable_and_bounded(self) -> None:
         source = records()
         report = stage0_probe_report(source)

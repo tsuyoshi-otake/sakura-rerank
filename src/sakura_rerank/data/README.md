@@ -474,13 +474,32 @@ zero cross-split leakage.
 The audit queue deliberately contains the complete 3,487-record final holdout,
 not a partial sample. Its canonical SHA-256 is
 `5843a969a050f19e897b0d0f8dc2c173d4fedb759bcc7b04ba142c8d9ffebaa2`.
-It has no responses or verdicts and is therefore strictly pre-audit evidence,
-not a Gate A result. Ambiguous and rejected outcomes are valid reviewer
-outcomes; the protocol does not require human perfection. The tracked,
-aggregate-only verification manifests are
+The tracked, aggregate-only pre-audit verification manifests are
 `tier-a-human-audit-queue-expanded-v4-verified.json` and the A/B pair
 `tier-a-v4-a-pre-audit-chain-verified.json` /
 `tier-a-v4-b-pre-audit-chain-verified.json`.
+
+After a separate owner assignment, the whole queue was reviewed fresh in 88
+strict batches by `ai_teacher/gpt-5.6-sol-gate-a-20260813`. No v1--v3 response
+was reused, no external context was fetched, and nothing was written to
+`sampled_human_audit`. All 3,487 responses were mechanically checked for exact
+ordered coverage and provenance before canonical finalization. The result was
+3,304 valid and 183 non-valid: 119 `ambiguous`, 39 `extraction_noise`, 15
+`wrong_reading`, 6 `wrong_segmentation`, and 4 `wrong_gold_surface`. Point
+precision is 0.947519 and the 95% Wilson lower bound is 0.939613, below the
+unchanged 0.995/0.990 thresholds. Both the human gate and the distinct
+owner-authorized AI audit gate remain false. The raw responses stay ignored;
+the tracked aggregate-only result is
+`reports/issue-15-tier-a-owner-authorized-audit-v4.json`. Ambiguity and
+rejection are valid outcomes, so neither this protocol nor a later human audit
+requires a reviewer to be infallible.
+
+The official resumable boundary for another owner-assigned Gate-A teacher pass
+uses `corpus-v4 gate-a-queue` to adapt a hash-bound standard audit queue into
+immutable batches of at most 40, and `corpus-v4 gate-a-finalize` to require full
+strict verdict coverage and pair-publish canonical responses with an
+aggregate-only report. Finalization requires the explicit
+`--allow-ai-teacher` policy switch and can never set the human gate.
 
 The manifest command returns status 3 for a structured blocker. The split
 command rejects any normalized or filesystem-alias collision among input,

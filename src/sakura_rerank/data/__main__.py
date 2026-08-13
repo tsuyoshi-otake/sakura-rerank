@@ -13,18 +13,22 @@ from .contracts import ContractError, canonical_json_bytes, canonical_jsonl_byte
 from .corpus_v4 import (
     ADJUDICATION_REVIEWER_ID,
     CALIBRATION_SEED,
+    GATE_A_REVIEWER_ID,
     SCREEN_REVIEWER_ID,
     analyze_stage0_dev_rules,
     audit_response_verdict_map,
+    build_gate_a_teacher_batches,
     build_stage2_batches,
     build_teacher_batches,
     discover_teacher_disagreements,
+    finalize_gate_a_teacher_responses,
     flatten_handoff_verdicts,
     flatten_teacher_verdicts,
     merge_external_verdict_maps,
     partition_stage2,
     preflight_v4_inputs,
     publish_partition_directory,
+    publish_gate_a_teacher_evidence,
     publish_stage3_calibration_queue,
     publish_teacher_queue_directory,
     read_handoff_batches,
@@ -34,6 +38,7 @@ from .corpus_v4 import (
     stage0_deterministic_hit_ids,
     stage0_probe_report,
     teacher_verdict_state_sha256,
+    validate_gate_a_teacher_queue_binding,
 )
 from .dictionary_index import build_dictionary_index, publish_dictionary_index
 from .exporter_requests import (
@@ -305,6 +310,26 @@ def _parser() -> argparse.ArgumentParser:
     v4_stage1.add_argument("output_directory", type=Path)
     v4_stage1.add_argument("--batch-size", type=int, default=40)
 
+    v4_gate_a_queue = corpus_v4_commands.add_parser(
+        "gate-a-queue", help="publish the owner-authorized Gate-A teacher queue"
+    )
+    v4_gate_a_queue.add_argument("queue", type=Path)
+    v4_gate_a_queue.add_argument("output_directory", type=Path)
+    v4_gate_a_queue.add_argument("--queue-manifest", type=Path, required=True)
+    v4_gate_a_queue.add_argument("--batch-size", type=int, default=40)
+
+    v4_gate_a_finalize = corpus_v4_commands.add_parser(
+        "gate-a-finalize", help="finalize complete Gate-A teacher evidence"
+    )
+    v4_gate_a_finalize.add_argument("queue", type=Path)
+    v4_gate_a_finalize.add_argument("teacher_queue_directory", type=Path)
+    v4_gate_a_finalize.add_argument("verdict_directory", type=Path)
+    v4_gate_a_finalize.add_argument("responses", type=Path)
+    v4_gate_a_finalize.add_argument("report", type=Path)
+    v4_gate_a_finalize.add_argument("--queue-manifest", type=Path, required=True)
+    v4_gate_a_finalize.add_argument("--reviewed-at", required=True)
+    v4_gate_a_finalize.add_argument("--allow-ai-teacher", action="store_true")
+
     v4_status = corpus_v4_commands.add_parser(
         "verdict-status", help="validate completed verdict batches and report pending counts"
     )
@@ -479,6 +504,104 @@ def _run(arguments: argparse.Namespace) -> int:
                         "content_sha256": manifest["content_sha256"],
                         "reviewer_kind": manifest["reviewer_kind"],
                         "reviewer_id": manifest["reviewer_id"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v4_command == "gate-a-queue":
+            ensure_distinct_tier_a_paths(
+                {
+                    "queue": arguments.queue,
+                    "queue_manifest": arguments.queue_manifest,
+                    "output_directory": arguments.output_directory,
+                }
+            )
+            queue = read_audit_queue(arguments.queue)
+            queue_manifest = read_queue_manifest(arguments.queue_manifest)
+            validate_queue_manifest(queue_manifest, queue)
+            batches = build_gate_a_teacher_batches(
+                queue, batch_size=arguments.batch_size
+            )
+            manifest = publish_teacher_queue_directory(
+                arguments.output_directory,
+                batches,
+                stage="gate_a",
+                reviewer_kind="ai_teacher",
+                reviewer_id=GATE_A_REVIEWER_ID,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "generated",
+                        "record_count": manifest["record_count"],
+                        "batch_count": manifest["batch_count"],
+                        "content_sha256": manifest["content_sha256"],
+                        "reviewer_kind": manifest["reviewer_kind"],
+                        "reviewer_id": manifest["reviewer_id"],
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if arguments.corpus_v4_command == "gate-a-finalize":
+            ensure_distinct_tier_a_paths(
+                {
+                    "queue": arguments.queue,
+                    "queue_manifest": arguments.queue_manifest,
+                    "teacher_queue_directory": arguments.teacher_queue_directory,
+                    "verdict_directory": arguments.verdict_directory,
+                    "responses": arguments.responses,
+                    "report": arguments.report,
+                }
+            )
+            if not arguments.allow_ai_teacher:
+                raise TierAError(
+                    "corpus v4: Gate-A AI teacher finalization requires explicit owner authorization"
+                )
+            queue = read_audit_queue(arguments.queue)
+            queue_manifest = read_queue_manifest(arguments.queue_manifest)
+            validate_queue_manifest(queue_manifest, queue)
+            teacher_batches, teacher_manifest = read_teacher_queue_directory(
+                arguments.teacher_queue_directory
+            )
+            teacher_batches = validate_gate_a_teacher_queue_binding(
+                queue, teacher_batches, teacher_manifest
+            )
+            verdicts, pending = scan_verdict_directory(
+                arguments.teacher_queue_directory, arguments.verdict_directory
+            )
+            if pending:
+                raise TierAError("corpus v4: Gate-A teacher verdicts are incomplete")
+            responses = finalize_gate_a_teacher_responses(
+                teacher_batches, verdicts, reviewed_at=arguments.reviewed_at
+            )
+            response_sha, report_sha, report = publish_gate_a_teacher_evidence(
+                arguments.responses,
+                arguments.report,
+                queue,
+                responses,
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": "finalized",
+                        "completed_record_count": report["completed_record_count"],
+                        "pending_record_count": report["pending_record_count"],
+                        "valid_record_count": report["valid_record_count"],
+                        "invalid_record_count": report["invalid_record_count"],
+                        "point_precision": report["point_precision"],
+                        "wilson_95_lower_bound": report["wilson_95_lower_bound"],
+                        "gate_a_human_audit_pass": report["gate_a_human_audit_pass"],
+                        "gate_a_owner_authorized_audit_pass": report[
+                            "gate_a_owner_authorized_audit_pass"
+                        ],
+                        "response_sha256": response_sha,
+                        "report_sha256": report_sha,
+                        "reviewer_kind": "ai_teacher",
+                        "reviewer_id": GATE_A_REVIEWER_ID,
                     },
                     sort_keys=True,
                 )

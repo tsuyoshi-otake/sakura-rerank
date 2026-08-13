@@ -12,3 +12,7 @@
 - On Windows, use `core.autocrlf=false` in external reproducible worktrees that
   hold canonical JSONL artifacts. LF-to-CRLF checkout conversion changes the
   bytes and therefore invalidates hash-bound canonical JSONL evidence.
+- Keep schema-version constants separate for nested contract domains. The Gate-A
+  teacher envelope/verdict contract is version 1 while its adapted audit queue
+  rows are version 2; an exact-binding test caught the otherwise plausible
+  mistake of reusing the envelope version for embedded rows.

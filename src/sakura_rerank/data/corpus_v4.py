@@ -16,20 +16,26 @@ import shutil
 import tempfile
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ..atomic_io import write_bytes_atomic
+from ..atomic_io import write_bytes_atomic, write_bytes_pair_atomic
 from .contracts import canonical_json_bytes, canonical_jsonl_bytes, read_jsonl, validate_records
 from .human_audit import (
     QUEUE_RECORD_TYPE,
     QUEUE_SCHEMA_VERSION,
+    RESPONSE_RECORD_TYPE,
+    RESPONSE_SCHEMA_VERSION,
     VERDICTS,
     build_calibration_queue_manifest,
+    build_quality_report,
     publish_audit_queue,
     read_audit_queue,
     read_audit_responses,
     read_queue_manifest,
+    validate_audit_queue,
+    validate_audit_responses,
     validate_queue_manifest,
 )
 from .jawiki_preprocess import (
@@ -54,12 +60,14 @@ from .tier_a import (
 
 V4_SCHEMA_VERSION = 1
 V4_QUEUE_RECORD_TYPE = "tier_a_audit_queue_row"
+V4_QUEUE_SCHEMA_VERSION = 2
 V4_BATCH_RECORD_TYPE = "tier_a_v4_teacher_batch"
 V4_VERDICT_RECORD_TYPE = "tier_a_v4_teacher_verdict_batch"
 V4_QUEUE_MANIFEST_KIND = "tier_a_v4_teacher_queue"
 V4_REPORT_KIND = "tier_a_v4_partition"
 SCREEN_REVIEWER_ID = "gpt-5.6-sol-screen-20260812"
 ADJUDICATION_REVIEWER_ID = "gpt-5.6-sol-adjudicate-20260812"
+GATE_A_REVIEWER_ID = "gpt-5.6-sol-gate-a-20260813"
 CALIBRATION_SEED = 20260812
 V3_TIER_A_RECORD_COUNT = 24_068
 V3_TIER_A_SPLIT_CONTENT_SHA256 = "82aa1622fee1571c6c80fae8668ed9e8397a1ae239d66bc4f11387c66d63b975"
@@ -73,7 +81,8 @@ MAX_BATCH_BYTES = 4 * 1024 * 1024
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_NOTE_CHARS = 200
 REVIEWER_KINDS = ("ai_teacher",)
-STAGES = ("stage1", "stage2")
+STAGES = ("stage1", "stage2", "gate_a")
+MAX_REVIEWED_AT_CHARS = 64
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _BATCH_NAME = re.compile(r"batch-([0-9]{3,})\.json")
@@ -486,11 +495,173 @@ def build_teacher_batches(records: Sequence[Mapping[str, Any]], *, batch_size: i
     ]
 
 
+def build_gate_a_teacher_batches(
+    queue: Sequence[Mapping[str, Any]], *, batch_size: int = MAX_BATCH_ITEMS
+) -> list[dict[str, Any]]:
+    """Adapt a validated standard audit queue into strict in-memory v4 batches."""
+
+    normalized = validate_audit_queue(queue)
+    if not normalized:
+        _fail("gate_a audit queue is empty")
+    if type(batch_size) is not int or not 1 <= batch_size <= MAX_BATCH_ITEMS:
+        _fail("batch_size is outside the bound")
+    items = [
+        {
+            **item,
+            "schema_version": V4_QUEUE_SCHEMA_VERSION,
+            "record_type": V4_QUEUE_RECORD_TYPE,
+        }
+        for item in normalized
+    ]
+    return validate_teacher_batches(
+        [
+            {"batch_index": index, "items": items[start : start + batch_size]}
+            for index, start in enumerate(range(0, len(items), batch_size))
+        ]
+    )
+
+
+def validate_gate_a_teacher_queue_binding(
+    queue: Sequence[Mapping[str, Any]],
+    batches: Sequence[Mapping[str, Any]],
+    manifest: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Bind a strict Gate-A teacher queue to one standard audit queue exactly."""
+
+    normalized_queue = validate_audit_queue(queue)
+    normalized_batches = validate_teacher_batches(batches)
+    if (
+        not isinstance(manifest, Mapping)
+        or manifest.get("stage") != "gate_a"
+        or manifest.get("reviewer_kind") != "ai_teacher"
+        or manifest.get("reviewer_id") != GATE_A_REVIEWER_ID
+        or manifest.get("record_count") != len(normalized_queue)
+    ):
+        _fail("Gate-A teacher queue provenance is invalid")
+    adapted = [item for batch in normalized_batches for item in batch["items"]]
+    expected = [
+        {
+            **item,
+            "schema_version": V4_QUEUE_SCHEMA_VERSION,
+            "record_type": V4_QUEUE_RECORD_TYPE,
+        }
+        for item in normalized_queue
+    ]
+    if adapted != expected:
+        _fail("Gate-A teacher queue does not bind the audit queue exactly")
+    return normalized_batches
+
+
+def _gate_a_reviewed_at(value: Any) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > MAX_REVIEWED_AT_CHARS
+        or "\0" in value
+        or "\n" in value
+        or "\r" in value
+    ):
+        _fail("gate_a reviewed_at is invalid or outside the bound")
+    try:
+        timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise TierAError("corpus v4: gate_a reviewed_at is not ISO 8601") from error
+    if timestamp.tzinfo is None:
+        _fail("gate_a reviewed_at needs timezone")
+    return value
+
+
+def finalize_gate_a_teacher_responses(
+    batches: Sequence[Mapping[str, Any]],
+    verdicts: Mapping[int, Mapping[str, Any]],
+    *,
+    reviewed_at: str,
+) -> list[dict[str, Any]]:
+    """Finalize one complete Gate-A teacher pass as standard audit responses."""
+
+    normalized = validate_teacher_batches(batches)
+    if not isinstance(verdicts, Mapping) or set(verdicts) != set(range(len(normalized))):
+        _fail("gate_a verdicts must cover every batch exactly")
+    timestamp = _gate_a_reviewed_at(reviewed_at)
+    responses: list[dict[str, Any]] = []
+    for batch in normalized:
+        verdict_batch = validate_teacher_verdict_batch(
+            batch,
+            verdicts[batch["batch_index"]],
+            reviewer_kind="ai_teacher",
+            reviewer_id=GATE_A_REVIEWER_ID,
+        )
+        responses.extend(
+            {
+                "schema_version": RESPONSE_SCHEMA_VERSION,
+                "record_type": RESPONSE_RECORD_TYPE,
+                "stable_id": outcome["stable_id"],
+                "verdict": outcome["verdict"],
+                "reviewer_id": GATE_A_REVIEWER_ID,
+                "reviewer_kind": "ai_teacher",
+                "reviewed_at": timestamp,
+                "note": outcome["note"],
+            }
+            for outcome in verdict_batch["verdicts"]
+        )
+    return validate_audit_responses(responses)
+
+
+def publish_gate_a_teacher_evidence(
+    response_path: str | Path,
+    report_path: str | Path,
+    queue: Sequence[Mapping[str, Any]],
+    responses: Sequence[Mapping[str, Any]],
+) -> tuple[str, str, dict[str, Any]]:
+    """Publish canonical AI responses and their aggregate Gate-A report as one pair."""
+
+    normalized_queue = validate_audit_queue(queue)
+    normalized_responses = validate_audit_responses(responses)
+    if (
+        not normalized_responses
+        or len(normalized_responses) != len(normalized_queue)
+        or any(
+            response["reviewer_kind"] != "ai_teacher"
+            or response["reviewer_id"] != GATE_A_REVIEWER_ID
+            for response in normalized_responses
+        )
+    ):
+        _fail("Gate-A responses use invalid reviewer provenance")
+    report = build_quality_report(
+        normalized_queue,
+        normalized_responses,
+        allow_ai_teacher=True,
+    )
+    if (
+        report.get("raw_text_in_report") is not False
+        or report.get("completed_record_count") != len(normalized_queue)
+        or report.get("pending_record_count") != 0
+        or report.get("gate_a_human_audit_pass") is not False
+    ):
+        _fail("Gate-A quality report is incomplete or unsafe")
+    response_payload = canonical_jsonl_bytes(normalized_responses)
+    report_payload = canonical_json_bytes(report) + b"\n"
+    write_bytes_pair_atomic(
+        response_path,
+        response_payload,
+        report_path,
+        report_payload,
+    )
+    return (
+        hashlib.sha256(response_payload).hexdigest(),
+        hashlib.sha256(report_payload).hexdigest(),
+        report,
+    )
+
+
 def _validate_queue_item(item: Mapping[str, Any]) -> dict[str, Any]:
     expected = {"schema_version", "record_type", "stable_id", "split", "stratum", "source", "left_context", "reading", "gold_surface", "gold_index", "gold_segments", "production_candidates"}
     if not isinstance(item, Mapping) or set(item) != expected:
         _fail("queue item fields do not match the handoff schema")
-    if item["schema_version"] != 2 or item["record_type"] != V4_QUEUE_RECORD_TYPE:
+    if (
+        item["schema_version"] != V4_QUEUE_SCHEMA_VERSION
+        or item["record_type"] != V4_QUEUE_RECORD_TYPE
+    ):
         _fail("queue item uses an unsupported schema")
     _identifier(item["stable_id"], "queue stable_id")
     if item["split"] not in {"train", "dev", "final-holdout"}:
