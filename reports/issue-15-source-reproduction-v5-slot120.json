@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "report_kind": "jawiki_tier_a_source_span_reproduction",
+  "status": "reproduced",
+  "issue": 15,
+  "source_span_manifest": {
+    "file": "manifests/jawiki-tier-a-source-spans-v5-slot120-verified.json",
+    "bytes": 1790,
+    "sha256": "33616a1b957d214b5d40d9c57a444cb20d5c138423222b8603dd2d39e32f2402"
+  },
+  "reproductions": [
+    {
+      "label": "a",
+      "record_count": 24064,
+      "content_sha256": "610d9252966d1ff3d1f44c62ed008765c5053f003c003acbe745c11b8c713fb6",
+      "artifact_bytes": 98452202,
+      "generation_report_bytes": 1534,
+      "generation_report_sha256": "e0b3572235d4a82135c812571e06009bb3b7099982f1392bd93e03ca6f666bbc"
+    },
+    {
+      "label": "b",
+      "record_count": 24064,
+      "content_sha256": "610d9252966d1ff3d1f44c62ed008765c5053f003c003acbe745c11b8c713fb6",
+      "artifact_bytes": 98452202,
+      "generation_report_bytes": 1534,
+      "generation_report_sha256": "e0b3572235d4a82135c812571e06009bb3b7099982f1392bd93e03ca6f666bbc"
+    }
+  ],
+  "raw_text_in_report": false,
+  "raw_stable_ids_in_report": false
+}

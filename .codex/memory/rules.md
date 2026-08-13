@@ -16,3 +16,9 @@
   teacher envelope/verdict contract is version 1 while its adapted audit queue
   rows are version 2; an exact-binding test caught the otherwise plausible
   mistake of reusing the envelope version for embedded rows.
+- On Windows, an outer command timeout is not proof that descendant workers were
+  terminated. A one-hour shell timeout around two Jawiki preprocess runs returned
+  while both Python workers continued to completion and held their temporary
+  outputs open. Before restarting or deleting anything, inspect the exact process
+  ancestry and command lines, assign cleanup ownership, and prove the descendants
+  have exited.

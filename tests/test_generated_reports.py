@@ -320,6 +320,68 @@ class GeneratedReportTests(unittest.TestCase):
             )
         )
 
+    def test_v5_source_reproduction_is_bound_identical_and_aggregate_only(self) -> None:
+        report = load_report("issue-15-source-reproduction-v5-slot120.json")
+        manifest_path = MANIFESTS / "jawiki-tier-a-source-spans-v5-slot120-verified.json"
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+
+        self.assertEqual(
+            set(report),
+            {
+                "schema_version",
+                "report_kind",
+                "status",
+                "issue",
+                "source_span_manifest",
+                "reproductions",
+                "raw_text_in_report",
+                "raw_stable_ids_in_report",
+            },
+        )
+        self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(report["report_kind"], "jawiki_tier_a_source_span_reproduction")
+        self.assertEqual(report["status"], "reproduced")
+        self.assertEqual(report["issue"], 15)
+        self.assertEqual(
+            report["source_span_manifest"],
+            {
+                "file": "manifests/jawiki-tier-a-source-spans-v5-slot120-verified.json",
+                "bytes": len(manifest_bytes),
+                "sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+            },
+        )
+        self.assertEqual(manifest["verification_status"], "verified")
+
+        reproductions = report["reproductions"]
+        self.assertEqual([item["label"] for item in reproductions], ["a", "b"])
+        for item in reproductions:
+            self.assertEqual(item["record_count"], manifest["record_count"])
+            self.assertEqual(item["content_sha256"], manifest["content_sha256"])
+            self.assertGreater(item["artifact_bytes"], 0)
+            self.assertGreater(item["generation_report_bytes"], 0)
+            self.assertRegex(item["generation_report_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            {key: value for key, value in reproductions[0].items() if key != "label"},
+            {key: value for key, value in reproductions[1].items() if key != "label"},
+        )
+
+        self.assertFalse(report["raw_text_in_report"])
+        self.assertFalse(report["raw_stable_ids_in_report"])
+        self.assertTrue(
+            {
+                "text",
+                "surface",
+                "reading",
+                "left_context",
+                "stable_id",
+                "article",
+                "paragraph",
+                "rows",
+                "notes",
+            }.isdisjoint(object_keys(report))
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

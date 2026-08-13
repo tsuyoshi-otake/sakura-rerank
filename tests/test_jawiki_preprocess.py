@@ -325,6 +325,7 @@ class SourceSpanManifestTests(unittest.TestCase):
             Path("manifests/jawiki-tier-a-source-spans-expanded-v2-verified.json"),
             Path("manifests/jawiki-tier-a-source-spans-expanded-v3-verified.json"),
             Path("manifests/jawiki-tier-a-source-spans-expanded-v4-verified.json"),
+            Path("manifests/jawiki-tier-a-source-spans-v5-slot120-verified.json"),
         )
         manifests = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
         identities = {

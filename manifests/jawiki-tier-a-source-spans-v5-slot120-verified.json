@@ -1,0 +1,51 @@
+{
+  "schema_version": 4,
+  "manifest_kind": "jawiki_tier_a_source_spans",
+  "verification_status": "verified",
+  "snapshot_date": "2026-08-01",
+  "jawiki_local_sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+  "dictionary_index_sha256": "4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072",
+  "extractor_git_sha": "0e9dca182b0319988f49a89c28b9e9f602ebe70f",
+  "cleaner_version": "conservative_wikitext_v4",
+  "config": {
+    "max_output_bytes": 268435456,
+    "max_reading_chars": 128,
+    "max_records": 100000,
+    "max_records_per_page": 8,
+    "max_sentence_chars": 512,
+    "max_surface_chars": 64,
+    "min_reading_chars": 3,
+    "min_sentence_chars": 4,
+    "min_surface_chars": 1,
+    "sample_modulus": 1000000,
+    "sample_slot_start": 120,
+    "sample_slots": 120
+  },
+  "eligible_dictionary_surface_count": 326887,
+  "record_count": 24064,
+  "content_sha256": "610d9252966d1ff3d1f44c62ed008765c5053f003c003acbe745c11b8c713fb6",
+  "counts": {
+    "dictionary_matches": 200042451,
+    "matches_not_sampled": 200018387,
+    "matches_unsafe_boundary": 72905766,
+    "pages_non_main": 636071,
+    "pages_processed": 1512214,
+    "pages_redirect": 952212,
+    "pages_total": 3100497,
+    "paragraphs_accepted": 42487676,
+    "residual_corruption": 1442954,
+    "residual_markup": 4309566,
+    "sentences_accepted": 49545927,
+    "sentences_outside_bounds": 5288575,
+    "unbalanced_link": 94862,
+    "unbalanced_template": 86558
+  },
+  "raw_text_in_report": false,
+  "stage4_stable_id_exclusion": {
+    "canonicalization": "utf8_lf_sorted_unique_stable_id_jsonl_v1",
+    "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "count": 0,
+    "format_version": 1,
+    "raw_stable_ids_in_report": false
+  }
+}

@@ -25,6 +25,8 @@ from sakura_rerank.data.contracts import (
 from sakura_rerank.data.tier_a import (
     TierABlockedError,
     TierAError,
+    VERIFIED_SOURCE_SPAN_IDENTITIES,
+    VERIFIED_SOURCE_SPAN_METADATA,
     generate_tier_a_records,
     publish_tier_a_artifacts,
     validate_dictionary_index,
@@ -213,6 +215,75 @@ def generate(
 
 
 class TierAGeneratorTests(unittest.TestCase):
+    def test_tracked_source_span_manifests_match_allowlist_and_preserve_legacy_identities(
+        self,
+    ) -> None:
+        manifest_directory = Path(__file__).resolve().parents[1] / "manifests"
+        expected_manifest_names = {
+            "jawiki-tier-a-source-spans-verified.json",
+            "jawiki-tier-a-source-spans-expanded-verified.json",
+            "jawiki-tier-a-source-spans-expanded-v2-verified.json",
+            "jawiki-tier-a-source-spans-expanded-v3-verified.json",
+            "jawiki-tier-a-source-spans-expanded-v4-verified.json",
+            "jawiki-tier-a-source-spans-v5-slot120-verified.json",
+        }
+        manifest_paths = sorted(
+            manifest_directory.glob("jawiki-tier-a-source-spans*-verified.json")
+        )
+        manifests = [
+            json.loads(manifest_path.read_text(encoding="utf-8"))
+            for manifest_path in manifest_paths
+        ]
+        identities = {
+            (manifest["extractor_git_sha"], manifest["content_sha256"])
+            for manifest in manifests
+        }
+        legacy_identities = {
+            (
+                "7cdb51f77875caab8be25683fc3bf174c0e91325",
+                "f06b747dfa4ec1b650696cd04f156071acde8bf543b5ba9fe94f6146123275c9",
+            ),
+            (
+                "7cdb51f77875caab8be25683fc3bf174c0e91325",
+                "8b3067836e894b93142f502157d1a65bcb34da277b81111388d8b18220fad727",
+            ),
+            (
+                "776e9f108bf891c6b44f0391a65370c279f95f64",
+                "9338d38c0a8589b8ec78d7c14fc4d3cdd4598b8fc1f5641549f932599903fa66",
+            ),
+            (
+                "ab832e4c2a783eec1070d1bf653aad6db672fdde",
+                "898a0930ff4a15d33bac14c51ef66fe6c429879deff0ffaf695c7e28ba6dfd9b",
+            ),
+            (
+                "9312a78e9b060bbedfbb4f43046d25b066045685",
+                "8b9c2ccf0fa77d85bdc13d3aec44734df2942f206c62c6f78b1461862867b400",
+            ),
+        }
+
+        self.assertEqual({manifest_path.name for manifest_path in manifest_paths}, expected_manifest_names)
+        self.assertTrue(all(manifest["verification_status"] == "verified" for manifest in manifests))
+        self.assertEqual(identities, VERIFIED_SOURCE_SPAN_IDENTITIES)
+        self.assertTrue(legacy_identities <= identities)
+        self.assertEqual(
+            {
+                identity: {
+                    field: value
+                    for field, value in manifest.items()
+                    if field not in {"verification_status", "extractor_git_sha", "content_sha256"}
+                }
+                for identity, manifest in zip(
+                    (
+                        (manifest["extractor_git_sha"], manifest["content_sha256"])
+                        for manifest in manifests
+                    ),
+                    manifests,
+                    strict=True,
+                )
+            },
+            VERIFIED_SOURCE_SPAN_METADATA,
+        )
+
     def test_generates_contract_v3_tier_a_deterministically(self) -> None:
         first, first_report = generate(
             [source_span()], dictionary_index(), [exporter_record()]
