@@ -987,6 +987,116 @@ class GeneratedReportTests(unittest.TestCase):
         }
         self.assertTrue(forbidden.isdisjoint(object_keys(report)))
 
+    def test_issue25_confidence_gate_decision_follows_the_preregistered_rules(self) -> None:
+        raw = (REPORTS / "issue-25-confidence-gate.json").read_bytes()
+        report = json.loads(raw)
+        self.assertEqual(
+            raw,
+            (
+                json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode("utf-8"),
+        )
+        self.assertEqual(report["report_kind"], "sakura_rerank_issue25_confidence_gate")
+        self.assertEqual(report["status"], "research_only_gate_a_failed")
+        self.assertFalse(report["final_holdout_used"])
+        self.assertFalse(report["production_change_authorized"])
+        self.assertEqual(
+            report["plan_body_sha256"],
+            "461190b3be9069601f8916b703bdfc0c6d410c1d55956459be19d40312b23b99",
+        )
+        protocol = report["protocol"]
+        self.assertTrue(protocol["decision_written_before_dev"])
+        self.assertEqual(protocol["dev_evaluations"], 1)
+        self.assertEqual(protocol["harm_rate_limit"], "1/400")
+        self.assertEqual(protocol["one_sided_alpha"], "1/20")
+        base_correct = report["train"]["baseline_correct"]
+        base_errors = report["train"]["baseline_errors"]
+        self.assertEqual((base_correct, base_errors), (11_120, 1_396))
+        self.assertEqual(base_correct + base_errors, report["train"]["row_count"])
+
+        budgets: dict[int, int] = {}
+
+        def k_max(n: int) -> int:
+            # Largest k with P(Binomial(n, 1/400) <= k) <= 1/20, in exact integers.
+            if n not in budgets:
+                total, cumulative, best = 400**n, 0, -1
+                for k in range(n + 1):
+                    cumulative += math.comb(n, k) * 399 ** (n - k)
+                    if 20 * cumulative > total:
+                        break
+                    best = k
+                budgets[n] = best
+            return budgets[n]
+
+        self.assertEqual(k_max(base_correct), 18)
+        exact_rules = {"main": {"L", "P"}, "fixed_L": {"L"}, "fixed_P": {"P"}}
+        per_seed_pass = {}
+        for seed in map(str, protocol["seeds"]):
+            rules = report["crossfit"][seed]
+            self.assertEqual(set(rules), {*exact_rules, "reference_issue21"})
+            for name, body in rules.items():
+                folds = body["folds"]
+                self.assertEqual([fold["fold"] for fold in folds], list(range(5)))
+                for fold in folds:
+                    inner = fold["inner_baseline_correct"]
+                    expected = inner // 400 if name == "reference_issue21" else k_max(inner)
+                    self.assertEqual(fold["harm_budget"], expected)
+                    allowed = {"L"} if name == "reference_issue21" else exact_rules[name]
+                    self.assertIn(fold["score"], allowed)
+                self.assertEqual(sum(fold["inner_baseline_correct"] for fold in folds), 4 * base_correct)
+                totals = body["totals"]
+                for field in ("correct", "harm", "rescue", "overrides"):
+                    self.assertEqual(totals[field], sum(fold["held_out"][field] for fold in folds))
+                self.assertEqual(
+                    totals["correct"], base_correct - totals["harm"] + totals["rescue"]
+                )
+                harm, rescue = totals["harm"], totals["rescue"]
+                criteria = {
+                    "harm_rate_at_most_0_25_percent": 400 * harm <= base_correct,
+                    "rescue_at_least_3x_harm": rescue >= 3 * harm,
+                    "rer_at_least_10_percent": 10 * (rescue - harm) >= base_errors,
+                }
+                self.assertEqual(body["derived"]["criteria"], criteria)
+                if name == "main":
+                    per_seed_pass[seed] = all(criteria.values())
+            final = report["final_selection"][seed]["main"]
+            self.assertEqual(final["harm_budget"], 18)
+            self.assertLessEqual(final["gate"]["selection_outcome"]["harm"], 18)
+            self.assertEqual(
+                report["dev_reference"][seed]["gate"],
+                {"score": final["gate"]["score"], "tau": final["gate"]["tau"]},
+            )
+        self.assertEqual(report["decision"]["per_seed_pass"], per_seed_pass)
+        self.assertEqual(per_seed_pass, {"20260814": False, "20261103": True, "20261104": True})
+        self.assertFalse(report["decision"]["adopted"])
+        int8 = report["int8_reference"]
+        self.assertEqual(int8["fp32_vs_stored_decision_mismatch_count"], 0)
+        self.assertEqual(int8["int8_vs_fp32_decision_mismatch_count"], 0)
+        self.assertEqual(int8["gate"], report["dev_reference"]["20260814"]["gate"])
+        harness = ROOT / "research" / "issue-25-confidence-gate"
+        self.assertEqual(
+            report["artifacts"]["run_py_sha256"],
+            hashlib.sha256((harness / "run.py").read_bytes()).hexdigest(),
+        )
+        self.assertTrue(report["independent_recomputation"]["matches"])
+        self.assertEqual(
+            report["independent_recomputation"]["script_sha256"],
+            hashlib.sha256((harness / "recompute.py").read_bytes()).hexdigest(),
+        )
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
 
 if __name__ == "__main__":
     unittest.main()

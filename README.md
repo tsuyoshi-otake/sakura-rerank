@@ -328,6 +328,40 @@ Training requires CUDA and the v1 numeric cache. `benchmark` takes the INT8
 file the same way, and `publish-evidence` writes the manifest/report pair only
 when every input report is consistent.
 
+### Confidence gate on revision 2 (Issue #25)
+
+Revision 2 harms too many baseline-correct rows (2.40%, threshold 0.25%).
+[Issue #25](https://github.com/tsuyoshi-otake/sakura-rerank/issues/25)
+pre-registered a gate that keeps the converter's first candidate unless the
+model's top candidate beats it by more than a threshold tau. Issue #21's
+reference gate, tuned so its selection harm sat just under the limit, gave dev
+harm 4 / 4 / 1 against a 3-row budget, and dev cannot confirm the limit anyway:
+with 1,586 baseline-correct rows only zero harm would show a rate below 0.25% at
+one-sided 95% confidence. The decision therefore used cross-fitted train
+out-of-fold counts (12,516 rows): for each outer fold, the epoch, the score
+(logit difference **L** or probability difference **P**), and tau came from the
+other four folds, with tau chosen so the exact one-sided binomial test rejects a
+harm rate of 0.25% or more. The decision was written before dev was read.
+
+| Seed | Rule | Harm (rate) | Rescue | RER | Result |
+| --- | --- | ---: | ---: | ---: | --- |
+| 20260814 | pre-registered (L or P) | 19 (0.171%) | 156 | 9.81% | **fails RER ≥ 10%** |
+| 20261103 | pre-registered (L or P) | 17 (0.153%) | 170 | 10.96% | passes |
+| 20261104 | pre-registered (L or P) | 18 (0.162%) | 185 | 11.96% | passes |
+| all three | Issue #21 reference (L, harm at the limit) | 29 / 29 / 27 (0.261% / 0.261% / 0.243%) | 201 / 211 / 212 | 12.32% / 13.04% / 13.25% | over the harm limit for two seeds |
+| all three | P only (reference) | 21 / 15 / 17 | 161 / 167 / 185 | 10.03% / 10.89% / 12.03% | passes all three (not pre-registered as the decision) |
+
+The gate is **not adopted**: the rule required every seed to pass, and seed
+20260814 (the revision-2 artifact) misses RER by three rows of net gain
+(137 against 140). Choosing tau at the harm limit on the selection rows, as
+Issue #21 did, overshoots the limit on held-out rows. On dev (reference only)
+the final gates give harm 3 / 2 / 1, rescue 29 / 32 / 30, and RER 12.87% /
+14.85% / 14.36%; INT8 reproduces every FP32 gated decision. The P-only result
+is a hypothesis for a new pre-registration, not evidence for adoption, because
+it was observed on the same rows. Gates A, B, and C remain false. The evidence
+is [`reports/issue-25-confidence-gate.json`](reports/issue-25-confidence-gate.json),
+produced by [`research/issue-25-confidence-gate/`](research/issue-25-confidence-gate/README.md).
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned
