@@ -73,6 +73,12 @@ adopted revision-2 model. It binds
 checkpoint and ONNX files, the implementation, and every input report by
 SHA-256. Gates A, B, and C stay false and no production change is authorized.
 
+`issue-25-confidence-gate.json` records Issue #25's pre-registered confidence
+gate on revision 2: cross-fitted score and threshold selection on train OOF,
+the decision written before dev was read, one dev evaluation, an FP32/INT8
+gated-decision comparison, and an independent recomputation. It contains only
+counts, thresholds, confidence intervals, and SHA-256 values.
+
 `issue-21-v1-latency-same-scope.json` re-measures the frozen v1 ONNX exports with
 revision 2's model-only timing and repeats v1's published loop, which also timed
 per-run `.npz` reads, on the same machine. It contains only timings and hashes.
