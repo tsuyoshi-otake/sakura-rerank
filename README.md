@@ -217,6 +217,117 @@ and input-report bindings are recorded in
 This remains dev-only evidence; the failed Gate A and untouched final holdout
 keep Gate B and production authorization false.
 
+The Sakura latency in this table and in the v1 table above timed more than the
+model: the v1 benchmark started its clock before re-reading eight dev arrays
+from the lazily loaded `.npz` on every run. See the revision-2 section below for
+a re-measurement with model-only timing.
+
+## Sakura-Rerank-Tiny-v1 research revision 2 (Issue #21)
+
+Issue #20 rejected direct weight editing of the v1 prototype, so
+[Issue #21](https://github.com/tsuyoshi-otake/sakura-rerank/issues/21) retrained
+it under a pre-registered protocol. Three recipes were trained with seeds
+20260814, 20261103, and 20261104 on the frozen v5 train split:
+
+- **B0**: the v1 recipe.
+- **C1**: B0 plus a seventh candidate feature, the absolute local-cost gap
+  `-log1p((cost_i - min cost) / 1000)`. v1 normalizes local cost per row, which
+  hides how large the gap to the cheapest candidate is.
+- **C2**: C1 plus scorer dropout 0.1 and label smoothing 0.05 spread over the
+  valid candidates.
+
+Epochs were frozen from grouped 5-fold out-of-fold (OOF) train predictions;
+folds keep rows that share an article, paragraph, or template cluster together.
+Dev was evaluated once, after selection, and the final holdout was never read.
+The pre-registered rule adopts a candidate only if its OOF top-1 count beats B0
+for every seed, its exact McNemar test against B0 has p < 0.025 for at least two
+seeds, its mean OOF harm is not above B0, and then its mean dev top-1 is not
+below B0 and its mean dev harm not above B0.
+
+| Recipe | OOF top-1 (mean of 12,516) | OOF harm | Dev top-1 (mean of 1,788) | Dev harm | Decision |
+| --- | ---: | ---: | ---: | ---: | --- |
+| B0 | 11,371.3 | 328.7 | 1,624.3 | 50.7 | baseline |
+| C1 | 11,396.0 | 300.0 | 1,632.3 | 42.7 | rejected: McNemar p ≥ 0.16 for every seed |
+| C2 | **11,424.0** | **265.7** | **1,637.3** | **39.3** | **adopted**: p = 0.0028 / 0.064 / 0.0075 |
+
+An independent recomputation from the numeric predictions matched every count,
+test, and the decision. The aggregate evidence is
+[`reports/issue-21-retrain-experiment.json`](reports/issue-21-retrain-experiment.json);
+the harness that produced it is tracked byte for byte in
+[`research/issue-21-retrain/`](research/issue-21-retrain/README.md).
+
+C2 is implemented in
+[`src/sakura_rerank/research_tiny_r2.py`](src/sakura_rerank/research_tiny_r2.py);
+`research_tiny.py` stays unchanged because the v1 manifest binds its hash.
+Training seed 20260814 for the frozen nine epochs reproduces the experiment's
+checkpoint tensor for tensor.
+
+| Model (dev, 1,788 rows) | Top-1 | MRR | NDCG@6 | Rescue / harm | ONNX size | CPU p50 / p95 / p99 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Unchanged local rank | 0.88702 | — | — | — | — | — |
+| v1 prototype FP32 (epoch chosen on dev) | 0.91723 | 0.95105 | 0.96241 | 77 / 23 | 7.47 MB | 0.5086 / 0.6652 / 0.7772 |
+| v1 prototype INT8 | 0.91499 | 0.94991 | 0.96156 | 77 / 27 | 2.19 MB | 0.6471 / 0.6791 / 0.8635 |
+| Revision 2 FP32 | 0.91667 | 0.95131 | 0.96261 | 91 / 38 | 7.47 MB | 0.5266 / 0.6696 / 0.7839 |
+| Revision 2 INT8 | 0.91667 | 0.95130 | 0.96261 | 91 / 38 | 2.19 MB | 0.5311 / 0.6821 / 0.8151 |
+
+Read the comparison with care:
+
+- Against B0 trained the same way (seed 20260814: 1,629 top-1, 50 harm),
+  revision 2 gains 10 top-1 rows and removes 12 harms.
+- Against the published v1 prototype it is one top-1 row lower and harms 15
+  more baseline-correct rows. The prototype's epoch was picked on dev itself
+  (its dev top-1 ranged from 1,618 to 1,640 over 20 epochs, and the maximum was
+  kept), so its dev numbers are optimistic; revision 2's epoch was fixed before
+  dev was seen.
+- INT8 keeps the FP32 counts: it changes the top-1 choice on 3 dev rows with no
+  net change in top-1, rescue, or harm.
+- Harm is 2.40% of baseline-correct rows (threshold 0.25%) and rescue/harm is
+  2.39 (threshold 3), and production round-trip and memory are unmeasured.
+  Gate A was already failed and dev is not the final holdout, so Gates A, B,
+  and C all remain false and no Sakura Input change is authorized.
+
+All latencies in this table time `InferenceSession.run` only, with every input
+prebuilt (Windows CPU, ONNX Runtime 1.23.2, batch one, one intra-op and one
+inter-op thread, 100 warmups, 10,000 measured runs, zero failures). Measured
+this way on the same machine, v1 and revision 2 are equal within run-to-run
+noise. The published v1 numbers (FP32 p50 / p95 3.20 / 3.85 ms, Windows build
+26200) also timed the per-run `.npz` reads. Re-running v1's own loop on this
+machine (build 26300) gives 4.07 / 4.50 ms, against 0.51 / 0.67 ms for the same
+FP32 file with model-only timing, so the scope, not the model, explains the
+gap. The v1 prototype's missed p95 check is therefore a measurement artifact;
+its harm and INT8-loss misses stand. All three measurements are in
+[`reports/issue-21-v1-latency-same-scope.json`](reports/issue-21-v1-latency-same-scope.json).
+
+Artifact hashes, the training environment, ONNX parity (FP32 top-1 equals
+PyTorch on every dev row), the benchmark contract, and the fail-closed decision
+are bound by
+[`manifests/sakura-rerank-tiny-v1-research-r2.json`](manifests/sakura-rerank-tiny-v1-research-r2.json)
+and
+[`reports/sakura-rerank-tiny-v1-research-r2.json`](reports/sakura-rerank-tiny-v1-research-r2.json).
+The checkpoint and ONNX files remain ignored generated artifacts, and no
+license has been selected, so their distribution is not authorized.
+
+```powershell
+$env:PYTHONPATH = "src"
+$o = "data/generated/sakura-rerank-tiny-r2-research"
+$v = "data/generated/sakura-rerank-tiny-v1-research"
+$inputs = @("--cache", "$v/train-dev-cache.npz", "--cache-manifest", "$v/train-dev-cache.manifest.json",
+            "--cost-gap", "$o/cost-gap.npz", "--cost-gap-manifest", "$o/cost-gap.manifest.json")
+python -m sakura_rerank.research_tiny_r2 prepare-cost-gap data/generated/issue15-v5-slot120/frozen-split.jsonl `
+  --cache "$v/train-dev-cache.npz" --cache-manifest "$v/train-dev-cache.manifest.json" `
+  --output "$o/cost-gap.npz" --manifest "$o/cost-gap.manifest.json"
+python -m sakura_rerank.research_tiny_r2 train "$o/sakura-rerank-tiny-v1-research-r2.pt" @inputs --report "$o/training.report.json"
+python -m sakura_rerank.research_tiny_r2 export "$o/sakura-rerank-tiny-v1-research-r2.pt" `
+  "$o/sakura-rerank-tiny-v1-research-r2-fp32.onnx" "$o/sakura-rerank-tiny-v1-research-r2-int8.onnx" `
+  @inputs --report "$o/export.report.json"
+python -m sakura_rerank.research_tiny_r2 benchmark "$o/sakura-rerank-tiny-v1-research-r2-fp32.onnx" @inputs `
+  --report "$o/fp32-benchmark.report.json"
+```
+
+Training requires CUDA and the v1 numeric cache. `benchmark` takes the INT8
+file the same way, and `publish-evidence` writes the manifest/report pair only
+when every input report is consistent.
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned
