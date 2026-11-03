@@ -5,6 +5,7 @@ import json
 import math
 import unittest
 from fractions import Fraction
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -29,6 +30,18 @@ def object_keys(value: Any) -> Iterable[str]:
     elif isinstance(value, list):
         for child in value:
             yield from object_keys(child)
+
+
+@lru_cache(maxsize=None)
+def binomial_harm_budget(n: int) -> int:
+    """Largest k with P(Binomial(n, 1/400) <= k) <= 1/20, in exact integers (Issue #25)."""
+    total, cumulative, best = 400**n, 0, -1
+    for k in range(n + 1):
+        cumulative += math.comb(n, k) * 399 ** (n - k)
+        if 20 * cumulative > total:
+            break
+        best = k
+    return best
 
 
 class GeneratedReportTests(unittest.TestCase):
@@ -1015,20 +1028,7 @@ class GeneratedReportTests(unittest.TestCase):
         self.assertEqual((base_correct, base_errors), (11_120, 1_396))
         self.assertEqual(base_correct + base_errors, report["train"]["row_count"])
 
-        budgets: dict[int, int] = {}
-
-        def k_max(n: int) -> int:
-            # Largest k with P(Binomial(n, 1/400) <= k) <= 1/20, in exact integers.
-            if n not in budgets:
-                total, cumulative, best = 400**n, 0, -1
-                for k in range(n + 1):
-                    cumulative += math.comb(n, k) * 399 ** (n - k)
-                    if 20 * cumulative > total:
-                        break
-                    best = k
-                budgets[n] = best
-            return budgets[n]
-
+        k_max = binomial_harm_budget
         self.assertEqual(k_max(base_correct), 18)
         exact_rules = {"main": {"L", "P"}, "fixed_L": {"L"}, "fixed_P": {"P"}}
         per_seed_pass = {}
@@ -1078,6 +1078,164 @@ class GeneratedReportTests(unittest.TestCase):
         self.assertEqual(
             report["artifacts"]["run_py_sha256"],
             hashlib.sha256((harness / "run.py").read_bytes()).hexdigest(),
+        )
+        self.assertTrue(report["independent_recomputation"]["matches"])
+        self.assertEqual(
+            report["independent_recomputation"]["script_sha256"],
+            hashlib.sha256((harness / "recompute.py").read_bytes()).hexdigest(),
+        )
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
+    def test_issue27_ensemble_gate_decision_follows_the_preregistered_rules(self) -> None:
+        raw = (REPORTS / "issue-27-ensemble-gate.json").read_bytes()
+        report = json.loads(raw)
+        self.assertEqual(
+            raw,
+            (
+                json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode("utf-8"),
+        )
+        self.assertEqual(report["report_kind"], "sakura_rerank_issue27_ensemble_gate")
+        self.assertEqual(report["status"], "research_only_gate_a_failed")
+        for flag in (
+            "final_holdout_used",
+            "production_change_authorized",
+            "artifact_distribution_authorized",
+            "raw_text_in_report",
+            "raw_stable_ids_in_report",
+        ):
+            self.assertIs(report[flag], False, flag)
+        self.assertEqual(
+            report["plan_body_sha256"],
+            "531393e6c0082d1f50f24e9779b330427ff6555c9310554fed0d72c39001a8f3",
+        )
+        protocol = report["protocol"]
+        self.assertTrue(protocol["accuracy_decision_written_before_dev"])
+        self.assertEqual(protocol["dev_evaluations"], 1)
+        self.assertEqual(
+            (protocol["p95_limit_ms"], protocol["warmup_runs"], protocol["measured_runs"]),
+            (2.0, 100, 10_000),
+        )
+        seeds = [str(seed) for seed in protocol["seeds"]]
+        self.assertEqual(seeds, ["20260814", "20261103", "20261104"])
+        base_correct = report["train"]["baseline_correct"]
+        base_errors = report["train"]["baseline_errors"]
+        self.assertEqual((base_correct, base_errors), (11_120, 1_396))
+        self.assertEqual(base_correct + base_errors, report["train"]["row_count"])
+
+        def criteria_1_to_3(totals: dict[str, int], correct: int, errors: int) -> dict[str, bool]:
+            harm, rescue = totals["harm"], totals["rescue"]
+            return {
+                "harm_rate_at_most_0_25_percent": 400 * harm <= correct,
+                "rescue_at_least_3x_harm": rescue >= 3 * harm,
+                "rer_at_least_10_percent": 10 * (rescue - harm) >= errors,
+            }
+
+        exact_rules = {"main": {"L", "P"}, "fixed_L": {"L"}, "fixed_P": {"P"}}
+        self.assertEqual(set(report["crossfit"]), {*exact_rules, "reference_issue21"})
+        for name, body in report["crossfit"].items():
+            folds = body["folds"]
+            self.assertEqual([fold["fold"] for fold in folds], list(range(5)))
+            for fold in folds:
+                inner = fold["inner_baseline_correct"]
+                expected = inner // 400 if name == "reference_issue21" else binomial_harm_budget(inner)
+                self.assertEqual(fold["harm_budget"], expected)
+                self.assertIn(fold["score"], exact_rules.get(name, {"L"}))
+                self.assertEqual(list(fold["epochs"]), seeds)
+                self.assertTrue(all(1 <= epoch <= 20 for epoch in fold["epochs"].values()))
+            self.assertEqual(sum(fold["inner_baseline_correct"] for fold in folds), 4 * base_correct)
+            totals = body["totals"]
+            for field in ("correct", "harm", "rescue", "overrides"):
+                self.assertEqual(totals[field], sum(fold["held_out"][field] for fold in folds))
+            self.assertEqual(totals["correct"], base_correct - totals["harm"] + totals["rescue"])
+            self.assertEqual(
+                body["derived"]["criteria"], criteria_1_to_3(totals, base_correct, base_errors)
+            )
+
+        final = report["final_selection"]
+        self.assertEqual(final["epochs"], {"20260814": 9, "20261103": 8, "20261104": 10})
+        self.assertEqual(final["main"]["harm_budget"], binomial_harm_budget(base_correct))
+        self.assertLessEqual(final["main"]["gate"]["selection_outcome"]["harm"], 18)
+        final_gate = {"score": final["main"]["gate"]["score"], "tau": final["main"]["gate"]["tau"]}
+
+        export = report["export"]
+        self.assertEqual(export["final_gate"], final_gate)
+        parity = export["parity"]
+        self.assertEqual(parity["record_count"], 1_788)
+        self.assertEqual(export["criterion_5_pass"], parity["fp32_vs_stored_decision_mismatch_count"] == 0)
+        self.assertEqual(
+            set(export["checkpoint_sha256"].items()),
+            {(seed, report["inputs"][f"final/C2-s{seed}.pt"]) for seed in seeds},
+        )
+        benchmarks = report["benchmarks"]
+        self.assertEqual(set(benchmarks), {"fp32", "int8", "r2-single-fp32"})
+        for label, bench in benchmarks.items():
+            contract = bench["contract"]
+            self.assertEqual(
+                (
+                    contract["batch_size"],
+                    contract["ort_intra_op_threads"],
+                    contract["ort_inter_op_threads"],
+                    contract["warmup_runs"],
+                    contract["measured_runs"],
+                    contract["failure_count"],
+                    contract["timing_scope"],
+                ),
+                (1, 1, 1, 100, 10_000, 0, "inference_session_run_only_inputs_prebuilt"),
+                label,
+            )
+            self.assertFalse(contract["final_holdout_used"])
+        self.assertEqual(benchmarks["fp32"]["model_sha256"], export["onnx"]["fp32"]["sha256"])
+        self.assertEqual(benchmarks["int8"]["model_sha256"], export["onnx"]["int8"]["sha256"])
+        self.assertEqual(benchmarks["r2-single-fp32"]["model_sha256"], report["inputs"]["r2_fp32_onnx"])
+
+        criteria = {
+            **criteria_1_to_3(report["crossfit"]["main"]["totals"], base_correct, base_errors),
+            "fp32_ensemble_p95_at_most_2_ms": benchmarks["fp32"]["latency_ms"]["p95"] <= 2.0,
+            "fp32_decisions_equal_stored_on_all_dev_rows": export["criterion_5_pass"],
+        }
+        self.assertEqual(report["decision"]["criteria"], criteria)
+        self.assertEqual(report["decision"]["adopted"], all(criteria.values()))
+        self.assertFalse(report["decision"]["adopted"])
+        self.assertEqual(
+            [name for name, passed in criteria.items() if not passed],
+            ["fp32_ensemble_p95_at_most_2_ms"],
+        )
+
+        dev = report["dev_reference"]
+        self.assertEqual(dev["gate"], final_gate)
+        self.assertEqual(
+            (dev["base_correct"] + dev["base_errors"], report["dev"]["row_count"]), (1_788, 1_788)
+        )
+        for outcome in (dev["gated"], dev["ungated"]):
+            self.assertEqual(outcome["correct"], dev["base_correct"] - outcome["harm"] + outcome["rescue"])
+        self.assertEqual(
+            dev["gated_derived"]["criteria"],
+            criteria_1_to_3(dev["gated"], dev["base_correct"], dev["base_errors"]),
+        )
+
+        harness = ROOT / "research" / "issue-27-ensemble-gate"
+        self.assertEqual(
+            report["artifacts"]["run_py_sha256"],
+            hashlib.sha256((harness / "run.py").read_bytes()).hexdigest(),
+        )
+        self.assertEqual(
+            report["inputs"]["issue25_run_py"],
+            hashlib.sha256(
+                (ROOT / "research" / "issue-25-confidence-gate" / "run.py").read_bytes()
+            ).hexdigest(),
         )
         self.assertTrue(report["independent_recomputation"]["matches"])
         self.assertEqual(
