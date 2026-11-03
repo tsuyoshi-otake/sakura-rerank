@@ -163,8 +163,8 @@ and
 [`reports/sakura-rerank-tiny-v1-research-prototype.json`](reports/sakura-rerank-tiny-v1-research-prototype.json).
 This IME-specific dev result is not directly comparable with the public JMTEB
 information-retrieval table above.
-No repository/model license has been selected, so artifact distribution is not
-authorized by this result.
+No model license has been selected, so artifact distribution is not authorized
+by this result.
 
 ### Out-of-domain JQaRA diagnostic
 
@@ -304,7 +304,7 @@ are bound by
 [`manifests/sakura-rerank-tiny-v1-research-r2.json`](manifests/sakura-rerank-tiny-v1-research-r2.json)
 and
 [`reports/sakura-rerank-tiny-v1-research-r2.json`](reports/sakura-rerank-tiny-v1-research-r2.json).
-The checkpoint and ONNX files remain ignored generated artifacts, and no
+The checkpoint and ONNX files remain ignored generated artifacts, and no model
 license has been selected, so their distribution is not authorized.
 
 ```powershell
@@ -428,6 +428,11 @@ size, and Windows private working set.
 
 ## Licensing
 
-No repository license has been selected yet. Model, corpus, tokenizer, runtime,
-and extraction-tool licenses and provenance must be reviewed and recorded before
+The source code and documentation in this repository are released under the
+[MIT License](LICENSE). The license does not cover generated corpora,
+checkpoints, or model exports, which stay outside Git. They are derived from
+Japanese Wikipedia text (generally CC BY-SA 4.0 and GFDL) and from Sakura Input
+dictionary and converter output; no model license has been selected, and their
+distribution is not authorized. Model, corpus, tokenizer, runtime, and
+extraction-tool licenses and provenance must be reviewed and recorded before
 redistribution.
