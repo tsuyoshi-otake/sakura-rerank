@@ -86,6 +86,14 @@ decision-parity and latency criteria, one dev evaluation, and an independent
 recomputation. It contains only counts, thresholds, timings, confidence
 intervals, and SHA-256 values.
 
+`issue-29-distill-gate.json` records Issue #29's pre-registered distillation of
+the seed ensemble into one C2-architecture student with the confidence gate:
+the bitwise parity check of the training loop, nested-teacher epochs, the
+per-seed student cross-fit, criteria 1-3 written before dev was read, the
+final student's ONNX decision-parity and latency criteria, one dev evaluation,
+and an independent recomputation. It contains only counts, thresholds,
+timings, confidence intervals, and SHA-256 values.
+
 `issue-21-v1-latency-same-scope.json` re-measures the frozen v1 ONNX exports with
 revision 2's model-only timing and repeats v1's published loop, which also timed
 per-run `.npz` reads, on the same machine. It contains only timings and hashes.

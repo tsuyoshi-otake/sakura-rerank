@@ -394,6 +394,41 @@ A, B, and C remain false. The evidence is
 [`reports/issue-27-ensemble-gate.json`](reports/issue-27-ensemble-gate.json),
 produced by [`research/issue-27-ensemble-gate/`](research/issue-27-ensemble-gate/README.md).
 
+### Distilled single model with the confidence gate (Issue #29)
+
+[Issue #29](https://github.com/tsuyoshi-otake/sakura-rerank/issues/29)
+pre-registered the speed-only follow-up named by Issue #27: train one
+C2-architecture student on the ensemble's averaged logits and apply Issue
+#25's gate. The loss is 0.5 x the C2 loss + 0.5 x T^2 x KL(teacher || student)
+with T = 2, fixed in advance. For the cross-fit, the student scored on each
+outer fold learned from nested teachers that never trained on that fold
+(3 seeds x 10 fold pairs). Before any distillation, the training loop with KL
+weight 0 reproduced Issue #21's stored OOF logits bitwise. Criteria 1-3 were
+written for every student seed before dev was read.
+
+| Student seed | Harm (rate, 95% CI) | Rescue | RER | Issue #25 single model (harm / rescue / RER) |
+| --- | ---: | ---: | ---: | --- |
+| 20260814 | 21 (0.189%, 0.117-0.289%) | 202 | 12.97% | 19 / 156 / 9.81% |
+| 20261103 | 19 (0.171%, 0.103-0.267%) | 213 | 13.90% | 17 / 170 / 10.96% |
+| 20261104 | 21 (0.189%, 0.117-0.289%) | 190 | 12.11% | 18 / 185 / 11.96% |
+
+The distilled model plus gate is **adopted as a research candidate**: every
+seed passes harm <= 27, rescue >= 3 x harm, and RER >= 10%; the seed-20260814
+final student (epoch 15, gate score L with tau 1.7) runs at FP32 p95 0.661 ms
+(revision 2 alone: 0.697 ms in the same session); and its FP32 ONNX gated
+decisions equal its stored dev-logit decisions on all 1,788 dev rows. Without
+the gate, the students' OOF top-1 is also higher than the single C2 models'
+(11,456 / 11,457 / 11,470 against 11,416 / 11,424 / 11,432 correct of 12,516).
+Two limits remain. The harm criterion is a point estimate, and every seed's
+95% upper bound is above 0.25%. On dev (reference only) the gate gives harm 3,
+rescue 39, and RER 17.82% (ungated: harm 30, rescue 87), but 1,586
+baseline-correct rows cannot confirm the harm limit. INT8 reproduces every
+FP32 gated decision at p95 0.710 ms. The revision-2 manifest and artifacts are
+unchanged, the student checkpoint and ONNX files stay undistributed, and Gates
+A, B, and C remain false. The evidence is
+[`reports/issue-29-distill-gate.json`](reports/issue-29-distill-gate.json),
+produced by [`research/issue-29-distill-gate/`](research/issue-29-distill-gate/README.md).
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned
