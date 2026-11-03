@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import unittest
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -643,6 +645,262 @@ class GeneratedReportTests(unittest.TestCase):
             "notes",
         }
         self.assertTrue(forbidden.isdisjoint(object_keys(manifest)))
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
+    def test_issue21_retraining_decision_follows_the_preregistered_rules(self) -> None:
+        raw = (REPORTS / "issue-21-retrain-experiment.json").read_bytes()
+        report = json.loads(raw)
+        self.assertEqual(
+            raw,
+            (
+                json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode("utf-8"),
+        )
+        self.assertEqual(report["report_kind"], "sakura_rerank_issue21_retraining_experiment")
+        self.assertEqual(report["status"], "research_only_gate_a_failed")
+        self.assertFalse(report["final_holdout_used"])
+        self.assertFalse(report["production_change_authorized"])
+        self.assertEqual(report["protocol"]["dev_evaluations"], 1)
+        self.assertTrue(report["reproduction_of_prototype_without_dev"]["all_20_train_losses_equal"])
+        self.assertTrue(report["reproduction_of_prototype_without_dev"]["epoch3_weights_equal"])
+        self.assertEqual(sum(report["folds"]["fold_rows"]), 12_516)
+        self.assertTrue(report["v1_prototype_reference"]["epoch_selected_on_dev"])
+        self.assertTrue(report["independent_recomputation"]["matches"])
+        seeds = report["protocol"]["seeds"]
+        alpha = report["protocol"]["alpha_bonferroni"]
+        self.assertEqual(alpha, 0.025)
+        per_model = report["per_model"]
+
+        def total(recipe: str, split: str, field: str) -> int:
+            return sum(per_model[f"{recipe}-s{seed}"][split][field] for seed in seeds)
+
+        passing = []
+        for candidate in ("C1", "C2"):
+            summary = report["candidates"][candidate]
+            tests = {
+                **summary["mcnemar_oof_vs_B0_gating"],
+                **summary["mcnemar_dev_vs_B0_informational"],
+            }
+            for test in tests.values():
+                count = test["b"] + test["c"]
+                tail = sum(math.comb(count, index) for index in range(min(test["b"], test["c"]) + 1))
+                self.assertEqual(
+                    test["p"], float(min(Fraction(1), Fraction(2 * tail, 1 << count)))
+                )
+            oof_passes = (
+                all(
+                    per_model[f"{candidate}-s{seed}"]["oof"]["correct"]
+                    > per_model[f"B0-s{seed}"]["oof"]["correct"]
+                    for seed in seeds
+                )
+                and sum(tests[f"oof-s{seed}"]["p"] < alpha for seed in seeds) >= 2
+                and total(candidate, "oof", "harm") <= total("B0", "oof", "harm")
+            )
+            dev_passes = total(candidate, "dev", "correct") >= total(
+                "B0", "dev", "correct"
+            ) and total(candidate, "dev", "harm") <= total("B0", "dev", "harm")
+            if oof_passes and dev_passes:
+                passing.append(candidate)
+        self.assertEqual(passing, report["decision"]["passing"])
+        self.assertEqual(passing, ["C2"])
+        self.assertEqual(report["decision"]["adopted"], "C2")
+        self.assertEqual(report["selection"][f"C2-s{seeds[0]}"]["epoch"], 9)
+        harness = ROOT / "research" / "issue-21-retrain"
+        self.assertEqual(
+            report["artifacts"]["run_py_sha256"],
+            hashlib.sha256((harness / "run.py").read_bytes()).hexdigest(),
+        )
+        self.assertEqual(
+            report["independent_recomputation"]["script_sha256"],
+            hashlib.sha256((harness / "devin_recompute.py").read_bytes()).hexdigest(),
+        )
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
+    def test_issue21_adopted_model_is_bound_reproduced_and_fail_closed(self) -> None:
+        manifest_path = MANIFESTS / "sakura-rerank-tiny-v1-research-r2.json"
+        manifest_raw = manifest_path.read_bytes()
+        report_raw = (REPORTS / "sakura-rerank-tiny-v1-research-r2.json").read_bytes()
+        experiment_raw = (REPORTS / "issue-21-retrain-experiment.json").read_bytes()
+        manifest, report, experiment = (
+            json.loads(raw) for raw in (manifest_raw, report_raw, experiment_raw)
+        )
+        for raw, value in ((manifest_raw, manifest), (report_raw, report)):
+            self.assertEqual(
+                raw,
+                (
+                    json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                    + "\n"
+                ).encode("utf-8"),
+            )
+        self.assertEqual(manifest["status"], "research_only_gate_a_failed")
+        self.assertEqual(manifest["model_name"], "Sakura-Rerank-Tiny-v1-research-r2")
+        self.assertEqual(manifest["architecture"]["feature_dim"], 7)
+        self.assertEqual(manifest["recipe"]["adopted_recipe"], "C2")
+        self.assertEqual(manifest["recipe"]["epochs"], experiment["selection"]["C2-s20260814"]["epoch"])
+        self.assertFalse(manifest["recipe"]["dev_used_for_selection"])
+        self.assertFalse(manifest["data"]["final_holdout_used"])
+        implementation = manifest["implementation"]
+        for binding in (implementation, implementation["v1_dependency"]):
+            self.assertEqual(
+                binding["sha256"],
+                hashlib.sha256((ROOT / binding["file"]).read_bytes()).hexdigest(),
+            )
+        self.assertEqual(
+            implementation["v1_dependency"]["sha256"],
+            "a7ca1007ad2981f3008fa9363723f3d5c232213208ee0a4a9f89e572af3b2035",
+        )
+        experiment_sha256 = hashlib.sha256(experiment_raw).hexdigest()
+        self.assertEqual(
+            manifest["source_reports"]["issue_21_experiment_report"]["sha256"], experiment_sha256
+        )
+        self.assertEqual(report["issue_21_adoption"]["experiment_report_sha256"], experiment_sha256)
+        self.assertEqual(
+            report["model_manifest"],
+            {
+                "file": manifest_path.name,
+                "bytes": len(manifest_raw),
+                "sha256": hashlib.sha256(manifest_raw).hexdigest(),
+            },
+        )
+        self.assertFalse(manifest["distribution_authorized"])
+
+        # The published model reproduces the experiment's single dev evaluation.
+        quality = report["quality_dev_only"]
+        fp32, int8 = quality["fp32"], quality["int8"]
+        evaluated = experiment["per_model"]["C2-s20260814"]["dev"]
+        self.assertEqual(
+            (fp32["top1_correct"], fp32["harm_count"], fp32["rescue_count"]),
+            (evaluated["correct"], evaluated["harm"], evaluated["rescue"]),
+        )
+        self.assertEqual(fp32["record_count"], 1_788)
+        baseline_errors = fp32["record_count"] - fp32["baseline_top1_correct"]
+        reduction = (baseline_errors - (fp32["record_count"] - fp32["top1_correct"])) / baseline_errors
+        harm_rate = fp32["harm_count"] / fp32["baseline_top1_correct"]
+        int8_loss = (fp32["top1_accuracy"] - int8["top1_accuracy"]) * 100
+        self.assertEqual(quality["relative_error_reduction"], round(reduction, 10))
+        self.assertEqual(quality["baseline_correct_harm_rate"], round(harm_rate, 10))
+        self.assertEqual(quality["int8_top1_loss_percentage_points"], round(int8_loss, 10))
+
+        exports = manifest["exports"]
+        self.assertTrue(exports["fp32"]["parity"]["dev"]["top1_equal"])
+        self.assertEqual(exports["fp32"]["parity"]["dev"]["record_count"], 1_788)
+        cpu = report["windows_cpu_batch_one"]
+        for label in ("fp32", "int8"):
+            self.assertEqual(cpu[label]["model"]["sha256"], exports[label]["sha256"])
+        contract = cpu["contract"]
+        self.assertEqual(contract["measured_runs"], 10_000)
+        self.assertEqual(contract["failure_count"], 0)
+        self.assertEqual(contract["timing_scope"], "inference_session_run_only_inputs_prebuilt")
+        self.assertEqual(contract["provider"], ["CPUExecutionProvider"])
+        self.assertTrue(contract["gpu_disabled"])
+
+        checks = report["gates"]["checks"]
+        self.assertEqual(checks["dev_harm_rate_at_most_0_25_percent"], harm_rate <= 0.0025)
+        self.assertEqual(checks["dev_relative_error_reduction_at_least_10_percent"], reduction >= 0.10)
+        self.assertEqual(checks["dev_rescue_harm_ratio_at_least_3"], fp32["rescue_harm_ratio"] >= 3)
+        self.assertEqual(checks["fp32_model_p95_at_most_2_ms"], cpu["fp32"]["latency_ms"]["p95"] <= 2)
+        self.assertEqual(checks["fp32_model_p99_at_most_5_ms"], cpu["fp32"]["latency_ms"]["p99"] <= 5)
+        self.assertEqual(
+            checks["fp32_payload_at_most_8_mib"], exports["fp32"]["bytes"] <= 8 * 1024 * 1024
+        )
+        self.assertEqual(checks["int8_top1_loss_at_most_0_2_percentage_points"], int8_loss <= 0.2)
+        self.assertFalse(checks["production_worker_roundtrip_measured"])
+        self.assertFalse(checks["production_peak_memory_measured"])
+        self.assertEqual(
+            report["gates"]["unmet_checks"], sorted(name for name, ok in checks.items() if not ok)
+        )
+        for gate in ("gate_a_pass", "gate_b_pass", "gate_c_pass"):
+            self.assertFalse(report["gates"][gate])
+        self.assertFalse(report["final_holdout_used"])
+        self.assertFalse(report["production_change_authorized"])
+        self.assertFalse(report["artifact_distribution_authorized"])
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
+        self.assertTrue(forbidden.isdisjoint(object_keys(manifest)))
+        self.assertTrue(forbidden.isdisjoint(object_keys(report)))
+
+    def test_v1_latency_remeasurement_uses_the_r2_timing_scope(self) -> None:
+        raw = (REPORTS / "issue-21-v1-latency-same-scope.json").read_bytes()
+        report = json.loads(raw)
+        self.assertEqual(
+            raw,
+            (
+                json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode("utf-8"),
+        )
+        v1_manifest_raw = (MANIFESTS / "sakura-rerank-tiny-v1-research-prototype.json").read_bytes()
+        v1_report_raw = (REPORTS / "sakura-rerank-tiny-v1-research-prototype.json").read_bytes()
+        v1_manifest, v1_report = json.loads(v1_manifest_raw), json.loads(v1_report_raw)
+        r2_report = load_report("sakura-rerank-tiny-v1-research-r2.json")
+        self.assertEqual(report["report_kind"], "sakura_rerank_tiny_v1_latency_same_scope_as_r2")
+        self.assertEqual(report["status"], "research_only_gate_a_failed")
+        self.assertEqual(
+            report["timing_scope"], r2_report["windows_cpu_batch_one"]["contract"]["timing_scope"]
+        )
+        self.assertEqual(
+            report["v1_model_manifest_sha256"], hashlib.sha256(v1_manifest_raw).hexdigest()
+        )
+        for label in ("fp32", "int8"):
+            self.assertEqual(report[label]["model"]["sha256"], v1_manifest["exports"][label]["sha256"])
+            self.assertEqual(report[label]["provider"], ["CPUExecutionProvider"])
+            self.assertEqual(
+                report["published_v1_benchmark"][f"{label}_latency_ms"],
+                v1_report["windows_cpu_batch_one"][label]["latency_ms"],
+            )
+        self.assertEqual(
+            report["published_v1_benchmark"]["report_sha256"], hashlib.sha256(v1_report_raw).hexdigest()
+        )
+        # Repeating v1's own loop on the same machine is what isolates the
+        # timing scope, rather than the platform, as the cause of the gap.
+        repeated = report["published_v1_benchmark"]["fp32_latency_ms_remeasured_with_published_method"]
+        self.assertGreater(repeated["p50"], 2 * report["fp32"]["latency_ms"]["p50"])
+        self.assertLessEqual(report["fp32"]["latency_ms"]["p95"], 2)
+        self.assertEqual(
+            report["script_sha256"],
+            hashlib.sha256(
+                (ROOT / "research" / "issue-21-retrain" / "v1_latency_same_scope.py").read_bytes()
+            ).hexdigest(),
+        )
+        contract = report["contract"]
+        self.assertEqual(contract["measured_runs"], 10_000)
+        self.assertEqual(contract["failure_count"], 0)
+        self.assertEqual(contract["batch_size"], 1)
+        self.assertFalse(report["final_holdout_used"])
+        self.assertFalse(report["raw_text_in_report"])
+        self.assertFalse(report["raw_stable_ids_in_report"])
+        forbidden = {
+            "query",
+            "document",
+            "text",
+            "surface",
+            "reading",
+            "left_context",
+            "stable_id",
+            "rows",
+            "notes",
+        }
         self.assertTrue(forbidden.isdisjoint(object_keys(report)))
 
     def test_sakura_jqara_diagnostic_is_pinned_aggregate_only_and_out_of_domain(self) -> None:

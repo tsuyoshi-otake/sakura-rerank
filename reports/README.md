@@ -61,6 +61,22 @@ fail-closed limitations are explicit. The result is out of the IME training
 distribution and is neither a native-cross-encoder comparison nor Gate B
 evidence.
 
+`issue-21-retrain-experiment.json` records Issue #21's pre-registered
+retraining experiment: grouped out-of-fold selection on train, one dev
+evaluation, exact McNemar tests, the mechanical adoption of recipe C2, and an
+independent recomputation that matched every count. It contains only counts,
+p-values, and SHA-256 values of the ignored predictions and checkpoints.
+
+`sakura-rerank-tiny-v1-research-r2.json` is the fail-closed decision for the
+adopted revision-2 model. It binds
+`../manifests/sakura-rerank-tiny-v1-research-r2.json`, which binds the ignored
+checkpoint and ONNX files, the implementation, and every input report by
+SHA-256. Gates A, B, and C stay false and no production change is authorized.
+
+`issue-21-v1-latency-same-scope.json` re-measures the frozen v1 ONNX exports with
+revision 2's model-only timing and repeats v1's published loop, which also timed
+per-run `.npz` reads, on the same machine. It contains only timings and hashes.
+
 `sakura-ime-three-model-comparison.json` compares Sakura-Rerank-Tiny-v1,
 Japanese Reranker Tiny v2, and Japanese Reranker XSmall v2 on the identical
 frozen Sakura dev rows and complete 2--6-candidate request latency contract.
