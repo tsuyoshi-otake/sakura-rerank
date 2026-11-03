@@ -362,6 +362,38 @@ it was observed on the same rows. Gates A, B, and C remain false. The evidence
 is [`reports/issue-25-confidence-gate.json`](reports/issue-25-confidence-gate.json),
 produced by [`research/issue-25-confidence-gate/`](research/issue-25-confidence-gate/README.md).
 
+### Seed ensemble with the confidence gate (Issue #27)
+
+[Issue #27](https://github.com/tsuyoshi-otake/sakura-rerank/issues/27)
+pre-registered Issue #25's gate on the mean of the three C2 models' logits. The
+gate, threshold, and counting rules were imported from Issue #25's hash-pinned
+harness. Because the ensemble runs three models, two criteria were added: FP32
+ensemble ONNX p95 at most 2 ms under the repository latency contract, and FP32
+ONNX gated decisions equal to the stored-logit decisions on all 1,788 dev rows.
+Criteria 1-3 used cross-fitted train out-of-fold counts (12,516 rows) and were
+written before dev was read.
+
+| Criterion | Result | Pass |
+| --- | --- | --- |
+| Harm at most 0.25% of 11,120 baseline-correct rows | 15 (0.135%, 95% CI 0.076-0.222%) | yes |
+| Rescue at least 3 x harm | 200 against 45 | yes |
+| Relative error reduction at least 10% | 13.25% | yes |
+| FP32 ensemble ONNX p95 at most 2 ms | 2.211 ms | **no** |
+| FP32 ONNX decisions equal stored-logit decisions on 1,788 dev rows | 0 mismatches | yes |
+
+The ensemble is **not adopted**, on latency alone. Its accuracy clears every
+criterion that the single revision-2 model missed in Issue #25 (harm 19 / 17 /
+18, rescue 156 / 170 / 185 there), but one graph holding three models measures
+2.211 ms p95 against 0.704 ms for revision 2 alone on the same machine. The
+INT8 ensemble's 1.971 ms p95 is a reference only: it was not the pre-registered
+form, and it changes one dev decision relative to FP32. The final gate is score
+P with tau 0.78. On dev (reference only) it gives harm 2, rescue 31, and RER
+14.36%, against ungated harm 36 and rescue 88. The plan names the next
+candidate for a speed-only failure: distil the ensemble into one model. Gates
+A, B, and C remain false. The evidence is
+[`reports/issue-27-ensemble-gate.json`](reports/issue-27-ensemble-gate.json),
+produced by [`research/issue-27-ensemble-gate/`](research/issue-27-ensemble-gate/README.md).
+
 ## Data contract boundary
 
 The current data boundary includes fixed-source manifest validation, versioned

@@ -79,6 +79,13 @@ the decision written before dev was read, one dev evaluation, an FP32/INT8
 gated-decision comparison, and an independent recomputation. It contains only
 counts, thresholds, confidence intervals, and SHA-256 values.
 
+`issue-27-ensemble-gate.json` records Issue #27's pre-registered seed-ensemble
+confidence gate: cross-fitted score and threshold selection on the averaged
+train OOF logits, criteria 1-3 written before dev was read, the ensemble ONNX
+decision-parity and latency criteria, one dev evaluation, and an independent
+recomputation. It contains only counts, thresholds, timings, confidence
+intervals, and SHA-256 values.
+
 `issue-21-v1-latency-same-scope.json` re-measures the frozen v1 ONNX exports with
 revision 2's model-only timing and repeats v1's published loop, which also timed
 per-run `.npz` reads, on the same machine. It contains only timings and hashes.
