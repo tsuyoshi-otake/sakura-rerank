@@ -1,5 +1,10 @@
 # Data boundary tooling
 
+The approved Issue #31/#32 [Gold operations pilot](../../../research/gold-pilot-protocol.md)
+uses separate `gold_pilot` and read-only `frozen_diagnostics` commands. It never
+applies labels or certifies Gate A, even after 1,000 unanimous human judgments.
+Do not feed its packets or proposals to the legacy `human-audit apply` command.
+
 This package defines acquisition, deterministic source-span preprocessing,
 provenance, Tier A assembly, and splitting. It never invokes Sakura Input or
 trains a model. Tier A assembly consumes immutable external artifacts and does
