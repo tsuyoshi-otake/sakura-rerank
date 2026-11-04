@@ -95,3 +95,10 @@
   eight still had locally understandable targets: routing flags are not label
   errors or independent Gold evidence. See the source-quality addendum in
   `reports/issue-31-ai-six-axis-review.md`.
+- Spelling policy mapping (#31): protection and uncertainty are separate axes.
+  Among 330 style/protection cases, three old style cases needed name/title
+  protection; 64 protected cases still had unresolved reading, meaning, input
+  unit or context. Derive exclusive workflow routes separately from overlapping
+  rule memberships. Conditional pair review is not an accepted-surface set, and
+  exact-form protection does not certify the source label. Verified by the
+  spelling mode of `pilot_policy_triage` and its contract tests.

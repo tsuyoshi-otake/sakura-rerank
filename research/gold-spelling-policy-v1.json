@@ -1,0 +1,40 @@
+{
+  "policy_version": "gold-spelling-policy-v1",
+  "purpose": "Freeze conditions for spelling analysis and map every style/protection case from the complete 1000-case AI diagnostic. This is a policy specification and single-AI routing record, not new Gold labels.",
+  "reviewer_kind": "ai_teacher",
+  "reviewer_id": "codex-primary",
+  "gate_a_eligible": false,
+  "independent_test": false,
+  "labels_may_be_applied": false,
+  "rules": {
+    "S1": {"name": "numeric_form", "action": "conditional_pair_review", "definition": "算用数字/漢数字など。数値・単位・暦日/期間/頻度・桁/先頭ゼロ・読みが同じかを個別に確認する。代数や固有の襲名・製品番号等は保護を優先。"},
+    "S2": {"name": "okurigana", "action": "conditional_pair_review", "definition": "送り仮名の省略/有無。活用形と品詞、複合動詞の切出し、名詞/動詞の使い分けを確認し、慣用的な対を個別指定する。文字削除規則を一般化しない。"},
+    "S3": {"name": "kana_kanji_or_repetition", "action": "conditional_pair_review", "definition": "仮名/漢字/繰返し記号。語義と用法を先に固定し、同じ音の別語を除外する。単純な読み一致や漢字→仮名で許容集合を生成しない。"},
+    "S4": {"name": "loanword_notation", "action": "conditional_pair_review", "definition": "外来語の長音・イ/ー・ヴ/バ行等。借用語・原語・固有名称を区別し、その読みでの実converter経路と語義・表記意図を個別確認する。表音的に近いだけでは同値にしない。"},
+    "S5": {"name": "glyph_variant", "action": "conditional_pair_review", "definition": "旧字/異体字/字形。一般語か保護対象かを先に確認し、対ごとの根拠と明示的な選択方針を要求する。NFKCや辞書同一視で名前を変更しない。"},
+    "S6": {"name": "latin_or_abbreviation", "action": "conditional_pair_review", "definition": "英字/略号/仮名表記。展開語・分野・原語の使用意図を確定し、大文字小文字や識別子の意味を保存する。略号の意味を文脈なしで展開しない。"},
+    "S7": {"name": "symbol_or_width", "action": "conditional_pair_review", "definition": "記号・全半角・類似コードポイント。入力意図・用途・文字同一性を確認する。チルダと波ダッシュ等を見た目や範囲用途だけで同値にしない。"},
+    "P1": {"name": "person_or_character_name", "action": "protect_exact_form", "definition": "人名・芸名・登場人物・襲名・人名断片。本人/人物と版・世代の同一性、対象範囲の表記を根拠にしてから判定する。読みや見慣れた名前だけで字体・数字等を正規化しない。"},
+    "P2": {"name": "place_or_facility_name", "action": "protect_exact_form", "definition": "地名・駅・道路・施設・地理名称とその断片。地域と対象範囲の同一性を要求し、同字の別地域を根拠にしない。部分入力を禁止する規則ではない。"},
+    "P3": {"name": "organization_or_event_name", "action": "protect_exact_form", "definition": "団体・学校・会社・競技大会・賞等の正式/通称と断片。対象組織と時点、正式名か通称か、略称の使用意図を確認する。一般語として読めても名称内では一括変更しない。"},
+    "P4": {"name": "work_title_or_quotation", "action": "protect_exact_form", "definition": "作品・番組・書名・掲載媒体・引用・クレジット等の対象表記。作品/出典/版と引用範囲を確認し、その表記を維持する。引用周辺の一般説明語まで無条件に保護対象へ拡張しない。"},
+    "P5": {"name": "product_identifier_or_fixed_term", "action": "protect_exact_form", "definition": "製品・型番・ソフトウェア・コード・識別子・法令/制度/役職等の固定名称と断片。区別に必要な英字・数字・記号・大小文字を保つ。規格版や指示対象を特定できなければ未認証。"}
+  },
+  "conditional_equivalence_requirements": [
+    "対象範囲と意図する語義/指示対象を、許可された左文脈と読みから説明できること。実際の意図が観測されていない場合はその限界を残す。",
+    "実converterの同一full-reading候補snapshotに両表記の経路があること。読みの近さ、形態素解析、LLMの提案で代用しない。",
+    "数値・日付/期間・単位・品詞/活用・意味を維持すること。読み誤り、抽出欠陥、入力単位の疑義を先に分離すること。",
+    "名称・引用・識別子に関係する場合は保護を優先し、正確な同一性/版/対象範囲と許容の根拠がない限り別表記を追加しないこと。",
+    "個々の対と証拠hash、方針版、確認者由来を固定した独立評価用の別成果物が必要。同じAIの診断だけで許容候補集合を発行しないこと。"
+  ],
+  "preconditions": {
+    "reading_unresolved": "reading != compatible",
+    "input_unit_unresolved": "input_unit != whole_plausible",
+    "context_defect_or_unknown": "context != usable",
+    "meaning_unresolved": "meaning != supported"
+  },
+  "precedence": "P rules always forbid automatic normalization. S-only cases with unresolved preconditions route to resolve_preconditions; otherwise conditional_pair_review. Protected cases may also carry unresolved preconditions; exact-form protection never certifies the label.",
+  "metrics": "Keep immutable source-exact accuracy and all original denominators. Any future independently established acceptability-set metric is secondary and reports eligible, excluded and unresolved counts. These 330 cases do not certify the other 670.",
+  "evidence_limits": "Same assistant with prior exposure; all 330 cases are individually mapped. No model predictions, costs, ranks, future context, host documents, dev or holdout examples. No human agreement or accuracy confidence interval is inferred.",
+  "history": "Freeze this policy before saving mappings. Append hash-linked immutable mapping events in fixed case order; preserve prior six-axis decisions. Future policy changes need a new version and separate ledger. No automatic normalization, candidate-set output or original-label modification."
+}

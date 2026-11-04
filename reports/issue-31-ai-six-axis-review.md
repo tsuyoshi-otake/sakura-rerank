@@ -4,7 +4,56 @@
 
 原データを変更せず、同一助手による暫定的な診断として保存した。独立人手確認・独立Gold・精度向上実験ではない。90.72%を更新する評価は行っていない。
 
-## 最新: 新版のsource品質隔離を実装（2026-11-04）
+## 最新: 表記・保護330件の方針対応を完了（2026-11-04）
+
+**表記方針57件と名称/引用保護273件を全件確認し、凍結した表記方針v1へ対応づけた。** 同じAIによる診断を6つのimmutable batchに保存し、前event、元queue、旧六軸判断、旧report、新policyのhashに結合した。人手や独立第二判定ではなく、正解表記集合の発行・ラベル適用は0件である。
+
+| 次に必要な扱い | 件数 | 意味 |
+| --- | ---: | --- |
+| 正確な表記を保護 | 276 | 名称・引用・識別子等の無条件正規化を禁止。正解認証ではない |
+| 個別の表記対を条件付き検討 | 47 | 語義等の既存診断に明示的な未解決フラグがなく、表記対の根拠確認へ進める。許容済みではない |
+| 先に読み・入力単位・文脈・意味を確認 | 7 | 表記の同値性を論じる前提が未解決。unknownのまま母集団に残す |
+
+旧表記方針57件のうち3件は保護優先となった。番組題名である可能性、芸名の襲名世代、放送局略称の可能性を、一般の数字・外来語規則で処理しないためである。旧273件の保護は維持した。保護276件中64件には他軸の未解決点もあり、保護によって不確実性を消していない。
+
+全330件の未解決軸は意味47・入力単位20・読み13・文脈4で、軸間に重複がある。保護と未解決は排他的ではない。複数の規則に属する例もあるため、規則別件数を合計して母集団件数としない。[集計JSON](issue-31-spelling-policy-v1.json)に排他的なroute、重複するrule memberships、旧分類との対応を分けて保存した。今回対象外の670件の正解性を認証する集計ではない。
+
+### 凍結した表記契約
+
+[Gold表記方針v1](../research/gold-spelling-policy-v1.json)のSHA-256は `973b25db713a56b11c72e2f1b53bc3f585c8b7efde7b40bd11e51d6eed91306f`。規則は、数字・送り仮名・仮名漢字/繰返し・外来語・字形・英字略号・記号の7種類と、人名・地名施設・組織行事・作品引用・製品識別子等の5種類。名称の種類が未同定の場合はその限界を個票に残し、複数の保護規則への対応は同一性の認証としない。
+
+条件付きの表記対を将来許容するにも、次が必要となる。
+
+1. 意図する語義/指示対象と入力単位を、許可された情報で説明する。単に自然な一候補であることを一意な意図と同一視しない。
+2. 同じfull-readingの実converter snapshotに両表記の経路があり、数値・用法・品詞/活用・意味を維持する。LLM提案、読みの近さ、候補への登録だけで代替しない。
+3. 名称・引用・型番等は保護を優先する。字体・数字・大文字小文字・記号の無条件正規化は禁止する。
+4. 個々の対、根拠hash、方針版、確認者由来を固定した独立評価用の別成果物を用意する。同じAIの今回の判断から許容集合を自動発行しない。
+
+主評価のsource-exact Accuracyと元分母は不変。将来の表記許容集合による評価は副評価として対象数・除外数・未解決数を併記する。意味の違う同音語や読み誤りを表記揺れとして救済しない。AIによる方針対応の完了率を、Goldの正解率・人間の一致率・95%品質区間へ換算しない。
+
+### 再現・受入検証
+
+```powershell
+$env:PYTHONPATH='src'
+python -X utf8 -m sakura_rerank.data.pilot_policy_triage --mode spelling --packet data/generated/issue-31-gold-pilot-v1 --ai-policy research/gold-ai-six-axis-policy-v1.json --batches data/generated/issue-31-ai-six-axis-v1 --base-report reports/issue-31-ai-six-axis-v1.json --triage-policy research/gold-spelling-policy-v1.json --ledger data/generated/issue-31-spelling-policy-v1/ledger.jsonl --machine-report reports/issue-31-machine-evidence-v1.json --machine-evidence data/generated/issue-31-machine-evidence-v1/evidence.jsonl
+python -X utf8 -m unittest discover -s tests -p test_pilot_policy_triage.py -v
+python -X utf8 -m unittest discover -s tests -v
+```
+
+| Verify | Expect / 結果 |
+| --- | --- |
+| 330件のhash chainと元queue/診断の結合 | 対象全件・順序一致、欠落/重複0、6batchの初回記録を保持。許容表記やhuman偽装を拒否 |
+| 同一集計2回と別Counter | byte一致、276+47+7=330、旧57/273との対応・各規則・未解決軸が一致 |
+| 新旧契約testsと全tests | 新規5成功、旧8継続成功。全353中348成功、既存optional PyTorch 5skip、失敗0。300秒timeout内で完了 |
+| AST/compile・diff・既存hash・process | 既存26artifact不変、task runner残存0、既存インストールworker維持 |
+
+検証の詳細は [verification JSON](issue-31-spelling-policy-verification-v1.json)。raw個票は `data/generated/issue-31-spelling-policy-v1/` の6batchと連結ledgerに保存し、Gitには含めない。一時view・作業script・test logは清掃する。旧データ/モデル/政策履歴、独立Test未使用、安全性0.25%を維持している。
+
+**次の工程:** 方針整理を繰り返すだけにせず、#35の評価仕様とcalibration/Test隔離の機械検証へ進む。独立Goldの品質証拠は依然未解決であり、今回の330件を独立Testへ流用しない。モデル・特徴量・ゲート・ラベル方針と統計条件をTest実行前に固定する。Gate A未達・製品リリース未完了を維持する。
+
+**今回のIRV。** A: 既存policy triageの責任、六軸診断とpacket/machine証拠の公開契約、新表記policy、対象330個票、同じtest fileの5追加tests。B: 旧triageは193件の旧分類だけを対象としていたため、同じ責任内に六軸版の明示的modeを追加した。旧API/default modeは維持。C: `pilot_policy_triage` が対応づけの検証と集計を所有し、policyが表記検討条件を所有する。元ラベルやモデルへの書込み経路はない。D: 次回は表記検討の対象と必要根拠をこのpolicy/台帳から取得できる。保護が認証ではないこと、条件付き検討が許容ではないこと、重複する規則件数の扱いは引き続き必要。
+
+## 前段: 新版のsource品質隔離を実装（2026-11-04）
 
 **新しい抽出を明示的にv5で実行すると、左文脈64文字＋対象表記にあるTeX命令残骸と空の書名括弧を検出して、その候補を隔離する。** 原文を推測して埋めたり、正解ラベルを書き換えたりしない。既定は従来のv4で、旧datasetの再現性を維持した。判定に右文脈・後続候補を追加していない。
 
