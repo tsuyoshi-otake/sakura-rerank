@@ -65,3 +65,11 @@
   matched exactly on 2026-11-04, but the common extractor means this is not an
   independent check of contextual reading, intended spelling, or Gold quality.
   See `reports/issue-31-machine-evidence-verification-v1.json`.
+
+- Six-axis AI reread (#31): linguistic plausibility is weaker than unique
+  intended output. The same 1000-case pilot has 609 all-ordinary/supportive
+  combinations, but none are independently certified by that classification.
+  Recheck the entire cohort, including old "unique" cases; compare axis counts
+  conditionally without treating changed definitions as improved accuracy.
+  Source-exact checks, single-AI judgments and human evidence remain separate.
+  See `reports/issue-31-ai-six-axis-review.md` and its verification JSON.
