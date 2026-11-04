@@ -1,0 +1,21 @@
+{
+  "policy_version": "gold-ai-six-axis-v1",
+  "scope": "Single-assistant diagnostic reread of all 1000 fixed train pilot cases, without source-label application. Distinct from the unused human policy and from independent Gold certification.",
+  "reviewer_kind": "ai_teacher",
+  "reviewer_id": "codex-primary",
+  "independent_review": false,
+  "gate_a_eligible": false,
+  "axes": {
+    "source": {"preprocessed_exact_independent_unverified": "機械照合で別保存の抽出sourceと一致。抽出器を共有するため未加工原文や意味の独立保証ではない。各caseの機械証拠hashを参照する。"},
+    "reading": {"compatible": "提示表記と左文脈に通常の読みとして適合するとの暫定判断。辞書や独立者による認証ではない。", "suspect": "文脈と読みの間に具体的な不整合が疑われる。修正読みを確定しない。", "unknown": "専門読み・固有名読み・切出し等のため根拠不足。"},
+    "input_unit": {"whole_plausible": "合成課題の語・句として成立しそうで、提示範囲に明示的な切出し疑義がない。実際のIME確定操作を観測した意味ではない。", "boundary_question": "語中切出し・名称の断片等の具体的な疑義がある。形態素境界とIME入力境界を同一視せず、正当な部分入力の可能性を残す。", "unknown": "提示範囲で入力単位を評価する根拠が足りない。"},
+    "context": {"usable": "対象評価を妨げる抽出欠陥は提示範囲に見られない。空・短文脈はそれだけでは抽出欠陥でない。", "defect_nonblocking": "欠落やmarkup等の欠陥はあるが、対象表記の暫定評価は可能。", "defect_blocking": "観察できる欠陥により対象の評価が妨げられる。", "unknown": "文脈欠陥の有無・影響を判断できない。"},
+    "meaning": {"supported": "提示された意味が左文脈内で支持される。唯一の意図だという主張ではない。", "ambiguous": "具体的な別の語義・参照対象が残る。単なる仮想の人名を作って曖昧としない。", "unknown": "意味・固有の参照対象を特定する根拠が不足する。"},
+    "spelling": {"ordinary_plausible": "一般的な表記として妥当そうで、今回の提示範囲に特別な保護・表記選択の論点がない。唯一正解・表記意図認証ではない。", "style_underdetermined": "数字・送り仮名・仮名漢字・原語・略号・歴史表記等に選択の余地がある。許容集合を自動発行しない。", "protected_unverified": "人名・地名・団体名・題名・引用・正式表記等を保護する。見慣れた名前でも正確な表記意図や同一性を認証しない。", "unknown": "表記としての妥当性を判断できない。"}
+  },
+  "presentation": "Read source gold, reading, at most 64 characters of left context and gold segments. Inspect alphabetically sorted frozen alternatives when a specific question requires them. No model predictions, costs or ranks; no old AI verdicts in the reread view. No right/future context, host documents or holdout examples.",
+  "judgment_contract": "Every case explicitly selects all five linguistic axes plus an individual reason; source axis comes only from its authenticated machine evidence. No default valid labels, no mechanical conversion from old verdicts, no accepted-surface sets, no corrected readings.",
+  "comparison_limit": "This is source-target plausibility analysis, not an exhaustive candidate ranking or proof of unique intended output. The reviewer has prior exposure and sees the source gold; no blinding or independence claim.",
+  "history": "20 immutable batches of 50. Corrections, if any, append with per-case and journal predecessor hashes; initial judgments and counts are retained. Publish only aggregates and hashes, never case text or IDs.",
+  "conclusion_limit": "Distributions of provisional AI judgments are not label accuracy, reviewer agreement or evidence of Gate A. No quality confidence interval is inferred. Maintain source-exact metrics, original denominators, source data, models and the 0.25% safety threshold. Independent Gold/Test and retraining remain separate tasks."
+}

@@ -32,12 +32,13 @@ from .contracts import (
 )
 from .manifest import LOCAL_ARTIFACT_VERIFIED, PREPROCESSING_VERIFIED
 from .research_exporter import MAX_EXPORT_RECORDS, validate_export_records
+from .source_quality import QUALITY_CLEANER_VERSION, QUALITY_MANIFEST_SCHEMA_VERSION, QUALITY_POLICY, QUALITY_REASONS
 
 
 SOURCE_SPAN_SCHEMA_VERSION = 1
 SOURCE_SPAN_RECORD_TYPE = "jawiki_tier_a_source_span"
 SOURCE_SPAN_MANIFEST_SCHEMA_VERSION = 4
-SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4})
+SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4, QUALITY_MANIFEST_SCHEMA_VERSION})
 SOURCE_SPAN_MANIFEST_KIND = "jawiki_tier_a_source_spans"
 SOURCE_SPAN_CLEANER_VERSION = "conservative_wikitext_v4"
 STABLE_ID_EXCLUSION_FORMAT_VERSION = 1
@@ -49,6 +50,7 @@ SUPPORTED_SOURCE_SPAN_CLEANER_VERSIONS = frozenset(
         "conservative_wikitext_v2",
         "conservative_wikitext_v3",
         SOURCE_SPAN_CLEANER_VERSION,
+        QUALITY_CLEANER_VERSION,
     }
 )
 DICTIONARY_INDEX_SCHEMA_VERSION = 1
@@ -753,8 +755,10 @@ def validate_source_span_manifest(
         or manifest_schema_version not in SUPPORTED_SOURCE_SPAN_MANIFEST_SCHEMA_VERSIONS
     ):
         raise TierAError("source_span_manifest.schema_version: unsupported schema")
-    if manifest_schema_version in {3, 4}:
+    if manifest_schema_version in {3, 4, 5}:
         fields.add("stage4_stable_id_exclusion")
+    if manifest_schema_version == QUALITY_MANIFEST_SCHEMA_VERSION:
+        fields.add('candidate_quality_policy')
     manifest = _strict_object(manifest, fields, "source_span_manifest")
     if manifest["manifest_kind"] != SOURCE_SPAN_MANIFEST_KIND:
         raise TierAError("source_span_manifest.manifest_kind: unsupported kind")
@@ -802,6 +806,10 @@ def validate_source_span_manifest(
         raise TierAError(
             "source_span_manifest: schema v3 and v4 require the v4 cleaner"
         )
+    if manifest_schema_version == QUALITY_MANIFEST_SCHEMA_VERSION and (
+        cleaner_version != QUALITY_CLEANER_VERSION or manifest['candidate_quality_policy'] != QUALITY_POLICY
+    ):
+        raise TierAError('source_span_manifest: schema v5 requires the v5 cleaner and quality policy')
     config_fields = {
         "sample_modulus",
         "sample_slots",
@@ -813,9 +821,9 @@ def validate_source_span_manifest(
         "min_surface_chars",
         "max_surface_chars",
     }
-    if manifest_schema_version in {2, 3, 4}:
+    if manifest_schema_version in {2, 3, 4, 5}:
         config_fields.update({"min_reading_chars", "max_reading_chars"})
-    if manifest_schema_version == 4:
+    if manifest_schema_version in {4, 5}:
         config_fields.add("sample_slot_start")
     config = _strict_object(
         manifest["config"],
@@ -833,9 +841,9 @@ def validate_source_span_manifest(
         "min_surface_chars": 256,
         "max_surface_chars": 256,
     }
-    if manifest_schema_version == 4:
+    if manifest_schema_version in {4, 5}:
         integer_bounds["sample_slot_start"] = 1_000_000
-    if manifest_schema_version in {2, 3, 4}:
+    if manifest_schema_version in {2, 3, 4, 5}:
         integer_bounds.update(
             {
                 "min_reading_chars": MAX_READING_CHARS,
@@ -849,7 +857,7 @@ def validate_source_span_manifest(
     if not (
         1 <= normalized_config["sample_slots"] <= normalized_config["sample_modulus"]
         and (
-            manifest_schema_version != 4
+            manifest_schema_version not in {4, 5}
             or (
                 0 <= normalized_config["sample_slot_start"] < normalized_config["sample_modulus"]
                 and normalized_config["sample_slot_start"]
@@ -868,7 +876,7 @@ def validate_source_span_manifest(
         <= normalized_config["max_surface_chars"]
     ):
         raise TierAError("source_span_manifest.config: invalid bounds")
-    if manifest_schema_version in {2, 3, 4} and not (
+    if manifest_schema_version in {2, 3, 4, 5} and not (
         MIN_READING_CHARS
         <= normalized_config["min_reading_chars"]
         <= normalized_config["max_reading_chars"]
@@ -909,9 +917,19 @@ def validate_source_span_manifest(
         )
     if manifest["raw_text_in_report"] is not False:
         raise TierAError("source_span_manifest.raw_text_in_report: must be false")
+    if manifest_schema_version == QUALITY_MANIFEST_SCHEMA_VERSION:
+        quarantined = normalized_counts.get('quality_quarantined', 0)
+        retained = normalized_counts.get('quality_retained', -1)
+        byte_skipped = normalized_counts.get('quality_output_byte_skipped', 0)
+        reasons = [normalized_counts.get('quality_' + name, 0) for name in QUALITY_REASONS]
+        if (retained != record_count
+                or byte_skipped != normalized_counts.get('stopped_at_output_byte_bound', 0)
+                or normalized_counts.get('quality_examined') != quarantined + retained + byte_skipped
+                or any(n > quarantined for n in reasons) or sum(reasons) < quarantined):
+            raise TierAError('source_span_manifest: quality counters do not reconcile')
     stable_id_exclusion = (
         validate_stable_id_exclusion_commitment(manifest["stage4_stable_id_exclusion"])
-        if manifest_schema_version in {3, 4}
+        if manifest_schema_version in {3, 4, 5}
         else None
     )
     normalized = {
@@ -932,6 +950,8 @@ def validate_source_span_manifest(
     }
     if stable_id_exclusion is not None:
         normalized["stage4_stable_id_exclusion"] = stable_id_exclusion
+    if manifest_schema_version == QUALITY_MANIFEST_SCHEMA_VERSION:
+        normalized['candidate_quality_policy'] = QUALITY_POLICY
     identity = (extractor_git_sha, content_sha)
     if status == "verified":
         if identity not in VERIFIED_SOURCE_SPAN_IDENTITIES:

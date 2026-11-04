@@ -1,0 +1,61 @@
+{
+  "policy_version": "gold-human-six-axis-v1",
+  "status": "frozen",
+  "population": "All 1000 cases from the unchanged operations pilot, irrespective of prior labels. No resampling or removal of difficult cases.",
+  "pilot_size": 1000,
+  "gate_a_eligible": false,
+  "independent_test": false,
+  "label_application_allowed": false,
+  "reviewer_kind": "human",
+  "axes": {
+    "source": {
+      "matches": "提示された独立の原文証拠と対象表記が一致する。日本語として正しいという意味ではない。",
+      "mismatch": "提示された独立の原文証拠と対象表記に明示的な不一致がある。",
+      "unverifiable": "原文の独立照合に必要な証拠がない。原gold自身との一致を原文照合にしない。"
+    },
+    "reading": {
+      "compatible": "提示読みが許可された左文脈内の対象表記・意味に適合すると判断でき、理由を説明できる。候補存在だけを根拠にしない。",
+      "incompatible": "提示読みと文脈内の対象表記に具体的な不整合がある。修正読みは推測して確定しない。",
+      "unknown": "専門読み・複合語の読みなどの根拠が不足している。"
+    },
+    "input_unit": {
+      "whole_unit_plausible": "対象は合成課題として語・句の単位を成すと説明できる。実ユーザーの確定境界を観測したという意味ではない。",
+      "partial_unit_plausible": "部分確定を想定した課題として成立すると説明できる。形態素境界とIME入力境界を同一視しない。",
+      "boundary_question": "語の一部の切出しなど具体的な疑義がある。漢字隣接だけで誤りとはしない。",
+      "unknown": "許可された証拠では入力単位の妥当性を判断できない。右側を推測して埋めない。"
+    },
+    "context": {
+      "usable": "提示された文脈に判定を妨げる抽出上の問題は見られない。文脈が短いことだけを抽出誤りにしない。",
+      "defect_nonblocking": "文脈の欠落・markup等は観察できるが対象の判断を妨げない理由がある。",
+      "defect_blocking": "観察できる欠落・markup等が対象の判断を妨げている。対象ラベルが誤りと証明したわけではない。",
+      "unknown": "文脈の状態や問題の影響を判断できない。"
+    },
+    "meaning": {
+      "identifiable": "許可された入力から意図された意味・対象を限定できる理由がある。",
+      "ambiguous": "具体的で妥当な複数の意味・人物・対象が残る。候補に特殊読みがあるだけで曖昧としない。",
+      "unknown": "意味や同一性について判断する根拠が不足している。"
+    },
+    "spelling": {
+      "unique": "一つの候補表記を支持する根拠がある。自然な候補が一つあるだけでは不十分。",
+      "multiple": "同じ読み・意味・使用域で許容できる具体的候補集合を列挙できる。",
+      "protected_unresolved": "名称・題名・引用・正式表記等の可能性があり保護するが、意図された表記は確定できない。",
+      "unknown": "意図された表記または許容集合を決める根拠が不足している。"
+    }
+  },
+  "instructions": {
+    "scope": "左文脈・読み・候補・原gold・分割のみ。host文書・右/未来文脈を追加しない。モデル予測・変換器順位・過去の判定・AI提案を閲覧しない。",
+    "source_limitation": "このpilot packetは独立した原文証拠を含まないのでsourceはunverifiableとする。抽出済み原goldを独立原文証拠と見なさない。原文確認済みGoldへの昇格はできない。原文証拠の追加は別版の設計課題。",
+    "input_provenance": "全件が合成辞書spanから作られた課題。実セッションの部分確定操作を記録したデータではない。",
+    "order": "六軸を別々に判定し、全軸に具体的な理由を記入する。一つの問題を他の軸へ自動伝播させない。unknownも有効な判定結果。",
+    "equivalence": "新旧字体、送り仮名、仮名漢字、数字、反復、中黒、英字・音写を一律に正規化しない。固有名詞・名称・題名・引用を保護する。異なる語義を表記同値にしない。",
+    "accepted_surfaces": "spellingがuniqueなら1件、multipleなら2件以上を候補から明示する。それ以外は空。unique/multipleにはreading=compatible、input_unit=whole_unit_plausibleまたはpartial_unit_plausible、context=usableまたはdefect_nonblocking、meaning=identifiableが必要。これはpilot上の提案でありGold認証ではない。候補外の修復を推測しない。",
+    "independence": "A/Bは別々の人間が独立に全1000件を判断する。相手の判定・対象個票の既存AI提案・ケース別AI補助は使用しない。AIは資料準備と契約検証・集計のみ補助する。人物の独立性はcoordinatorが確認し、システムの識別名検査だけで認証されたと扱わない。",
+    "third_party": "CはA/Bとは別の人間。A/B双方の1000件提出を固定してから、不一致の六軸・許容集合・理由を裁定する。Cもunknownを残せる。Cの裁定は一致率に加算しない。",
+    "freeze": "A/B全件提出が揃った時点で最新event集合をsealする。seal以後のA/B追記訂正は禁止。訂正や方針変更には履歴を残す新run/新版が必要で、共有後の判定を独立初回判定として扱わない。",
+    "history": "同一case/roleとrole全体の前event hashを連結して追記する。既存eventの削除・差替えは禁止。毎roundは以前のround全eventをprefixとして保持し、独立して保管したhashを照合する。",
+    "completion": "全件の二重判定と必要な裁定の記録が揃えばpilot運用完了。unknownを含む記録の完了と、Goldとしての利用可否は異なる。",
+    "privacy": "原文・個票・判定者識別名・理由はGitや外部AIへ送らない。各判定者へ専用配布ディレクトリだけを渡し、全体repositoryやcoordinator資料へのアクセスを与えない。",
+    "metrics": "初回A/B一致率を主とし、訂正後のseal時点一致率を別記する。各軸と六軸＋許容集合の完全一致を報告。unknown同士の一致を含む粗一致と、両者が判定可能だった部分の一致を分け、分母・欠測数を併記。裁定必要率と裁定完了率を区別する。",
+    "quality": "pilot一致率は正解率ではない。品質99.5%以上・Wilson 95%下限99.0%以上・最終holdout valid3000件以上をpilotで認証しない。安全性0.25%を維持。独立Testはモデル・特徴量・ゲート・ラベル方針固定後に一度のみ。"
+  }
+}

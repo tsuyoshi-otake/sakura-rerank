@@ -1,0 +1,13 @@
+{
+  "policy_version": "gold-pilot-ai-v1",
+  "authorization": "Owner asked Codex to perform the work autonomously on 2026-11-04.",
+  "reviewer_kind": "ai_teacher",
+  "reviewer_id": "codex-primary",
+  "review_design": "one assistant explicit per-case review; later self-corrections are not independent reviewers",
+  "human_review_count": 0,
+  "gate_a_eligible": false,
+  "independent_test": false,
+  "label_policy": "Retain original packet policy definitions. Candidate-relative judgments are provisional AI opinions, not certified unique truth. Plain phonetic fallback is not automatically treated as an orthographic-equivalence judgment; conventional spelling alternatives are recorded explicitly. This limitation must be reported.",
+  "allowed_actions": ["read frozen pilot packets", "write separate AI verdict batches", "self-correct with retained history", "publish aggregate evidence"],
+  "forbidden_actions": ["claim human review", "claim independent double review", "apply labels", "train a model", "use holdout for selection", "relax safety threshold"]
+}

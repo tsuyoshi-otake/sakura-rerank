@@ -1,5 +1,21 @@
 # Reports
 
+[Issue #31/#32 pilot preparation](issue-31-32-pilot-preparation.md) records the
+approved train-only 1,000-case operations pilot and read-only overlap audit.
+`issue-31-gold-pilot-status-v1.json` has zero human judgments and cannot pass
+Gate A; `issue-32-frozen-audit-v1.json` contains only aggregate diagnostics.
+Human packets and proposals remain local and ignored. The reproducible workflow
+and explicit pending/adjudication terminals are in
+[`research/gold-pilot-protocol.md`](../research/gold-pilot-protocol.md).
+
+The [2026-11-04 accuracy reassessment and approval-pending plan](../research/accuracy-reassessment-20261104.md)
+reconciles Issues #15 and #21–#29, recomputes the frozen train/dev candidate
+ceiling and rescue/harm outcomes, and documents input-level split overlap.
+`accuracy-reassessment-20261104.json` contains aggregate evidence and the full
+descriptive OOF risk-coverage curves; `accuracy-reassessment-20261104-risk-coverage.png`
+plots those selection-data curves. This is not an independent Gold Test or a
+production gate pass. No labels, models, or training code were changed.
+
 This directory stores reviewable, summarized measurements and audit output.
 Reports must not contain raw user input, private corpora, Wikipedia article text,
 model binaries, or checkpoints.

@@ -32,3 +32,66 @@
   backward-compatible legacy default. Test both mismatch directions so a newer
   artifact cannot silently enter the legacy path and a legacy artifact cannot
   enter the newer path.
+
+- Repository commit identity may be unset in this environment. The 2026-11-04
+  Gold pilot commit initially failed for that reason; a command-scoped Codex
+  noreply identity succeeded without changing repository/global configuration.
+  Check each Git mutation exit code before a dependent push; otherwise an
+  empty branch can be published after a failed commit. Verified commit:
+  `92a3252448465e9759f8eef958b04ac442d96830` (#31/#32).
+
+- Gold pilot triage (#31): dictionary-unique reading and forward conversion
+  verify a candidate path, not contextual pronunciation or a realistic user
+  input boundary. The v5 frozen extractor and current extractor have identical
+  ASTs; synthetic cases show kanji and mixed-script lexical fragments passing
+  its character-class boundary filter. See
+  `reports/issue-31-policy-triage.md` and its verification JSON. Keep source
+  fidelity, reading, input unit, context integrity, meaning, spelling intent,
+  and reviewer provenance separate; AI routing is neither Gold certification
+  nor permission to normalize names/quotes or remove hard cases.
+
+- Six-axis human pilot (#31): source gold is not independent source evidence.
+  Without that evidence, record source fidelity as unverifiable and keep its
+  informative-agreement denominator at zero. Preserve first A/B judgments for
+  agreement even after pre-seal corrections; seal all 1000 pairs before exposing
+  disagreements to C. Human identity and independence require coordinator
+  confirmation, not merely distinct IDs. Verified by the contract tests and
+  `reports/issue-31-human-six-axis-verification-v1.json`.
+
+- Machine pilot evidence (#31): the separate frozen source-spans artifact can
+  verify source-to-candidate correspondence without rereading holdout examples.
+  Match only selected train IDs before JSON parsing, authenticate all bytes,
+  and keep exact matches separate from NFKC-only matches. All 1000 pilot rows
+  matched exactly on 2026-11-04, but the common extractor means this is not an
+  independent check of contextual reading, intended spelling, or Gold quality.
+  See `reports/issue-31-machine-evidence-verification-v1.json`.
+
+- Six-axis AI reread (#31): linguistic plausibility is weaker than unique
+  intended output. The same 1000-case pilot has 609 all-ordinary/supportive
+  combinations, but none are independently certified by that classification.
+  Recheck the entire cohort, including old "unique" cases; compare axis counts
+  conditionally without treating changed definitions as improved accuracy.
+  Source-exact checks, single-AI judgments and human evidence remain separate.
+  See `reports/issue-31-ai-six-axis-review.md` and its verification JSON.
+
+- Follow-up evidence (#31): all 50 flagged targets matched dictionary-unique
+  readings, while two primary-source contextual readings conflicted with the
+  assigned readings. Keep whole-word pronunciation, arbitrary partial IME input
+  and intended output separate. Synthetic math tags and template-only titles
+  reproduce residual TeX and empty quotes in the frozen cleaner; they establish
+  a mechanism, not the original source's causal history. Preserve the old cleaner
+  contract when introducing a corrected version. See the doubt-evidence addendum
+  in `reports/issue-31-ai-six-axis-review.md`.
+- Task helper filenames must not shadow Python standard-library modules. A local
+  `inspect.py` shadowed `inspect` during a `dataclasses` import in the #31 audit;
+  renaming it to `audit_cases.py` resolved the import and the full audit passed.
+
+- Versioned source quarantine (#31): apply quality flags to the exact bounded
+  left context plus target after v4 coordinates/sampling and stable-ID exclusions.
+  This preserves historical IDs and avoids future-context selection. Count a
+  candidate stopped at the output-byte limit separately from retained records;
+  v5 manifest reconciliation tests exercise that terminal branch. On the frozen
+  12,516-row train cohort, the fixed TeX/empty-title rules flagged nine rows, but
+  eight still had locally understandable targets: routing flags are not label
+  errors or independent Gold evidence. See the source-quality addendum in
+  `reports/issue-31-ai-six-axis-review.md`.

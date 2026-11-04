@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "issue": 31,
+  "parent_issue": 1,
+  "execution_mode": "machine_verification_and_ai_assistance",
+  "reason": "Owner stated that no human reviewers are available; do not make staffing the next owner task.",
+  "active_human_workflow": false,
+  "historical_human_workflow": "preserved_unused_not_relabelled_as_ai",
+  "human_review_count": 0,
+  "ai_role": "provisional diagnostic assistance, never independent human or certified Gold evidence",
+  "allowed_current_work": ["read-only provenance and captured-path checks on the entire fixed 1000-case pilot", "separate provisional AI analysis and unresolved cases", "reproducible reports and planning"],
+  "not_authorized_by_this_change": ["claim human review", "claim independent semantic Gold", "apply source-label corrections", "train models", "tune against final holdout", "relax the 0.25% safety threshold", "enable production changes"],
+  "gate_a_human_audit_pass": false,
+  "gate_a_owner_authorized_audit_pass": false,
+  "independent_test": false,
+  "canonical_labels_changed": false
+}
