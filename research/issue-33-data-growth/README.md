@@ -78,3 +78,18 @@ its source reservations, weak labels and artifacts; existing trusted dataset and
 Gold admission owners do not change. D. Future growth experiments can reuse the
 fixed source and cohort contracts, but must still bind new sources, populations,
 rights and training recipes explicitly.
+
+## Measured source outcome and continuation
+
+The [v1 source results](results-source-v1.md) preserve the insufficient-yield
+outcome and a complete count reconciliation. [Plan v2](plan-v2.json) was fixed
+before converter/model outcomes. It excludes short-context targets before the
+same isolation audit and adds a disjoint, fixed Wikipedia page slot. This is a
+conditional research population; it cannot establish overall IME accuracy.
+
+The numerical adapter keeps weak labels separate from legacy dataset admission.
+It counts missing targets and compares output surfaces, including duplicate
+candidate surfaces. Training reads only the training tensor file; all nine fixed
+fits must finish before any development inference. `env/uv.lock` and its project
+file preserve the already installed Issue-21 environment (including its original
+project name); no new package installation or version selection is required.

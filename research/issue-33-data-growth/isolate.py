@@ -1,5 +1,6 @@
 """Freeze source-isolated development inputs before any converter/model outcome."""
 from collections import Counter
+import argparse
 import gzip
 import hashlib
 import json
@@ -11,6 +12,7 @@ from sakura_rerank.data.growth_isolation import historical_input_metadata, isola
 from sakura_rerank.data.kwdlc_probe import write_once
 from extract import authenticate
 from prepare_sources import ROOT, sha
+from extend_wiki import ROOT as V2_ROOT, bound_plan
 
 RESERVATION_COMMIT = "d2bff3bcbef7e7104fc081e6ee195c1427cd7f4f"
 FROZEN = Path("data/generated/issue15-v5-slot120/frozen-split.jsonl")
@@ -24,14 +26,24 @@ def lines(path):
             yield raw
 
 
-def run():
-    binding,plan=authenticate(RESERVATION_COMMIT)
-    output=ROOT/"isolation"
+def run(version="v1", plan_commit=None):
+    authenticate(RESERVATION_COMMIT)
+    if version not in ("v1","v2"):raise ValueError("unregistered_version")
+    sources={mode:ROOT/mode for mode in ("wiki","aozora-extract")}
+    minimum_context=0
+    plan_sha=None
+    if version=="v2":
+        plan,plan_sha=bound_plan(plan_commit)
+        minimum_context=plan["minimum_left_context_chars"]
+        if minimum_context!=8:raise ValueError("unregistered_context_policy")
+        sources["wiki-extra"]=V2_ROOT/"wiki-extra"
+    output=(ROOT if version=="v1" else V2_ROOT)/"isolation"
     output.mkdir(exist_ok=False)
     start=time.monotonic()
     receipt=dict(kind="growth_input_reservation",status="failed",gold_certified=False,
         new_final_test_used=False,source_reservation_commit=RESERVATION_COMMIT,
         historical_labels_candidates_decoded=False,models_trained=0)
+    if version=="v2":receipt.update(v2_plan_commit=plan_commit,v2_plan_sha256=plan_sha,minimum_context_chars=minimum_context)
     try:
         history={}
         with gzip.open(ROOT/"history-source-metadata.jsonl.gz","rb") as stream:
@@ -55,16 +67,21 @@ def run():
             historical_bounded_inputs_hashed_and_discarded=True)
         targets=[]
         input_artifacts={}
-        for mode in ("wiki","aozora-extract"):
-            path=ROOT/mode/"targets.jsonl"
-            execution=json.loads((ROOT/mode/"execution.json").read_bytes())
+        context_excluded=Counter()
+        for mode,directory in sources.items():
+            path=directory/"targets.jsonl"
+            execution=json.loads((directory/"execution.json").read_bytes())
             if execution["status"]!="complete" or sha(path)!=execution["targets_sha256"]:
                 raise ValueError("source_extraction_incomplete_or_changed")
+            if mode=="wiki-extra" and execution["plan_sha256"]!=plan_sha:raise ValueError("extension_plan_differs")
             part=[json.loads(raw) for raw in lines(path)]
             if len(part)!=execution["target_count"]:raise ValueError("source_population_changed")
-            targets.extend(part)
-            input_artifacts[mode]=dict(sha256=execution["targets_sha256"],rows=len(part),execution_sha256=sha(ROOT/mode/"execution.json"))
+            for row in part:
+                if len(row["left_context"])<minimum_context:context_excluded[row["corpus"]+"/"+row["population"]]+=1
+                else:targets.append(row)
+            input_artifacts[mode]=dict(sha256=execution["targets_sha256"],rows=len(part),execution_sha256=sha(directory/"execution.json"))
         receipt["source_artifacts"]=input_artifacts
+        receipt["context_excluded_before_relation_closure"]=dict(context_excluded)
         metadata=list(history.values())+[dict(stable_id=row["stable_id"],source=row["source"],
             population=row["population"],input_hash=canonical_json_hash([row["left_context"],row["reading"]])) for row in targets]
         print(json.dumps({"stage":"isolation","historical":len(history),"new":len(targets)}),flush=True)
@@ -109,4 +126,9 @@ def run():
         write_once(output/"execution.json",canonical_json_bytes(receipt)+b"\n")
 
 
-if __name__=="__main__":print(canonical_json_bytes(run()).decode("utf-8"))
+if __name__=="__main__":
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version",choices=("v1","v2"),default="v1")
+    parser.add_argument("--plan-commit")
+    args=parser.parse_args()
+    print(canonical_json_bytes(run(args.version,args.plan_commit)).decode("utf-8"))
