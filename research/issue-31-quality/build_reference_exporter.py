@@ -30,6 +30,13 @@ def canonical(value) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
 
 
+def apply_identity_patch(exporter: Path, patch: Path, expected_sha: str) -> None:
+    # Archives are LF bytes. Inherit no host checkout conversion at this boundary.
+    git(exporter, "-c", "core.autocrlf=false", "apply", str(patch))
+    if sha(exporter / "research/exporter/src/main.rs") != expected_sha:
+        raise ValueError("patched_source_differs")
+
+
 def run(output: Path, recipe_sha: str, build_id: str) -> int:
     repo = Path(__file__).resolve().parents[2]
     source = repo.parent / "sakura-input"
@@ -101,10 +108,8 @@ def run(output: Path, recipe_sha: str, build_id: str) -> int:
         patch = repo / "research/patches/research-exporter-probe-identity.patch"
         if sha(patch) != profile["identity_patch_sha256"]:
             raise ValueError("probe_patch_changed")
-        git(exporter, "apply", str(patch))
-        if sha(main) != profile["patched_exporter_main_sha256"]:
-            raise ValueError("patched_source_differs")
-        git(workspace, "apply", "--unidiff-zero", str(core_patch))
+        apply_identity_patch(exporter, patch, profile["patched_exporter_main_sha256"])
+        git(workspace, "-c", "core.autocrlf=false", "apply", "--unidiff-zero", str(core_patch))
         shutil.copytree(exporter / "research/exporter", workspace / "research/exporter")
         shutil.copyfile(lock, workspace / "Cargo.lock")
         cargo = workspace / "Cargo.toml"
