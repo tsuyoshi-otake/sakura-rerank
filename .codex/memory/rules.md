@@ -57,3 +57,11 @@
   disagreements to C. Human identity and independence require coordinator
   confirmation, not merely distinct IDs. Verified by the contract tests and
   `reports/issue-31-human-six-axis-verification-v1.json`.
+
+- Machine pilot evidence (#31): the separate frozen source-spans artifact can
+  verify source-to-candidate correspondence without rereading holdout examples.
+  Match only selected train IDs before JSON parsing, authenticate all bytes,
+  and keep exact matches separate from NFKC-only matches. All 1000 pilot rows
+  matched exactly on 2026-11-04, but the common extractor means this is not an
+  independent check of contextual reading, intended spelling, or Gold quality.
+  See `reports/issue-31-machine-evidence-verification-v1.json`.
