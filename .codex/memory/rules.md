@@ -49,3 +49,11 @@
   fidelity, reading, input unit, context integrity, meaning, spelling intent,
   and reviewer provenance separate; AI routing is neither Gold certification
   nor permission to normalize names/quotes or remove hard cases.
+
+- Six-axis human pilot (#31): source gold is not independent source evidence.
+  Without that evidence, record source fidelity as unverifiable and keep its
+  informative-agreement denominator at zero. Preserve first A/B judgments for
+  agreement even after pre-seal corrections; seal all 1000 pairs before exposing
+  disagreements to C. Human identity and independence require coordinator
+  confirmation, not merely distinct IDs. Verified by the contract tests and
+  `reports/issue-31-human-six-axis-verification-v1.json`.
