@@ -135,3 +135,11 @@
 - Large evidence reports can contain thousands of component hashes on one JSON
   line. Select metric fields before printing; locate stage artifacts with bounded
   directory depth rather than listing all review batches.
+
+- External annotation probe (#31): KWDLC's three logical source sentences may
+  have multiple ordered KNP S-ID parts. Preserve initial parser failures, then
+  support contiguous split parts without replacing sampled documents. Keep
+  target indices tied to annotation-unit order and reset left context at every
+  unit. All 46 first-pass targets remained unchanged when all 50 parsed.
+  Dictionary-index absence is not an N-best oracle miss; only authenticated
+  converter execution can measure that. See reports/issue-31-kwdlc-probe-v1.md.

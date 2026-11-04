@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from sakura_rerank.data import kwdlc_probe as probe
@@ -22,7 +24,121 @@ def document(first, second=None, third=None):
     ).encode("utf-8") + b"\n"
 
 
+def revision_fixture(root):
+    docs, rows = [], []
+    (root / "source").mkdir()
+    for index in range(50):
+        doc = f"w201106-{index:010d}"
+        raw = document([token("漢字", "かんじ")]).replace(DOC.encode(), doc.encode())
+        if index == 0:
+            raw = raw.replace((doc + "-1").encode(), (doc + "-1-01").encode())
+        (root / "source" / (doc + ".knp")).write_bytes(raw)
+        docs.append(dict(document_id=doc, git_blob_sha1=probe.blob_sha1(raw), bytes=len(raw)))
+        row = probe.extract_target(doc, raw)
+        if index == 0:
+            row = dict(kind=row["kind"], document_id=doc, source_sha256=row["source_sha256"],
+                       status="parse_failure", failure_code="foreign_or_reordered_sentence")
+        rows.append(row)
+    manifest = dict(plan_sha256=probe.PLAN_SHA256, corpus_commit=probe.COMMIT, index_base=0,
+                    selected_documents=docs, selection_sha256=probe.canonical_json_hash(docs))
+    selection = probe.canonical_json_bytes(manifest) + b"\n"
+    targets = b"".join(probe.canonical_json_bytes(row) + b"\n" for row in rows)
+    requests = [dict(stable_id=row["stable_id"], reading=row["reading"]) for row in rows[1:]]
+    request_bytes = b"".join(probe.canonical_json_bytes(row) + b"\n"
+                             for row in sorted(requests, key=lambda row: row["stable_id"]))
+    initial = probe.canonical_json_bytes(dict(targets_sha256=hashlib.sha256(targets).hexdigest(),
+        requests_sha256=hashlib.sha256(request_bytes).hexdigest(), selected_documents=50)) + b"\n"
+    for name, raw in (("selection.json", selection), ("targets.jsonl", targets),
+                      ("requests.jsonl", request_bytes), ("extraction.json", initial)):
+        (root / name).write_bytes(raw)
+    return dict(expected_selection_sha256=hashlib.sha256(selection).hexdigest(),
+                expected_initial_extraction_sha256=hashlib.sha256(initial).hexdigest())
+
+
 class KwdlcProbeTests(unittest.TestCase):
+    def test_revision_preserves_successes_and_initial_artifacts_and_is_reproducible(self):
+        outputs = []
+        for _ in range(2):
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                pins = revision_fixture(root)
+                old = {p.name: p.read_bytes() for p in root.iterdir() if p.is_file()}
+                result = probe.reextract_split_units(root, **pins)
+                self.assertEqual(result["counts"], {"ready_for_forward_check": 50})
+                self.assertEqual(result["previous_successes_preserved"], 49)
+                self.assertFalse(result["forward_executed"])
+                self.assertEqual(result["additional_source_requests"], 0)
+                self.assertEqual({name: (root / name).read_bytes() for name in old}, old)
+                outputs.append([(root / name).read_bytes() for name in
+                                ("targets-r2.jsonl", "requests-r2.jsonl", "extraction-r2.json")])
+                with self.assertRaises(FileExistsError):
+                    probe.reextract_split_units(root, **pins)
+        self.assertEqual(outputs[0], outputs[1])
+
+    def test_revision_rejects_modified_provenance_or_prior_artifacts(self):
+        for name in ("selection.json", "extraction.json", "targets.jsonl", "requests.jsonl",
+                     "source/w201106-0000000000.knp"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                pins = revision_fixture(root)
+                with (root / name).open("ab") as stream:
+                    stream.write(b" ")
+                with self.assertRaises(probe.ProbeError):
+                    probe.reextract_split_units(root, **pins)
+                self.assertFalse((root / "extraction-r2.json").exists())
+
+    def test_revision_refuses_changed_success_even_when_prior_hashes_match(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pins = revision_fixture(root)
+            rows = [json.loads(line) for line in (root / "targets.jsonl").read_bytes().splitlines()]
+            rows[1]["left_context"] = "changed"
+            targets = b"".join(probe.canonical_json_bytes(row) + b"\n" for row in rows)
+            (root / "targets.jsonl").write_bytes(targets)
+            report = json.loads((root / "extraction.json").read_bytes())
+            report["targets_sha256"] = hashlib.sha256(targets).hexdigest()
+            initial = probe.canonical_json_bytes(report) + b"\n"
+            (root / "extraction.json").write_bytes(initial)
+            pins["expected_initial_extraction_sha256"] = hashlib.sha256(initial).hexdigest()
+            with self.assertRaisesRegex(probe.ProbeError, "previously extracted target changed"):
+                probe.reextract_split_units(root, **pins)
+            self.assertFalse((root / "extraction-r2.json").exists())
+
+    def test_split_sentence_units_keep_indices_and_reset_context(self):
+        raw = document([token("まえ", "まえ")], [token("漢字", "かんじ")])
+        raw = raw.replace((DOC + "-1").encode(), (DOC + "-1-01").encode())
+        part = f"# S-ID:{DOC}-1-02\n{token('かな', 'かな')}\nEOS\n".encode()
+        raw = raw.replace((f"# S-ID:{DOC}-2").encode(), part + (f"# S-ID:{DOC}-2").encode())
+        row = probe.extract_target(DOC, raw)
+        self.assertEqual(row["sentence_index"], 2)
+        self.assertEqual(row["left_context"], "")
+        self.assertEqual(row["surface"], "漢字")
+        # A target at the start of part 02 must not inherit part 01 context.
+        raw = raw.replace(token('かな', 'かな').encode(), token('漢字', 'かんじ').encode(), 1)
+        raw = raw.replace((f"# S-ID:{DOC}-2\n* -1D\n+ -1D\n" + token('漢字', 'かんじ')).encode(),
+                          (f"# S-ID:{DOC}-2\n" + token('かな', 'かな')).encode())
+        row = probe.extract_target(DOC, raw)
+        self.assertEqual(row["sentence_index"], 1)
+        self.assertEqual(row["left_context"], "")
+
+    def test_split_ids_cannot_skip_duplicate_mix_or_reorder(self):
+        for suffixes in (("1-02", "2", "3"), ("1-01", "1-01", "2", "3"),
+                         ("1", "1-01", "2", "3"), ("1-01", "1-03", "2", "3"),
+                         ("2", "1", "3"), ("1", "3"), ("1-1", "2", "3"),
+                         ("1-00", "2", "3"), ("1-100", "2", "3")):
+            raw = "".join(f"# S-ID:{DOC}-{suffix}\n{token('漢字', 'かんじ')}\nEOS\n"
+                          for suffix in suffixes).encode()
+            with self.subTest(suffixes=suffixes), self.assertRaises(probe.ProbeError):
+                probe.extract_target(DOC, raw)
+
+    def test_append_only_artifact_write_rejects_overwrite(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "receipt.json"
+            probe.write_once(path, b"initial\n")
+            with self.assertRaises(FileExistsError):
+                probe.write_once(path, b"replacement\n")
+            self.assertEqual(path.read_bytes(), b"initial\n")
+
     def test_source_identity_covers_utf8_and_every_byte(self):
         raw = "独立した読み\n".encode()
         expected = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()

@@ -119,13 +119,16 @@ def _morpheme(line: str) -> tuple[str, str]:
 
 
 def extract_target(document_id: str, raw: bytes) -> dict:
-    """Indices are zero-based; choose before reading validity or converter results."""
+    """Indices count zero-based annotation units, including split sentence parts.
+
+    Context resets at each unit. Choose before reading validity or converter results.
+    """
     if not ID.fullmatch(document_id) or not 0 < len(raw) <= MAX_FILE_BYTES:
         raise ProbeError("invalid_document_identity_or_size")
     lines = raw.decode("utf-8", errors="strict").splitlines()
     if len(lines) > 10_000 or any(len(line.encode("utf-8")) > 16_384 for line in lines):
         raise ProbeError("document_line_bound")
-    sentences, current, candidates = [], None, []
+    sentences, current, candidates, sentence_parts = [], None, [], []
     previous = None
     for line in lines:
         if not line:
@@ -134,8 +137,10 @@ def extract_target(document_id: str, raw: bytes) -> dict:
             if current is not None:
                 raise ProbeError("sentence_missing_eos")
             sid = line.split()[1].removeprefix("S-ID:")
-            if sid != f"{document_id}-{len(sentences)+1}":
+            match = re.fullmatch(re.escape(document_id) + r"-([1-3])(?:-(0[1-9]|[1-9][0-9]))?", sid)
+            if match is None or len(sentence_parts) >= 297:
                 raise ProbeError("foreign_or_reordered_sentence")
+            sentence_parts.append((int(match[1]), int(match[2]) if match[2] else None))
             current, previous = [], None
         elif line == "EOS":
             if current is None or not current:
@@ -155,8 +160,15 @@ def extract_target(document_id: str, raw: bytes) -> dict:
             surface, reading = _morpheme(line)
             previous = {"surface": surface, "reading": reading, "alternative_annotation": False}
             current.append(previous)
-    if current is not None or len(sentences) != 3:
+    if current is not None or not sentences:
         raise ProbeError("expected_three_complete_sentences")
+    groups = [group for group, _ in sentence_parts]
+    if groups != sorted(groups):
+        raise ProbeError("foreign_or_reordered_sentence")
+    for group in (1, 2, 3):
+        parts = [part for number, part in sentence_parts if number == group]
+        if not parts or (parts != [None] and parts != list(range(1, len(parts) + 1))):
+            raise ProbeError("missing_duplicate_or_reordered_sentence_part")
     for sentence_index, sentence in enumerate(sentences):
         left = ""
         for morpheme_index, token in enumerate(sentence):
@@ -185,7 +197,7 @@ def extract_target(document_id: str, raw: bytes) -> dict:
     return dict(base, **target, stable_id=stable_id, status=status)
 
 
-def ingest(transport: Path, output: Path, *, expected_selection_sha256: str) -> dict:
+def _read_selection(output: Path, expected_selection_sha256: str) -> dict:
     if hashlib.sha256((output / "selection.json").read_bytes()).hexdigest() != expected_selection_sha256:
         raise ProbeError("selection differs from its external pre-access commitment")
     manifest = read_json(output / "selection.json")
@@ -194,6 +206,12 @@ def ingest(transport: Path, output: Path, *, expected_selection_sha256: str) -> 
             or manifest.get("index_base") != 0 or len(docs) != N_DOCUMENTS
             or canonical_json_hash(docs) != manifest["selection_sha256"]):
         raise ProbeError("selection manifest differs")
+    return manifest
+
+
+def ingest(transport: Path, output: Path, *, expected_selection_sha256: str) -> dict:
+    manifest = _read_selection(output, expected_selection_sha256)
+    docs = manifest["selected_documents"]
     receipt = read_json(output / "acquisition.json")
     attempts = receipt["attempts"]
     if (receipt.get("corpus_commit") != COMMIT or receipt.get("status") != "complete"
@@ -234,5 +252,60 @@ def ingest(transport: Path, output: Path, *, expected_selection_sha256: str) -> 
         raw_text_in_report=False, raw_stable_ids_in_report=False)
     for name, raw in (("targets.jsonl", targets), ("requests.jsonl", request_bytes),
                       ("extraction.json", canonical_json_bytes(report) + b"\n")):
+        write_once(output / name, raw)
+    return report
+
+
+def reextract_split_units(output: Path, *, expected_selection_sha256: str,
+                          expected_initial_extraction_sha256: str) -> dict:
+    """Publish r2 from saved authenticated source; preserve r1 and its 46 successes.
+
+    Extraction JSON is written last as the completion receipt. An interrupted
+    write leaves incomplete files that require reconciliation, never overwrite.
+    """
+    manifest = _read_selection(output, expected_selection_sha256)
+    initial_raw = (output / "extraction.json").read_bytes()
+    if hashlib.sha256(initial_raw).hexdigest() != expected_initial_extraction_sha256:
+        raise ProbeError("initial extraction differs")
+    initial = json.loads(initial_raw)
+    prior_bytes = (output / "targets.jsonl").read_bytes()
+    if (hashlib.sha256(prior_bytes).hexdigest() != initial["targets_sha256"]
+            or hashlib.sha256((output / "requests.jsonl").read_bytes()).hexdigest() != initial["requests_sha256"]):
+        raise ProbeError("initial target/request artifact differs")
+    prior = [json.loads(line) for line in prior_bytes.splitlines()]
+    docs = manifest["selected_documents"]
+    if [row["document_id"] for row in prior] != [doc["document_id"] for doc in docs]:
+        raise ProbeError("initial row population differs")
+    rows, preserved, source_bytes = [], 0, 0
+    for doc, old in zip(docs, prior):
+        raw = (output / "source" / (doc["document_id"] + ".knp")).read_bytes()
+        authenticate_blob(raw.decode("utf-8"), doc["git_blob_sha1"], doc["bytes"])
+        source_bytes += len(raw)
+        try:
+            row = extract_target(doc["document_id"], raw)
+        except (ProbeError, UnicodeError) as error:
+            row = dict(kind="kwdlc_development_target_not_gold", document_id=doc["document_id"],
+                       source_sha256=hashlib.sha256(raw).hexdigest(), status="parse_failure",
+                       failure_code=str(error) if isinstance(error, ProbeError) else "invalid_utf8")
+        if old["status"] != "parse_failure":
+            if row != old:
+                raise ProbeError("previously extracted target changed")
+            preserved += 1
+        rows.append(row)
+    targets = b"".join(canonical_json_bytes(row) + b"\n" for row in rows)
+    requests = [dict(stable_id=row["stable_id"], reading=row["reading"])
+                for row in rows if row["status"] == "ready_for_forward_check"]
+    request_bytes = b"".join(canonical_json_bytes(row) + b"\n"
+                             for row in sorted(requests, key=lambda row: row["stable_id"]))
+    report = dict(initial, extraction_revision=2, parser_contract="ordered-logical-sentences-with-split-units-v2",
+        initial_extraction_sha256=expected_initial_extraction_sha256,
+        source_bytes=source_bytes, previous_successes_preserved=preserved,
+        additional_source_requests=0, forward_executed=False,
+        counts=dict(sorted(Counter(row["status"] for row in rows).items())),
+        targets_sha256=hashlib.sha256(targets).hexdigest(), requests_sha256=hashlib.sha256(request_bytes).hexdigest(),
+        forward_request_count=len(requests),
+        reading_below_tier_a_minimum=sum(len(row["reading"]) < 3 for row in requests))
+    for name, raw in (("targets-r2.jsonl", targets), ("requests-r2.jsonl", request_bytes),
+                      ("extraction-r2.json", canonical_json_bytes(report) + b"\n")):
         write_once(output / name, raw)
     return report
