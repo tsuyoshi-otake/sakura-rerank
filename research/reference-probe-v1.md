@@ -64,9 +64,9 @@ A matching 100-case regression does not prove global historical equivalence.
   substituted identities, legacy rejection, malformed/rehashed features, prefix
   violations, missing/duplicate/reordered output and comparison differences.
 - Verify: full `python -m unittest discover -s tests -v` with an outer 300-second
-  timeout. Expect: 436 tests, five existing optional PyTorch skips, no failures.
-  The added archive-patch test forces a CRLF-default Git environment and checks
-  that patch application preserves the frozen LF source bytes.
+  timeout. Expect: 437 tests, five existing optional PyTorch skips, no failures.
+  Archive-patch tests force both host defaults and check the frozen LF exporter
+  and CRLF historical-core bytes. Post-patch hashes are fixed before compilation.
 - Verify: commit and push recipe/profile/selection before running
   `python research/issue-31-quality/build_reference_exporter.py --recipe-sha <commit> --build-id a --output <fresh-USERPROFILE/tmp-dir>`;
   repeat with build ID b and a different fresh directory. Expect: both build

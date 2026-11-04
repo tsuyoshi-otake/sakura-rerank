@@ -31,10 +31,16 @@ def canonical(value) -> bytes:
 
 
 def apply_identity_patch(exporter: Path, patch: Path, expected_sha: str) -> None:
-    # Archives are LF bytes. Inherit no host checkout conversion at this boundary.
+    # The archived exporter is LF; the historical core below contains CRLF blobs.
     git(exporter, "-c", "core.autocrlf=false", "apply", str(patch))
     if sha(exporter / "research/exporter/src/main.rs") != expected_sha:
         raise ValueError("patched_source_differs")
+
+
+def apply_core_patch(workspace: Path, patch: Path, expected: dict[str, str]) -> None:
+    git(workspace, "-c", "core.autocrlf=true", "apply", "--unidiff-zero", str(patch))
+    if any(sha(workspace / name) != digest for name, digest in expected.items()):
+        raise ValueError("instrumented_core_bytes_differ")
 
 
 def run(output: Path, recipe_sha: str, build_id: str) -> int:
@@ -109,7 +115,7 @@ def run(output: Path, recipe_sha: str, build_id: str) -> int:
         if sha(patch) != profile["identity_patch_sha256"]:
             raise ValueError("probe_patch_changed")
         apply_identity_patch(exporter, patch, profile["patched_exporter_main_sha256"])
-        git(workspace, "-c", "core.autocrlf=false", "apply", "--unidiff-zero", str(core_patch))
+        apply_core_patch(workspace, core_patch, profile["instrumented_source_sha256"])
         shutil.copytree(exporter / "research/exporter", workspace / "research/exporter")
         shutil.copyfile(lock, workspace / "Cargo.lock")
         cargo = workspace / "Cargo.toml"
