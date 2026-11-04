@@ -35,7 +35,7 @@ def execute(commit):
     output.mkdir(exist_ok=False)
     receipt=dict(kind="growth_candidate_execution",status="failed",input_commit=commit,
         input_binding_sha256=hashlib.sha256(raw).hexdigest(),identity_sha256=IDENTITY_SHA,
-        legacy_training_eligible=False,gold_certified=False,new_final_test_used=False,
+        legacy_training_eligible=False,gold_certified=False,new_final_test_used=False,batches=[],
         reuse_contract="same reading, immutable converter/dictionary; converter has no left-context input")
     counts=Counter()
     start=time.monotonic()
@@ -75,6 +75,7 @@ def execute(commit):
                 counts["failed_readings"]+=len(batch)
             finally:
                 write_once(directory/"execution.json",canonical_json_bytes(terminal)+b"\n")
+            receipt["batches"].append(dict(index=offset//100,execution_sha256=sha(directory/"execution.json")))
             print(json.dumps({"stage":"candidates","processed":offset+len(batch),"total":len(requests),"failed":counts["failed_readings"]}),flush=True)
         authenticate_identity(IDENTITY,IDENTITY_SHA,BINARY,DICTIONARY)
         if counts["validated_readings"]+counts["failed_readings"]!=len(requests):raise ValueError("unaccounted_readings")

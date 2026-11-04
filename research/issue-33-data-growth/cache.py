@@ -27,6 +27,9 @@ def run():
     snapshots={}; failures=0
     for offset in range(0,len(requests),100):
         directory=ROOT/"candidates"/f"batch-{offset//100:05d}"
+        commitment=acquired["batches"][offset//100]
+        if commitment["index"]!=offset//100 or sha(directory/"execution.json")!=commitment["execution_sha256"]:
+            raise ValueError("candidate_batch_receipt_changed")
         receipt=json.loads((directory/"execution.json").read_bytes())
         batch=requests[offset:offset+100]
         if receipt["status"]!="complete":failures+=len(batch);continue
