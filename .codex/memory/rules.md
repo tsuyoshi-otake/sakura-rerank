@@ -73,3 +73,15 @@
   conditionally without treating changed definitions as improved accuracy.
   Source-exact checks, single-AI judgments and human evidence remain separate.
   See `reports/issue-31-ai-six-axis-review.md` and its verification JSON.
+
+- Follow-up evidence (#31): all 50 flagged targets matched dictionary-unique
+  readings, while two primary-source contextual readings conflicted with the
+  assigned readings. Keep whole-word pronunciation, arbitrary partial IME input
+  and intended output separate. Synthetic math tags and template-only titles
+  reproduce residual TeX and empty quotes in the frozen cleaner; they establish
+  a mechanism, not the original source's causal history. Preserve the old cleaner
+  contract when introducing a corrected version. See the doubt-evidence addendum
+  in `reports/issue-31-ai-six-axis-review.md`.
+- Task helper filenames must not shadow Python standard-library modules. A local
+  `inspect.py` shadowed `inspect` during a `dataclasses` import in the #31 audit;
+  renaming it to `audit_cases.py` resolved the import and the full audit passed.

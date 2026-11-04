@@ -4,6 +4,62 @@
 
 原データを変更せず、同一助手による暫定的な診断として保存した。独立人手確認・独立Gold・精度向上実験ではない。90.72%を更新する評価は行っていない。
 
+## 追補: 疑義50件の証拠確認（2026-11-04）
+
+読み18件、入力境界31件、文脈欠陥10件の**和集合50件**を確認した。元の20batchと判断はそのままに、別のimmutable補足台帳へ全50件の根拠・未保証点を保存した。今回も同じAIによる診断で、外部資料の利用は独立した判定者の追加を意味しない。集計は [doubt evidence JSON](issue-31-doubt-evidence-v1.json)、実行証跡は [verification JSON](issue-31-doubt-evidence-verification-v1.json)。
+
+| 追加証拠に基づく区分 | 件数 / 対象50件 | 含意 |
+| --- | ---: | --- |
+| 外部一次資料が読みを支持 | 3 | 読みの根拠を補強。入力者の意図や表記の一意性の認証ではない |
+| 外部資料の文脈読みと割当が衝突 | 2 | 自然な全語発音と、任意の部分変換入力を区別する必要がある |
+| 部分入力として成立し得る | 23 | 漢字隣接・語の途中だけを理由に誤りとしない。実際の確定操作は未観測 |
+| 文脈問題に対応する処理機構を再現 | 2 | 数式残骸と空の書名括弧。元wikitextを再取得した因果証明ではない |
+| 根拠不足を維持 | 20 | 固有読み、読み変化、用法、欠落原因を確定できない |
+
+この区分は50件の診断結果であり、改善率・誤ラベル率・認証正解率ではない。母集団1,000件の分母、旧診断、unknownを保持する。ラベル適用0、認証Gold0、両Gate A false、独立Test未使用、学習0。
+
+**確認できたこと。** 辞書index全368,341行を1回のstreamでhash検証し、50件すべての対象表記は割当と一致する一意読みを持つと確認した。一方、左文脈の末尾32文字以内と対象を連結した長い辞書語が見つかったのは3件。これは左側重複の下限であり、残る47件に語境界の問題がないという主張ではない。右文脈は追加していない。
+
+読みの支持3件は、[京都大学の氏名読み記載](https://www.kyoto-u.ac.jp/kurenai/201910/onshi/index.html)、[日本郵便の三ツ沢中町](https://www.post.japanpost.jp/cgi-zip/zipcode.php?zip=2210851)、[同・五所川原市石岡](https://www.post.japanpost.jp/cgi-zip/zipcode.php?city=1022040&id=9680&pref=2)による。衝突2件は、[日本郵便の瀬戸市町名一覧](https://www.post.japanpost.jp/cgi-zip/zipcode.php?city=1232040&pref=23)と、[ZOOTIME園長による飼育個体・標本の解説](https://zootime.info/2021/03/17/%E3%80%90%E7%94%B2%E7%BE%85%E3%81%AE%E3%81%99%E3%81%B9%E3%81%A6%E3%82%92%E9%AA%A8%E6%A0%BC%E6%A8%99%E6%9C%AC%E3%81%A7%E8%A7%A3%E8%AA%AC%E3%80%91%E7%94%B2%E7%BE%85%E3%81%AE%E6%AD%A3%E4%BD%93%E3%81%A8/)に文脈上の全語読みが明記されることを根拠とする。後者は実務者の一次解説であり、唯一の規範の証明にはしない。いずれも当日の資料で、過去snapshotの同一性まで保証しない。検索結果snippetだけでは採用せず、ページ本文の対象一致を確認した。同字の別地域・別代の人物の資料は根拠にしなかった。
+
+各資料の短い転記抜粋、URL、日時、保証範囲と限界をlocal台帳に保存した。excerpt hashは**保存した転記のhash**であり、サーバーから取得したページ全体のbyte hashではない。参照先の将来不変性や抜粋解釈の自動的な正しさを保証しない。
+
+**修正対象の根拠。** 現行 `clean_wikitext` はmathタグの中身を残してタグを取り去る。合成例 `<math>\mbox{ for } x</math>` でTeX残骸が保持されることを再現した。また、合成書名中のテンプレートを除去すると `『』` が残る。pilotで見えた同種の問題に対する再現可能な機構だが、当該原文で同じ変換が起きたと証明したものではない。空の題名があるだけで対象語の正解が必ず壊れるわけでもない。
+
+### 次の実装とリリースまでの順序
+
+所有者の「リリースまで」の継続目標に従い、必要な実装・検証へ進む。以下の旧記録にある「#33/#34/#35未承認」は当時の範囲である。ただしGate順序、安全性0.25%、独立Test一回限り、既存artifact不変、既定有効化の別承認は維持する。人手割当を前提条件へ戻さず、未検証の品質を合格へ置換しない。
+
+| 優先 | 実施内容と期待効果 | 検証コストと完了条件 |
+| --- | --- | --- |
+| 1 | 新版の抽出処理で数式残骸・空題名を検出し、原因別の隔離を記録する。破損文脈の混入を抑える | 旧cleaner再現を保持する版契約、合成の肯定/否定例、trainだけの影響監査。旧labelを上書きしない。効果量は未推定 |
+| 2 | 57件の表記方針と273件の保護対象を仕様へ対応づける。全語入力と部分確定を別条件とする限定課題を設計 | 330件の対応確認、50件程度の制御課題と実converterのforward証拠。一般日本語の独立Gold/Testへ転用しない |
+| 3 | #35のGold・calibration・Testを隔離し、モデル/特徴量/gate/label方針/統計条件を事前固定 | 独立品質の証拠方法は未解決。pilot再読やAI一致率から点99.5%・Wilson下限99.0%を捏造しない。Test結果を見た変更・逐次追加は禁止 |
+| 4 | 品質を確立して#34/#33の比較、同一候補・全件分母でGate A/B、その後Windows CPU Gate Cと本番Gate D | #1の等予算GRU/minGRU/Tiny Transformer比較、未見辞書回帰、95%CI、安全性、性能・fallback・privacyを個別に判定。公開前検査も実施。研究結果の保存を製品リリース完了としない |
+
+今回確認したSakura Input HEADは `d586fae572d32aa76512994dca616dadef2899b1`。辞書/元datasetの固定HEADとは区別し、現在の製品実装を変更していない。
+
+### 追補の再現・受入条件
+
+```powershell
+$env:PYTHONPATH='src'
+python -X utf8 -m sakura_rerank.data.pilot_doubt_evidence --packet data/generated/issue-31-gold-pilot-v1 --machine-report reports/issue-31-machine-evidence-v1.json --machine-evidence data/generated/issue-31-machine-evidence-v1/evidence.jsonl --reviews data/generated/issue-31-ai-six-axis-v1 --prior-report reports/issue-31-ai-six-axis-v1.json --dictionary data/generated/system-dictionary-index.jsonl --dictionary-manifest manifests/system-dictionary-index-verified.json --supplement data/generated/issue-31-doubt-evidence-v1/supplement.json
+python -X utf8 -m unittest discover -s tests -p test_pilot_doubt_evidence.py -v
+python -X utf8 -m unittest discover -s tests -v
+```
+
+| Verify | Expect / 結果 |
+| --- | --- |
+| 上記集計を2回、別Counterで再計数 | byte一致、和集合50件、欠落/重複0、合計50。全1,000件の旧判断にhashで結合 |
+| 新契約tests | 改変・欠落・順序違い・人手偽装・ラベル昇格・不正source・証拠なしの断定を拒否。9件成功 |
+| 全tests、AST/compile、diff check | 337中332成功、既存optional PyTorch 5skip、失敗0。300秒timeout内で完了 |
+| 旧artifact/hash確認 | 元dataset/モデル/旧policy/旧診断/空human round等22件不変。holdout本文は未解析 |
+| runner/temp確認 | task所有runner残存0、既存インストールworker維持。一時script/logを清掃し、local補足台帳だけ保存 |
+
+公開Gitには集計・hash・検証器・合成testsのみ収録する。raw個票と短い転記抜粋は `data/generated/issue-31-doubt-evidence-v1/supplement.json` に残す。従来台帳と辞書indexがある環境で集計を再現できるが、Git単独でAI判断を生成し直す手順ではない。
+
+**追補のIRV。** A: 対象責任は既存AI診断に対する読み/境界/文脈の補足証拠。既存packet・machine・AI集計の公開契約、辞書manifest、cleaner該当処理、新validator1file/9testsが必要。B: 辞書から自然な文脈発音が決まらないため、5つの一次資料とcleanerへ調査を広げた。製品・学習器内部は未調査。C: `pilot_doubt_evidence` が補足証拠の読取り検証と集計を所有し、旧状態やGate判定への書込み経路を持たない。D: 次回は旧1,000件の判断を再探索せず50件の結論と不足根拠を参照できる。外部資料の限定的な支持と入力意図の違い、新版cleanerと旧版再現性の区別は引き続き必要。
+
 ## 実施前の検証条件
 
 | Verify | Expect |
