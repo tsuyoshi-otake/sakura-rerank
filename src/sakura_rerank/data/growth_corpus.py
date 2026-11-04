@@ -26,8 +26,10 @@ def partition(corpus: str, group: str) -> str:
     return "evaluation" if value % 10 < 2 else "train"
 
 
-def wiki_page_selected(page_id: str) -> bool:
-    return int(canonical_json_hash([SEED, "jawiki", page_id, "sample"]), 16) % 100 == 0
+def wiki_page_selected(page_id: str, slot: int = 0) -> bool:
+    if type(slot) is not int or not 0 <= slot < 100:
+        raise ValueError("wiki_sample_slot_outside_bound")
+    return int(canonical_json_hash([SEED, "jawiki", page_id, "sample"]), 16) % 100 == slot
 
 
 def history_metadata(line: bytes) -> dict:

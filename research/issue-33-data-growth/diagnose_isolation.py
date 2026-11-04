@@ -1,5 +1,6 @@
 """Read-only relation ablations; never change the registered population or fit."""
 from collections import Counter, defaultdict
+import argparse
 import gzip
 import json
 import time
@@ -24,7 +25,8 @@ def summarize(union, rows):
     return dict(counts=dict(sorted(counts.items())),largest_component=largest)
 
 
-def run():
+def run(minimum_context=None):
+    if minimum_context not in (None, 8):raise ValueError("unsupported_diagnostic_policy")
     start=time.monotonic()
     reservation=json.loads((ROOT/"source-preparation.json").read_bytes())
     if sha(ROOT/"history-source-metadata.jsonl.gz")!=reservation["history_metadata_sha256"] or sha(FROZEN)!=FROZEN_SHA:
@@ -43,7 +45,10 @@ def run():
         for raw in lines(path):
             target=json.loads(raw); key=canonical_json_hash([target["left_context"],target["reading"]])
             lengths[key]=len(target["left_context"])
-            rows.append(dict(stable_id=target["stable_id"],source=target["source"],population=target["population"],corpus=target["corpus"],input_hash=key))
+            if minimum_context is None or len(target["left_context"])>=minimum_context:
+                rows.append(dict(stable_id=target["stable_id"],source=target["source"],population=target["population"],corpus=target["corpus"],input_hash=key))
+            else:
+                counts["diagnostic_context_excluded/"+target["population"]]+=1
             readings.add(target["reading"]);inputs[key]+=1;articles.add(target["source_id"])
             counts[target["population"]]+=1
             counts["reading_le_9"]+=len(target["reading"])<=9
@@ -70,12 +75,17 @@ def run():
     final=summarize(union,rows)
     registered=json.loads((ROOT/"isolation/execution.json").read_bytes())
     retained={"/".join(key.split("/")[:2]):value for key,value in final["counts"].items() if key.endswith("/retained")}
-    if retained!=registered["retained_by_source"]:raise ValueError("diagnostic_final_population_differs")
+    if minimum_context is None and retained!=registered["retained_by_source"]:raise ValueError("diagnostic_final_population_differs")
     result=dict(kind="growth_isolation_diagnostic",status="complete",source_profiles=profiles,incremental_relation_steps=steps,
         full_relation_result=final,registered_population_unchanged=True,diagnostic_order_not_unique_causal_attribution=True,
+        counterfactual_minimum_context=minimum_context,
         independent_gold=False,models_trained=0,elapsed_seconds=round(time.monotonic()-start,3))
-    write_once(ROOT/"isolation-diagnostic.json",canonical_json_bytes(result)+b"\n")
+    name="isolation-diagnostic.json" if minimum_context is None else "isolation-diagnostic-context8.json"
+    write_once(ROOT/name,canonical_json_bytes(result)+b"\n")
     return result
 
 
-if __name__=="__main__":print(canonical_json_bytes(run()).decode("utf-8"))
+if __name__=="__main__":
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--diagnostic-min-context",type=int,choices=(8,))
+    print(canonical_json_bytes(run(parser.parse_args().diagnostic_min_context)).decode("utf-8"))

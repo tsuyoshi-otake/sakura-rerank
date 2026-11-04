@@ -104,7 +104,7 @@ def wiki(directory, plan, receipt):
                     counts["non_target_page"] += 1
                 elif "jawiki-page-" + page_id in excluded:
                     counts["historical_article_excluded"] += 1
-                elif not wiki_page_selected(page_id):
+                elif not wiki_page_selected(page_id, plan["jawiki"].get("page_sample_slot", 0)):
                     counts["page_not_sampled"] += 1
                 else:
                     rev = {child.tag.rsplit("}", 1)[-1]: child for child in fields["revision"]}

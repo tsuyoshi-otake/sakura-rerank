@@ -44,6 +44,9 @@ class GrowthCorpusTests(unittest.TestCase):
             expected="evaluation" if int(canonical_json_hash([20261105,"aozora",key,"partition"]),16)%10<2 else "train"
             self.assertEqual(growth.partition("aozora",key),expected)
             self.assertEqual(growth.wiki_page_selected(key),int(canonical_json_hash([20261105,"jawiki",key,"sample"]),16)%100==0)
+            self.assertEqual(growth.wiki_page_selected(key,1),int(canonical_json_hash([20261105,"jawiki",key,"sample"]),16)%100==1)
+            self.assertFalse(growth.wiki_page_selected(key) and growth.wiki_page_selected(key,1))
+        with self.assertRaises(ValueError):growth.wiki_page_selected("1",100)
 
     def test_metadata_selection_ignores_order_and_excludes_rights_or_duplicate_rows(self):
         authors={p:next(str(i) for i in range(1,100) if growth.partition("aozora",str(i))==p) for p in ("train","evaluation")}
