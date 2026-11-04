@@ -17,6 +17,11 @@ split assignment and historical exclusion behavior remain unchanged.
 The [metric contract](../../../research/evaluation-metrics-v1.md) documents
 `sakura_rerank.evaluation_metrics`: shared denominators, exact surfaces, explicit
 fallback outcomes, paired component intervals and their statistical limits.
+The [artifact access contract](../../../research/evaluation-admission-v1.md)
+connects exact plan/data/model/gate identities to the Test registry. It refuses
+unrecognized independent Gold evidence, pins consumption before Test content
+access, and preserves failure outcomes. Its trust set is currently empty; this
+is not a completed independent evaluation. See `tests/test_evaluation_admission.py`.
 
 This package defines acquisition, deterministic source-span preprocessing,
 provenance, Tier A assembly, and splitting. It never invokes Sakura Input or

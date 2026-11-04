@@ -118,3 +118,11 @@
   without changing thresholds or metric code, matched the published records.
   Saved offline scores do not establish exported-binary parity or runtime failure
   telemetry. See `reports/issue-35-metrics-v1.md`.
+
+- Evaluation access (#35): reserve and externally pin Test consumption before
+  authenticating Test content. Retain authenticated runtime bytes to close path
+  replacement gaps. An fsync exception can leave a reservation written; a terminal
+  anchor failure can leave a completed ledger with a stale head. Neither permits
+  retry or a second terminal event. The admission trust set remains empty until
+  independent Gold evidence exists. Verified by 28 synthetic admission contracts;
+  see research/evaluation-admission-v1.md and its verification report.
