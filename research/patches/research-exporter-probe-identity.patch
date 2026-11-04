@@ -1,0 +1,29 @@
+--- a/research/exporter/src/main.rs
++++ b/research/exporter/src/main.rs
+@@ -18,7 +18,7 @@
+ const MAX_INPUT_RECORDS: usize = 4_096;
+ const MAX_INPUT_BYTES: usize = 64 * 1024 * 1024;
+ const MAX_EXPORT_BYTES: usize = 256 * 1024 * 1024;
+-const PINNED_SAKURA_INPUT_HEAD: &str = "8e966dff456e4e7165e025f97c1f73327ff3f550";
++const PINNED_SAKURA_INPUT_HEAD: &str = "5eefa2ffe15297e563da281432cece56049a1b09";
+ const PINNED_DICTIONARY_SHA256: &str =
+     "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad";
+ const EXPORTER_MANIFEST_SCHEMA_VERSION: u64 = 2;
+@@ -367,7 +367,7 @@
+     }
+     if object.get("schema_version").and_then(Value::as_u64)
+         != Some(EXPORTER_MANIFEST_SCHEMA_VERSION)
+-        || object.get("manifest_kind").and_then(Value::as_str) != Some("research_top32_exporter")
++        || object.get("manifest_kind").and_then(Value::as_str) != Some("research_probe_top32_exporter")
+     {
+         return Err(ExportError("identity manifest schema is unsupported"));
+     }
+@@ -673,7 +673,7 @@
+         ("reading", Value::String(input.reading.clone())),
+         (
+             "record_type",
+-            Value::String("research_converter_snapshot".to_owned()),
++            Value::String("research_probe_converter_snapshot".to_owned()),
+         ),
+         ("schema_version", Value::from(CONTRACT_SCHEMA_VERSION)),
+         ("stable_id", Value::String(input.stable_id.clone())),
