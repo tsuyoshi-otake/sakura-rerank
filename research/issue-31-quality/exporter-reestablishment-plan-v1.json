@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "kind": "research_exporter_reestablishment_plan",
+  "status": "registered_before_new_identity_implementation_or_converter_execution",
+  "parent_issue": 1,
+  "related_issues": [3, 31, 32],
+  "reason": "The historical base commit is unavailable in checked local repositories and GitHub; the dictionary was recovered exactly, but three successful recovery builds differ from the trusted exporter hash.",
+  "source_commit": "5eefa2ffe15297e563da281432cece56049a1b09",
+  "dictionary_sha256": "6d34364b5354d3c67efefaf15b50142b1365b21140ec8eee0f77570d828544ad",
+  "legacy_exporter_sha256_preserved": "0b26990a153df06c8e870b7e44abca386ada2ffd6f649c0232cea6a79960acbf",
+  "required_before_probe_use": [
+    "Use a separately named research exporter identity that truthfully records the available source commit; do not stamp the unavailable historical HEAD onto a new artifact.",
+    "Freeze source code, exact dependencies, toolchain, instrumentation, build recipe and source/tree hashes before compilation; record MSVC linker and SDK provenance too.",
+    "Build in two independent archive directories without git worktrees; require identical executable hashes and explicit success/timeout/failure receipts.",
+    "Select and commit a maximum of 100 legacy train request IDs by SHA-256 of canonical JSON [20261104, stable_id] before reading candidate contents. Select only from authenticated train membership; never use dev or final holdout.",
+    "Compare all selected legacy candidate outputs field by field: ranks, surfaces, signed costs, fingerprints, segment offsets/IDs/flags/source categories, terminal status, full-reading Top-32 and Top-6 prefix. Differences in provenance must be separately declared, never erased to manufacture historical identity.",
+    "A matching finite regression sample does not prove global historical parity. Describe the result as a newly verified research reference, not recovery of the old binary.",
+    "Keep the legacy validators and allowlist unchanged. A separate, hash-bound probe validator must reject unverified or substituted identities and must not make records eligible for legacy training or Gold admission."
+  ],
+  "subsequent_probe": {
+    "selection_manifest_sha256": "1d281e81f5da380e1834a415a5660ce0de716b5717d3ab1c5a29bf60cfc1e5e3",
+    "requests_sha256": "411b41590e7b5037f6f18b546280a1617b36b9243caffc7b36b0aa0c0e09dcf0",
+    "documents": 50,
+    "repeat_executions": 2,
+    "candidate_limits_to_report": [1, 5, 6, 10, 32],
+    "keep_missing_and_failed_cases_in_denominator": true,
+    "additional_corpus_requests": 0,
+    "gold_certification": false,
+    "model_predictions": false,
+    "model_training": false,
+    "final_test_access": false
+  },
+  "bounds": {
+    "build_jobs": 2,
+    "build_timeout_seconds_each": 600,
+    "converter_timeout_seconds_each": 120,
+    "safety_threshold": 0.0025
+  },
+  "stop_conditions": [
+    "Any missing source identity, source mutation, nondeterministic build or legacy candidate disagreement stops promotion to probe use; preserve the reason and exact denominator.",
+    "Do not change labels, model weights, thresholds, production code, installer contents, defaults or final-Test consumption to resolve a tooling failure."
+  ],
+  "expected_effect": "Restore the ability to measure candidate coverage on independently annotated readings with an explicit, reproducible source identity.",
+  "cost": "Two bounded builds, at most 100 fixed train regression requests, two executions of the existing 50-request probe, focused contracts and the full unit suite; not a label-quality certificate."
+}

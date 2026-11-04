@@ -102,3 +102,44 @@
   rule memberships. Conditional pair review is not an accepted-surface set, and
   exact-form protection does not certify the source label. Verified by the
   spelling mode of `pilot_policy_triage` and its contract tests.
+
+- Independent Test consumption (#35): source isolation also needs exact bounded
+  left-context/reading equality, including transitive source/input chains. A local
+  reservation must survive inference failure and even an fsync exception that
+  leaves bytes written. Keep an external ledger-head commitment to detect tail
+  truncation; a hash chain alone cannot. Equality tokens do not replace complete
+  near-duplicate history or Gold admission. Verified by the 16 contracts in
+  `tests/test_evaluation_protocol.py`; no real Test was opened.
+
+- Historical metric checks (#35): bind the gate selection source as well as the
+  model/score artifact. Issue-21 C2 L>2.7 produced 34 rescues and four harms; the
+  later Issue-25 L>2.9 produced 29 and three on the same dev cohort. A verifier
+  initially compared the former against the latter. Correcting its reference,
+  without changing thresholds or metric code, matched the published records.
+  Saved offline scores do not establish exported-binary parity or runtime failure
+  telemetry. See `reports/issue-35-metrics-v1.md`.
+
+- Evaluation access (#35): reserve and externally pin Test consumption before
+  authenticating Test content. Retain authenticated runtime bytes to close path
+  replacement gaps. An fsync exception can leave a reservation written; a terminal
+  anchor failure can leave a completed ledger with a stale head. Neither permits
+  retry or a second terminal event. The admission trust set remains empty until
+  independent Gold evidence exists. Verified by 28 synthetic admission contracts;
+  see research/evaluation-admission-v1.md and its verification report.
+
+- External annotation evidence (#31): third-party human-corrected morphology can
+  supply readings independently of Sakura's dictionary, but a corpus-level
+  morphology accuracy claim is not an IME label-quality confidence bound. Ruby
+  markup can also encode editorial notes rather than pronunciations. Preserve
+  source/task scope and inspect actual annotation fields before Gold admission.
+- Large evidence reports can contain thousands of component hashes on one JSON
+  line. Select metric fields before printing; locate stage artifacts with bounded
+  directory depth rather than listing all review batches.
+
+- External annotation probe (#31): KWDLC's three logical source sentences may
+  have multiple ordered KNP S-ID parts. Preserve initial parser failures, then
+  support contiguous split parts without replacing sampled documents. Keep
+  target indices tied to annotation-unit order and reset left context at every
+  unit. All 46 first-pass targets remained unchanged when all 50 parsed.
+  Dictionary-index absence is not an N-best oracle miss; only authenticated
+  converter execution can measure that. See reports/issue-31-kwdlc-probe-v1.md.
