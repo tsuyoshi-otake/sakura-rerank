@@ -6,6 +6,14 @@ This is source-exact weak-supervision research; independent Gold and release Gat
 A/B remain unresolved. Existing data, models, final-Test records and 0.25% safety
 criteria remain unchanged.
 
+The [completed model comparison](results-model-v2.md) reports every seed, fixed
+gate and ungated results, confidence intervals and source-specific limits.
+Mixed-source data helped this conditional population more consistently than the
+tested Wikipedia quantity increase; no model was promoted. The final 458-test
+suite passed without skips, and a separate direct recount matched all 20 point
+reports and 50 paired comparisons. See the tracked completion and verification
+reports for test logs, artifact integrity and process-cleanup evidence.
+
 The existing 12,516-row model remains a frozen reference. A nested 12,516-row
 subset of the new 50,000-row Wikipedia cohort is an additional necessary control:
 otherwise the difference from the historical model would mix data amount,
