@@ -126,3 +126,12 @@
   retry or a second terminal event. The admission trust set remains empty until
   independent Gold evidence exists. Verified by 28 synthetic admission contracts;
   see research/evaluation-admission-v1.md and its verification report.
+
+- External annotation evidence (#31): third-party human-corrected morphology can
+  supply readings independently of Sakura's dictionary, but a corpus-level
+  morphology accuracy claim is not an IME label-quality confidence bound. Ruby
+  markup can also encode editorial notes rather than pronunciations. Preserve
+  source/task scope and inspect actual annotation fields before Gold admission.
+- Large evidence reports can contain thousands of component hashes on one JSON
+  line. Select metric fields before printing; locate stage artifacts with bounded
+  directory depth rather than listing all review batches.

@@ -1,0 +1,20 @@
+{
+  "base_git_sha": "0b6d6f601b7bce659cadae99fe6bdec155d03690",
+  "kind": "pilot_feasibility_inputs",
+  "schema_version": 1,
+  "sha256": {
+    "data/generated/issue-31-doubt-evidence-v1/supplement.json": "c4a458f7f942b9bc7faef5ddbaa9456653381f885560c4d45fc53d936b32355f",
+    "data/generated/issue-31-gold-pilot-v1/manifest.json": "20a29b3436d2736133c672c7482d8107d3c58862794895c934c50a3e37719ed7",
+    "data/generated/issue15-v5-slot120/source-spans-a.report.json": "e0b3572235d4a82135c812571e06009bb3b7099982f1392bd93e03ca6f666bbc",
+    "data/generated/issue15-v5-slot120/tier-a-a.report.json": "51bc35619e8eda34d0d86a17983fd450652410282cf867461eeaeb05ef82a485",
+    "manifests/system-dictionary-index-verified.json": "f9c4b5b4c3e0ce518dc86b61092d81debfe14be802ef94e4b42ef0d9f9faf22d",
+    "reports/issue-15-tier-a-owner-authorized-audit-v5.json": "4f52d4999f50ee6d1c2efc45e7c5a4b3e69fb8c463dcb099180b7e8faf81f869",
+    "reports/issue-15-v5-admissibility-gate-a-evidence.json": "e4131d89127a1e1421ce261aaa94d208fd222e3723d551f63336bdb8f5e0c329",
+    "reports/issue-31-ai-six-axis-v1.json": "543ba9b0d4f62b8d3e8e4806cbd3567e2bab0b597ccf7bc1b06bf053fb3671e8",
+    "reports/issue-31-doubt-evidence-v1.json": "80f1723222fa7226bc9d62f6e434bbafcd5a16939cc962a61ba0fc7e4a406209",
+    "reports/issue-31-machine-evidence-v1.json": "e7ab4cdbc4b3355e8a452fe93577429857a35f4f16cd59a23391e41c240c64fb",
+    "reports/issue-31-spelling-policy-v1.json": "53d98fa340a2e1ac1accf7aec53a2711977c898f0f27b7b4873dcff2576e5512",
+    "research/gold-ai-six-axis-policy-v1.json": "dd1671662c8506c2a8182279e775952f25ddf69bba2eb1c861367d9c81accc1b",
+    "src/sakura_rerank/data/tier_a.py": "70268d295e475170311b7f4c710acb8caabef7521154009cc047f8cba24bbc62"
+  }
+}

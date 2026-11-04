@@ -1,0 +1,62 @@
+{
+  "checks": [
+    "Exact pinned corpus/membership/file identities and required file byte limits",
+    "No dev/test membership-file contents or document contents opened; repository-tree metadata may include unselected paths. Retain selected training exposure hashes.",
+    "Preserve original surface and reading with no guessed readings or global NFKC",
+    "Account for ambiguous/special notation, parse failures, length and reading-contract failures without silently dropping the selected document",
+    "Verify actual Sakura full-reading Top-32 and production Top-6 paths when the current exporter is authenticated; missing gold remains an oracle miss",
+    "Record independent annotation provenance separately from human adjudication of this derived IME task"
+  ],
+  "failure_policy": "Hash/schema/source permission mismatch stops acquisition. No adaptive replacement or promotion to Gold. Benchmark incompleteness remains explicit.",
+  "kind": "external_annotation_development_probe",
+  "limits": {
+    "gate_a_evidence": false,
+    "independent_final_test": false,
+    "labels_applied": false,
+    "max_documents": 50,
+    "max_source_bytes_per_file": 1048576,
+    "max_source_requests": 55,
+    "max_total_source_bytes": 52428800,
+    "model_predictions": false,
+    "model_training": false,
+    "no_automatic_retries": true,
+    "safety_threshold": 0.0025,
+    "source_request_concurrency": 1
+  },
+  "purpose": "Test whether existing third-party surface/reading annotations remove Sakura-dictionary-generated reading circularity; not Gold certification or final evaluation.",
+  "remaining_for_release": [
+    "Representative independent population and complete cross-history audit",
+    "Task-specific label precision >=99.5% and Wilson 95% lower >=99.0% with valid independent observations",
+    "At least 3000 valid final holdout cases",
+    "Actual fixed-model/gate independent comparison and Gates A/B/C/D"
+  ],
+  "schema_version": 1,
+  "selection": {
+    "document_order": "Sort training IDs by SHA-256 of canonical JSON [seed, document_id], choose the first 50 before reading annotation files.",
+    "documents": 50,
+    "left_context": "At most 64 preceding surface characters within the same sentence; start empty at sentence boundaries.",
+    "no_target_document": "Retain as no_target; do not replace or backfill.",
+    "right_context": "Do not expose following text to an evaluator or language judgment. Parsing source structure for offline extraction is separate from model features.",
+    "seed": 20261104,
+    "target_order": "Among morphemes whose surface contains a CJK unified ideograph, choose the smallest SHA-256 of canonical JSON [seed, document_id, sentence_index, morpheme_index]. Choose before converter access, regardless of reading validity, length or candidate presence.",
+    "targets_per_document": 1
+  },
+  "source": {
+    "annotation_origin": "Human modifications of JUMAN/KNP analyses, as documented by the corpus authors; per-item accuracy and review independence are not certified.",
+    "commit": "c6ae49d29eca4e1134c6676d682adf5ed6a25f5a",
+    "expected_training_documents": 3915,
+    "permitted_document_tree": "knp",
+    "readme_git_blob_sha1": "318bd75a35e36498b9a94b965068cce4669b07b8",
+    "repository": "https://github.com/ku-nlp/KWDLC",
+    "rights_scope": "Publicly provided for NLP research. No corpus text redistribution or model training authorized by this probe; preserve source notices and record unresolved downstream license/provenance limits.",
+    "train_membership_git_blob_sha1": "0caaf63014fea6132b06bf3a3924a9b54d91b99a",
+    "train_membership_path": "id/split_for_pas/train.id"
+  },
+  "status": "registered_before_document_access",
+  "success_criteria": [
+    "Deterministic membership and extraction with complete 50-document accounting",
+    "Readings trace to the independent corpus column rather than Sakura dictionary inference",
+    "Forward conversion coverage or exact execution blocker recorded without manufacturing missing candidates",
+    "All claims limited to an exposed development feasibility probe"
+  ]
+}
