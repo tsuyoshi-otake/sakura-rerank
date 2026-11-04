@@ -4,6 +4,46 @@
 
 原データを変更せず、同一助手による暫定的な診断として保存した。独立人手確認・独立Gold・精度向上実験ではない。90.72%を更新する評価は行っていない。
 
+## 最新: 新版のsource品質隔離を実装（2026-11-04）
+
+**新しい抽出を明示的にv5で実行すると、左文脈64文字＋対象表記にあるTeX命令残骸と空の書名括弧を検出して、その候補を隔離する。** 原文を推測して埋めたり、正解ラベルを書き換えたりしない。既定は従来のv4で、旧datasetの再現性を維持した。判定に右文脈・後続候補を追加していない。
+
+train全12,516件への反実仮想監査では9件（約0.0719%）が隔離対象だった。TeX残骸3件、空題名6件、重複0件、保持候補12,507件。これは小さい混入原因への修正であり、従来の約4.87%のラベル問題や精度頭打ちを解決したという結果ではない。[集計JSON](issue-31-source-quality-v1.json)と[検証JSON](issue-31-source-quality-verification-v1.json)に分母・hashを保存した。
+
+9件を同じAIが全件確認し、定義した可視の問題を9件で確認した。対象語の局所意味まで阻害されると診断したのは1件で、残る8件は局所的には理解可能だった。したがって、**9件を誤ラベルと数えない**。有用な技術文や固有名詞の例も隔離する可能性がある。独立した正誤検証・false-positive率・モデルの改善幅は未測定。
+
+### 版と状態の契約
+
+- `clean_wikitext` 自体はv4のまま。v5は候補抽出時の追加検査で、既存の段落/文/文字位置、sampling、stable ID、旧stable-ID除外を維持する。漢字隣接・部分入力・通常の非空題名・波括弧だけでは拒否しない。通常パスの保持例も検証したが、登録TeX命令と同じ文字列を含むパスは隔離され得る。
+- ルールは固定したTeX命令集合と `『』`（空白のみの中身を含む）。未登録TeX命令、通常の `「」`、画像/テンプレート除去による任意の文脈欠損を網羅するものではない。今回は実証した原因に限定した仕様で、Goldのラベル定義を代替しない。
+- CLIは `jawiki-preprocess --cleaner-version conservative_wikitext_v5` で明示選択。manifest schema 5と `candidate_quality_policy=bounded_left64_target_tex_empty_title_v1` を必須にし、旧schemaへの混入・方針違い・件数不整合を拒否する。新規manifestは `measured` で、自ら `verified` やGate A合格へ昇格できない。
+- 検査/隔離/理由別/保持/出力byte上限で保存できなかった候補を計数する。全件隔離は既存出力を変えず明示的に失敗する。有限の件数上限がある新規抽出では後続候補の補充が起こり得るため、旧版との精度比較にこの新しい分母を混用しない。
+- 今回の既存train監査は全12,516件のroute・元row hashをlocal追跡台帳に残し、元datasetは不変。dev 1,788件とholdout 3,576件はJSON解析前に除外して全ファイルのhashだけ検証した。モデル予測・性能値による選択は行っていない。
+
+### 実装の検証と再現
+
+| Verify | Expect / 結果 |
+| --- | --- |
+| `test_source_quality.py` | 新規11 tests成功。正常例、境界分割、右文脈不使用、64文字より古い文脈不使用、旧ID除外、版/方針不一致、byte上限、全隔離失敗、非trainの非解析を検証 |
+| 旧commitと現行のAST・default出力比較 | cleaner/matcher/ID/samplingの4責任のAST一致。6つの合成入力でv4出力bytesとcounts一致 |
+| 全tests・AST/compile・diff check | 348中343成功、既存optional PyTorch 5skip、失敗0。300秒timeoutを設定 |
+| train監査を新規directoryに独立2回生成し別Counter照合 | report/evidence両方byte一致、route合計12,516、理由別集計一致。旧24artifact hash不変 |
+| runnerと一時物確認 | task runner残存0、既存インストールworker維持。一時script/二回目出力/logを削除。新しいlocal監査台帳のみ保持 |
+
+```powershell
+$env:PYTHONPATH='src'
+python -X utf8 -m unittest discover -s tests -p test_source_quality.py -v
+python -X utf8 -m unittest discover -s tests -v
+# 出力先は新しいdirectoryを指定する。既存台帳の上書きは拒否する。
+python -X utf8 -m sakura_rerank.data.source_quality_audit --source data/generated/issue15-v5-slot120/frozen-split.jsonl --source-sha256 0651bfaa3fb67da7980dcbbe4ad5de6e383e2878c726ace53a189d74519b1d82 --output-directory data/generated/issue-31-source-quality-reproduction
+```
+
+保持したlocal成果物は `data/generated/issue-31-source-quality-v1/` のreport、全train route台帳、AIによる9件のinspection。生コーパス・個票ID・対象本文はGitへ追加していない。現行Sakura Input HEADは引き続き `d586fae572d32aa76512994dca616dadef2899b1`。本番実装、元データ、モデル、独立Test、安全性基準0.25%は変更していない。
+
+**次の重点:** 小さい抽出ノイズへの対策はできた。続いて表記方針57件と名称/引用保護273件を、許容・保護・情報不足の条件に対応づける。読み/IME入力単位/意図の違いを定義した上で、#35の独立品質証拠と一度だけ使うTestを設計する。Gate Aは未通過、独立Gold品質の証拠方法は未解決、製品リリースは未完了。
+
+**今回のIRV。** A: source品質ルール1module、train監査1module、抽出器・manifest validator・CLI・JSON schemaの接続、新規tests1file、既存抽出testsと公開契約が必要。B: 単純なregex追加だけでは旧manifestを新挙動に誤用するため、版契約と候補件数の終端処理まで調査を広げた。C: `source_quality` が検出規則、抽出器が新規候補の隔離、`source_quality_audit` が既存trainの未適用route記録、`tier_a` がmanifest受入を所有。純粋な規則からdataset/CLIへの逆依存はない。D: 次回は同じ品質predicateを抽出と影響監査で共有でき、規則を二重実装する必要がない。版ごとの互換性・samplingと停止上限・実測分母の違いは引き続き理解が必要。
+
 ## 追補: 疑義50件の証拠確認（2026-11-04）
 
 読み18件、入力境界31件、文脈欠陥10件の**和集合50件**を確認した。元の20batchと判断はそのままに、別のimmutable補足台帳へ全50件の根拠・未保証点を保存した。今回も同じAIによる診断で、外部資料の利用は独立した判定者の追加を意味しない。集計は [doubt evidence JSON](issue-31-doubt-evidence-v1.json)、実行証跡は [verification JSON](issue-31-doubt-evidence-verification-v1.json)。

@@ -85,3 +85,13 @@
 - Task helper filenames must not shadow Python standard-library modules. A local
   `inspect.py` shadowed `inspect` during a `dataclasses` import in the #31 audit;
   renaming it to `audit_cases.py` resolved the import and the full audit passed.
+
+- Versioned source quarantine (#31): apply quality flags to the exact bounded
+  left context plus target after v4 coordinates/sampling and stable-ID exclusions.
+  This preserves historical IDs and avoids future-context selection. Count a
+  candidate stopped at the output-byte limit separately from retained records;
+  v5 manifest reconciliation tests exercise that terminal branch. On the frozen
+  12,516-row train cohort, the fixed TeX/empty-title rules flagged nine rows, but
+  eight still had locally understandable targets: routing flags are not label
+  errors or independent Gold evidence. See the source-quality addendum in
+  `reports/issue-31-ai-six-axis-review.md`.
