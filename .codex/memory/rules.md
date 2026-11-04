@@ -102,3 +102,11 @@
   rule memberships. Conditional pair review is not an accepted-surface set, and
   exact-form protection does not certify the source label. Verified by the
   spelling mode of `pilot_policy_triage` and its contract tests.
+
+- Independent Test consumption (#35): source isolation also needs exact bounded
+  left-context/reading equality, including transitive source/input chains. A local
+  reservation must survive inference failure and even an fsync exception that
+  leaves bytes written. Keep an external ledger-head commitment to detect tail
+  truncation; a hash chain alone cannot. Equality tokens do not replace complete
+  near-duplicate history or Gold admission. Verified by the 16 contracts in
+  `tests/test_evaluation_protocol.py`; no real Test was opened.

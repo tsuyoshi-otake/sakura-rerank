@@ -5,6 +5,15 @@ uses separate `gold_pilot` and read-only `frozen_diagnostics` commands. It never
 applies labels or certifies Gate A, even after 1,000 unanimous human judgments.
 Do not feed its packets or proposals to the legacy `human-audit apply` command.
 
+Issue #35's [independent evaluation protocol](../../../research/independent-evaluation-protocol-v1.md)
+adds `splitter.audit_evaluation_partitions` for read-only history/train/calibration/Test
+audits, including exact bounded input equality in the source-component closure.
+It returns aggregate evidence and private Test reuse tokens without certifying
+Gold or historical coverage. `sakura_rerank.test_use_registry` owns durable Test
+consumption records; failed evaluations never release that population for reuse.
+The corresponding contracts are in `tests/test_evaluation_protocol.py`. Existing
+split assignment and historical exclusion behavior remain unchanged.
+
 This package defines acquisition, deterministic source-span preprocessing,
 provenance, Tier A assembly, and splitting. It never invokes Sakura Input or
 trains a model. Tier A assembly consumes immutable external artifacts and does

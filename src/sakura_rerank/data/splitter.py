@@ -557,6 +557,127 @@ def exclude_historical_components(
     return eligible, excluded, report
 
 
+def audit_evaluation_partitions(
+    historical_records: Sequence[Mapping[str, Any]],
+    partitions: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> tuple[dict[str, Any], list[str]]:
+    """Audit supplied history/train/calibration/test without rewriting records.
+
+    Add exact (bounded left context, reading) equality to the existing source
+    relation closure. This is a new evaluation contract; legacy assignment and
+    exclusion keep their original behavior. All tiers remain in the denominator.
+    The caller owns completeness of historical exposure and Gold certification.
+
+    Return aggregate evidence and private Test reuse tokens. Tokens deliberately
+    ignore labels, model, candidate costs, split names and revision IDs, so those
+    changes cannot make a previously used input/article fresh. Near-duplicate
+    reuse still requires the complete historical audit, not token equality alone.
+    """
+    roles = ("historical", "train", "calibration", "test")
+    if not isinstance(partitions, Mapping) or set(partitions) != set(roles[1:]):
+        raise SplitError("partitions: exactly train, calibration and test required")
+    supplied = {"historical": historical_records, **partitions}
+    if any(
+        not isinstance(rows, Sequence) or isinstance(rows, (str, bytes)) or not rows
+        for rows in supplied.values()
+    ):
+        raise SplitError("partitions: each supplied population must be nonempty")
+    if sum(len(rows) for rows in supplied.values()) > MAX_COMPONENT_INPUT_RECORDS:
+        raise SplitError("partitions: combined record bound exceeded")
+    normalized: dict[str, list[dict[str, Any]]] = {}
+    owner: dict[str, str] = {}
+    for role in roles:
+        try:
+            rows = validate_records(supplied[role], require_split=False)
+        except (ContractError, TypeError) as error:
+            raise SplitError(f"{role}: contract validation failed") from error
+        expected_split = {"train": "train", "calibration": "dev", "test": "final-holdout"}
+        if role != "historical" and any(
+            row["split"] not in (None, expected_split[role]) for row in rows
+        ):
+            raise SplitError(f"{role}: immutable split contradicts evaluation role")
+        for row in rows:
+            if row["stable_id"] in owner:
+                raise SplitError("stable_id: populations must be disjoint")
+            owner[row["stable_id"]] = role
+        normalized[role] = sorted(rows, key=lambda row: row["stable_id"])
+    combined = sorted(
+        [row for role in roles for row in normalized[role]],
+        key=lambda row: row["stable_id"],
+    )
+    leakage = _build_leakage_components(
+        combined, near_duplicate_threshold=DEFAULT_NEAR_DUPLICATE_THRESHOLD
+    )
+    union = _UnionFind(len(combined))
+    _union_groups(union, dict(enumerate(leakage.component_records)))
+    input_groups: dict[str, list[int]] = defaultdict(list)
+    for index, row in enumerate(combined):
+        key = hashlib.sha256(canonical_json_bytes([
+            row["session"]["left_context"], row["reading"],
+        ])).hexdigest()
+        input_groups[key].append(index)
+    _union_groups(union, input_groups)
+    assignments = [owner[row["stable_id"]] for row in combined]
+    source_groups = {
+        "article": leakage.article_groups,
+        "paragraph_exact": leakage.paragraph_groups,
+        "template_cluster": leakage.template_groups,
+        "sentence_near_duplicate": leakage.near_union.groups(),
+        "bounded_input_exact": input_groups,
+    }
+    cross = {
+        name: _cross_split_group_count(groups, assignments)
+        for name, groups in source_groups.items()
+    }
+    contaminated = {role: 0 for role in roles[1:]}
+    components = union.groups()
+    mixed = 0
+    for indexes in components.values():
+        component_roles = {assignments[index] for index in indexes}
+        if len(component_roles) <= 1:
+            continue
+        mixed += 1
+        for index in indexes:
+            if assignments[index] != "historical":
+                contaminated[assignments[index]] += 1
+
+    tokens: set[str] = set()
+    for row in normalized["test"]:
+        source = row["source"]
+        identities = {
+            "record": row["stable_id"],
+            "article": source["article_id"],
+            "paragraph": source["paragraph_hash"],
+            "sentence": source["sentence_hash"],
+            "input": [row["session"]["left_context"], row["reading"]],
+        }
+        if source["template_cluster_id"] is not None:
+            identities["template"] = source["template_cluster_id"]
+        for kind, value in identities.items():
+            tokens.add(hashlib.sha256(canonical_json_bytes([kind, value])).hexdigest())
+    token_list = sorted(tokens)
+    report = {
+        "schema_version": 1,
+        "kind": "evaluation_partition_audit",
+        "algorithm": "source_components_and_exact_bounded_input_v1",
+        "near_duplicate_threshold": DEFAULT_NEAR_DUPLICATE_THRESHOLD,
+        "populations": {role: _content_aggregate(normalized[role]) for role in roles},
+        "cross_population_groups": cross,
+        "cross_population_components": mixed,
+        "affected_new_records": contaminated,
+        "leakage_free_for_supplied_records": mixed == 0,
+        "historical_inventory_completeness_certified": False,
+        "gold_quality_certified": False,
+        "test_reuse_tokens_sha256": hashlib.sha256(
+            canonical_json_bytes(token_list)
+        ).hexdigest(),
+        "test_reuse_token_count": len(token_list),
+        "raw_text": False,
+        "raw_ids": False,
+    }
+    return report, token_list
+
+
 def _validate_expected_content_commitment(
     *, name: str, record_count: int, content_sha256: str
 ) -> dict[str, Any]:
