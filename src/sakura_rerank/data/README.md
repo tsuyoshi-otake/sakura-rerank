@@ -13,6 +13,10 @@ Gold or historical coverage. `sakura_rerank.test_use_registry` owns durable Test
 consumption records; failed evaluations never release that population for reuse.
 The corresponding contracts are in `tests/test_evaluation_protocol.py`. Existing
 split assignment and historical exclusion behavior remain unchanged.
+`evaluation_component_keys` exposes the same closure for paired resampling.
+The [metric contract](../../../research/evaluation-metrics-v1.md) documents
+`sakura_rerank.evaluation_metrics`: shared denominators, exact surfaces, explicit
+fallback outcomes, paired component intervals and their statistical limits.
 
 This package defines acquisition, deterministic source-span preprocessing,
 provenance, Tier A assembly, and splitting. It never invokes Sakura Input or

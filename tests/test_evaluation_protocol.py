@@ -10,7 +10,9 @@ from threading import Barrier
 from unittest.mock import patch
 
 from sakura_rerank.data.contracts import canonical_json_bytes
-from sakura_rerank.data.splitter import SplitError, audit_evaluation_partitions
+from sakura_rerank.data.splitter import (
+    SplitError, audit_evaluation_partitions, evaluation_component_keys,
+)
 from sakura_rerank.test_use_registry import (
     EMPTY_HEAD, TestUseError, finish_test, initialize_registry,
     inspect_registry, reserve_test,
@@ -65,6 +67,18 @@ class EvaluationPartitionTests(unittest.TestCase):
         report, _ = audit_evaluation_partitions(history, groups)
         self.assertEqual(report["cross_population_components"], 1)
         self.assertEqual(report["affected_new_records"], {"train": 1, "calibration": 1, "test": 1})
+
+    def test_resampling_membership_uses_the_same_source_input_closure(self):
+        history, groups = populations()
+        groups["train"][0]["source"]["article_id"] = history[0]["source"]["article_id"]
+        groups["test"][0]["session"]["left_context"] = groups["train"][0]["session"]["left_context"]
+        records = history + [row for rows in groups.values() for row in rows]
+        keys = evaluation_component_keys(records)
+        self.assertEqual(keys, evaluation_component_keys(list(reversed(records))))
+        self.assertEqual(len(set(keys.values())), 2)
+        self.assertEqual(keys[history[0]["stable_id"]], keys[groups["test"][0]["stable_id"]])
+        report, _ = audit_evaluation_partitions(history, groups)
+        self.assertEqual(report["affected_new_records"], {"train": 1, "calibration": 0, "test": 1})
 
     def test_order_is_irrelevant_and_relabeling_cannot_refresh_test_identity(self):
         history, groups = populations()

@@ -557,6 +557,44 @@ def exclude_historical_components(
     return eligible, excluded, report
 
 
+def _evaluation_components(
+    records: Sequence[Mapping[str, Any]],
+) -> tuple[_LeakageComponentBuild, _UnionFind, dict[str, list[int]]]:
+    leakage = _build_leakage_components(
+        records, near_duplicate_threshold=DEFAULT_NEAR_DUPLICATE_THRESHOLD
+    )
+    union = _UnionFind(len(records))
+    _union_groups(union, {str(i): group for i, group in enumerate(leakage.component_records)})
+    input_groups: dict[str, list[int]] = defaultdict(list)
+    for index, row in enumerate(records):
+        key = hashlib.sha256(canonical_json_bytes([
+            row["session"]["left_context"], row["reading"],
+        ])).hexdigest()
+        input_groups[key].append(index)
+    _union_groups(union, input_groups)
+    return leakage, union, input_groups
+
+
+def evaluation_component_keys(records: Sequence[Mapping[str, Any]]) -> dict[str, str]:
+    """Return private stable-ID → component-hash membership for paired resampling.
+
+    Use exactly the same source/input closure as the partition audit. Supply the
+    full preregistered population before splitting; omitted records can connect
+    components and are not certified absent by this function. No records change.
+    """
+    if (not isinstance(records, Sequence) or isinstance(records, (str, bytes))
+            or not 1 <= len(records) <= MAX_COMPONENT_INPUT_RECORDS):
+        raise SplitError("component population outside the record bound")
+    normalized = validate_records(records, require_split=False)
+    _, union, _ = _evaluation_components(normalized)
+    result = {}
+    for indexes in union.groups().values():
+        ids = [normalized[index]["stable_id"] for index in indexes]
+        digest = _component_hash(ids)
+        result.update((identity, digest) for identity in ids)
+    return dict(sorted(result.items()))
+
+
 def audit_evaluation_partitions(
     historical_records: Sequence[Mapping[str, Any]],
     partitions: Mapping[str, Sequence[Mapping[str, Any]]],
@@ -605,18 +643,7 @@ def audit_evaluation_partitions(
         [row for role in roles for row in normalized[role]],
         key=lambda row: row["stable_id"],
     )
-    leakage = _build_leakage_components(
-        combined, near_duplicate_threshold=DEFAULT_NEAR_DUPLICATE_THRESHOLD
-    )
-    union = _UnionFind(len(combined))
-    _union_groups(union, dict(enumerate(leakage.component_records)))
-    input_groups: dict[str, list[int]] = defaultdict(list)
-    for index, row in enumerate(combined):
-        key = hashlib.sha256(canonical_json_bytes([
-            row["session"]["left_context"], row["reading"],
-        ])).hexdigest()
-        input_groups[key].append(index)
-    _union_groups(union, input_groups)
+    leakage, union, input_groups = _evaluation_components(combined)
     assignments = [owner[row["stable_id"]] for row in combined]
     source_groups = {
         "article": leakage.article_groups,

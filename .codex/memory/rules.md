@@ -110,3 +110,11 @@
   truncation; a hash chain alone cannot. Equality tokens do not replace complete
   near-duplicate history or Gold admission. Verified by the 16 contracts in
   `tests/test_evaluation_protocol.py`; no real Test was opened.
+
+- Historical metric checks (#35): bind the gate selection source as well as the
+  model/score artifact. Issue-21 C2 L>2.7 produced 34 rescues and four harms; the
+  later Issue-25 L>2.9 produced 29 and three on the same dev cohort. A verifier
+  initially compared the former against the latter. Correcting its reference,
+  without changing thresholds or metric code, matched the published records.
+  Saved offline scores do not establish exported-binary parity or runtime failure
+  telemetry. See `reports/issue-35-metrics-v1.md`.
