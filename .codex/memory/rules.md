@@ -39,3 +39,13 @@
   Check each Git mutation exit code before a dependent push; otherwise an
   empty branch can be published after a failed commit. Verified commit:
   `92a3252448465e9759f8eef958b04ac442d96830` (#31/#32).
+
+- Gold pilot triage (#31): dictionary-unique reading and forward conversion
+  verify a candidate path, not contextual pronunciation or a realistic user
+  input boundary. The v5 frozen extractor and current extractor have identical
+  ASTs; synthetic cases show kanji and mixed-script lexical fragments passing
+  its character-class boundary filter. See
+  `reports/issue-31-policy-triage.md` and its verification JSON. Keep source
+  fidelity, reading, input unit, context integrity, meaning, spelling intent,
+  and reviewer provenance separate; AI routing is neither Gold certification
+  nor permission to normalize names/quotes or remove hard cases.
