@@ -32,3 +32,10 @@
   backward-compatible legacy default. Test both mismatch directions so a newer
   artifact cannot silently enter the legacy path and a legacy artifact cannot
   enter the newer path.
+
+- Repository commit identity may be unset in this environment. The 2026-11-04
+  Gold pilot commit initially failed for that reason; a command-scoped Codex
+  noreply identity succeeded without changing repository/global configuration.
+  Check each Git mutation exit code before a dependent push; otherwise an
+  empty branch can be published after a failed commit. Verified commit:
+  `92a3252448465e9759f8eef958b04ac442d96830` (#31/#32).
