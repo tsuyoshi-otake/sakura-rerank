@@ -44,6 +44,30 @@ Costs are bounded to one local dump pass, at most 750 sequential work downloads,
 throughput before declaring a training duration; 50k rows is approximately four
 times the old example count, not a promised fourfold time or quality gain.
 
+## Source and input isolation execution
+
+`prepare_sources.py` authenticates six historical source generations and reserves
+the 750 works. `extract.py` requires the separately committed reservation before
+any work-text acquisition. A fresh directory is mandatory: an interrupted or
+rate-limited run is not automatically retried. Its attempt records remain the
+authority for any later explicitly bounded continuation; failed works are never
+replaced. Source receipts distinguish attempted, acquired and parsed works.
+
+`isolate.py` reuses the existing exact source-component closure through a separate
+weak-supervision boundary. It additionally hashes the bounded input fields from
+all 17,880 frozen historical rows without decoding label/candidate objects.
+Historical input text is discarded after hashing; no label is learned from it.
+This complements the six-generation article/paragraph/near-sentence exclusion.
+Every new member of a component touching history or both new partitions is
+quarantined. Insufficient yield terminates this registered experiment before
+candidate acquisition or fitting; the audit and retained artifact are preserved.
+
+The 2,000 rows per source for development evaluation are fixed before converter
+outcomes. Identical readings may share a reference snapshot because the bound
+converter accepts only the reading and fixed dictionary, with user dictionaries
+disabled. Source targets and model left contexts remain distinct. This reuse
+does not assert legacy exporter equivalence or certify the weak labels.
+
 ## Responsibility and reading scope (IRV)
 
 A. Scope: source manifests, extraction/context rules, source/input isolation,
