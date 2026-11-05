@@ -19,6 +19,15 @@ if np is not None and torch is not None:
 
 @unittest.skipIf(np is None or torch is None,'numpy/torch unavailable')
 class BalancedReconstructionLossTests(unittest.TestCase):
+    def test_sampler_preserves_the_control_implementation(self):
+        functions=[]
+        for path in ('research/issue-33-annotation-experiment/train_models.py',
+                     'research/issue-33-loss-balance/train_balance.py'):
+            tree=ast.parse((ROOT/path).read_text())
+            function=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='batches')
+            functions.append(ast.dump(function,include_attributes=False))
+        self.assertEqual(*functions)
+
     def test_all_one_weights_preserve_legacy_loss_and_gradients(self):
         tree=ast.parse((ROOT/'research/issue-21-retrain/run.py').read_text())
         function=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='loss_fn')
