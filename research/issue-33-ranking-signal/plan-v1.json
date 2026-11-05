@@ -1,0 +1,17 @@
+{
+  "issue": 33,
+  "parent": 1,
+  "kind": "read_only_ranking_supervision_audit",
+  "hypothesis": "The fixed 50000-row mixed ranking cohort may offer too little same-reading, different-source-form supervision to learn contextual discrimination; representation or identical-input conflicts are alternative explanations to measure.",
+  "training_binding": "manifests/data-growth-fit-binding-v2.json",
+  "training_binding_commit": "ad976a7f4515a80ff2602e8153b3decb35e37f6f",
+  "cohort": "mixed",
+  "rows": 50000,
+  "metrics": ["baseline source-correct and target rank distribution", "reading groups and literal target diversity", "in-sample reading-majority oracle, explicitly not test performance", "conservative four-source/context contrast witnesses", "raw context/reading label conflicts", "full numeric model-input conflicts", "character hash aliases and within-row candidate token aliases", "supervision coverage of already exposed #40/#41 research targets"],
+  "scope": "Descriptive diagnosis only. No model inference, optimization, new data admission, old dev/final Test access, vocabulary change or label mutation. Surface variants need not have different meanings. Hash aliases alone do not prove ranking harm.",
+  "verification": "Join authenticated training metadata to immutable raw rows; verify every context/reading/positive target encoding; replay grouped summaries in reverse order and independent scalar counts. No raw text in report/log/Git.",
+  "follow_up": "Use measured signal gaps to specify the next data-acquisition or teacher diagnostic. Do not start a new fit from these results.",
+  "gold_certified": false,
+  "final_test_used": false,
+  "safety_threshold": 0.0025
+}
