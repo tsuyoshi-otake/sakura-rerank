@@ -89,4 +89,10 @@ def verify():
     return result
 
 
-if __name__=='__main__': print(json.dumps(verify()))
+if __name__=='__main__':
+    try: result=verify()
+    except Exception as error:
+        save(ROOT/'source-verification-failure.json',dict(status='failed',error_type=type(error).__name__))
+        print(json.dumps(dict(status='failed',error_type=type(error).__name__)),flush=True)
+        raise SystemExit(1) from None
+    print(json.dumps(result))

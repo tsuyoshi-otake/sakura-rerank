@@ -19,6 +19,10 @@ def calculate():
     source=read(ROOT/'source-report.json');execution=read(ROOT/'source-execution.json')
     if execution['status']!='complete' or execution['report_sha256']!=sha(ROOT/'source-report.json'):
         raise ValueError('comparison_source_not_complete')
+    verified=read(ROOT/'source-verification.json')
+    if (verified['status']!='passed' or verified['report_sha256']!=sha(ROOT/'source-report.json')
+            or verified['script_sha256']!=sha(HERE/'verify_sources.py')):
+        raise ValueError('comparison_source_verification_missing')
     for entry in source['artifacts'].values():
         if sha(ROOT/'source'/entry['path'])!=entry['sha256']: raise ValueError('comparison_source_artifact_changed')
     origins={r['stable_id']:r for r in rows(ROOT/'source'/source['artifacts']['row-origins']['path'])}
@@ -107,7 +111,7 @@ def calculate():
             membership=[name for name,ids in memberships.items() if key in ids]))
     needed={row['encoder_input']['candidate_request_id'] for row in records}
     report=dict(kind='annotation_comparison_consumed_cohorts',status='ready_for_numeric_verification' if ready else 'insufficient_fixed_cohorts_do_not_fit',
-        plan_sha256=sha(PLAN),source_report_sha256=sha(ROOT/'source-report.json'),original_dictionary_rows=162502,original_annotation_rows=35592,
+        plan_sha256=sha(PLAN),source_report_sha256=sha(ROOT/'source-report.json'),source_verification_sha256=sha(ROOT/'source-verification.json'),original_dictionary_rows=162502,original_annotation_rows=35592,
         input_denominator=len(inputs),inventory=inventory,first_scope_audit=audit,final_scope_audit=reverse_audit,
         quarantined_or_connected_rows=len(inputs)-len(retained),source_retained_rows=len(retained),candidate_eligible_counts=counts,
         terminal_counts=dict(Counter(r['group']+'/'+r['corpus']+'/'+r['status'] for r in terminal.values())),
