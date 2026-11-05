@@ -1,5 +1,15 @@
 # Data boundary tooling
 
+Issue #33's [paired extraction preparation](../../../research/issue-33-annotation-comparison/README.md)
+adds `reconstruction_inputs.py` for original dictionary-fragment positions and
+`reconstruction_graph.py` for complete neutral-source metadata. Neutral source
+signatures have a separate bounded contract; real input bounds and relation
+algorithms are unchanged. Full legacy parity, mixed-source closure and all
+numeric rows are checked before any fit. Contracts are in
+`tests/test_reconstruction_inputs.py` and `tests/test_reconstruction_graph.py`.
+The two fixed 50,000-row cohorts remain weak source reconstruction, not Gold;
+fresh research evaluation readiness and a separate fit binding are still required.
+
 Issue #33's [consumed numeric preparation](../../../research/issue-33-consumed-numeric/README.md)
 adds `consumed_numeric.py` for minimal encoder projections, row provenance chains
 and bounded authenticated array loading. The only enabled reader purpose is
