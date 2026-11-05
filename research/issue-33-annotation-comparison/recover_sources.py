@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from sakura_rerank.data.growth_corpus import aozora_paragraphs
 from sakura_rerank.data.jawiki_preprocess import clean_wikitext
 from sakura_rerank.data.reconstruction_inputs import recover_dictionary_rows,paragraph_coverage
-from comparison_common import ROOT,HERE,PLAN,prior,source_pools,dictionary_readings,implementation,write_rows,read,save,sha
+from comparison_common import ROOT,HERE,PLAN,prior,source_pools,dictionary_readings,implementation,write_rows,save,sha
 
 CODE=(HERE/'recover_sources.py',HERE/'comparison_common.py',HERE/'reserve_plan.py',
       'src/sakura_rerank/data/reconstruction_inputs.py')
@@ -85,6 +85,7 @@ def run():
 
 
 if __name__=='__main__':
+    ROOT.mkdir(parents=True,exist_ok=True)
     if (ROOT/'source-reservation.json').exists(): raise SystemExit('comparison_source_already_reserved')
     save(ROOT/'source-reservation.json',dict(plan_sha256=sha(PLAN),stage='source_recovery'))
     started=time.monotonic()

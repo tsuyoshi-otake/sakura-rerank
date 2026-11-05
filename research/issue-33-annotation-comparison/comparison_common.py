@@ -7,7 +7,7 @@ import sys
 
 from sakura_rerank.data.consumed_numeric import verify_chain
 from sakura_rerank.data.contracts import canonical_json_bytes,canonical_json_hash
-from reserve_plan import ROOT,HERE,sha,read,save
+from reserve_plan import ROOT as BASE,HERE,sha,read,save
 
 sys.path.insert(0,'research/issue-33-consumed-numeric')
 try:
@@ -15,8 +15,9 @@ try:
 finally:
     sys.path.pop(0)
 
-PLAN=HERE/'plan-v1.json'
-PLAN_COMMIT='55d26ed181bbac424a772a179a0749303457ad31'
+ROOT=BASE/'attempt-02'
+PLAN=HERE/'plan-v2.json'
+PLAN_COMMIT='b82844556aa55d82902864c3c09683ea31eefa5b'
 DICTIONARY=Path('data/generated/system-dictionary-index.jsonl')
 DICTIONARY_SHA='4a3b04ea02ec601a1b23eedd6eb4c19582cd36c39f098c2d0ad61b259fd6c072'
 
@@ -32,14 +33,16 @@ def authenticate():
     return plan
 
 
-def rows(path):
-    if Path(path).stat().st_size>512*1024*1024: raise ValueError('comparison_artifact_bound')
+def rows(path,*,maximum_bytes=512*1024*1024):
+    if type(maximum_bytes) is not int or not 1<=maximum_bytes<=1024*1024*1024:
+        raise ValueError('comparison_reader_byte_bound')
+    if Path(path).stat().st_size>maximum_bytes: raise ValueError('comparison_artifact_bound')
     opener=gzip.open if str(path).endswith('.gz') else open
     with opener(path,'rb') as stream:
         count=0;size=0
         while raw:=stream.readline(256*1024+1):
             count+=1;size+=len(raw)
-            if len(raw)>256*1024 or count>1000000 or size>512*1024*1024:
+            if len(raw)>256*1024 or count>1000000 or size>maximum_bytes:
                 raise ValueError('comparison_decoded_artifact_bound')
             yield json.loads(raw)
 
@@ -57,7 +60,9 @@ def write_rows(path,values):
 
 def source_pools():
     plan=authenticate()
-    old=list(rows(plan['source']['dictionary_pool']))
+    if Path(plan['source']['dictionary_pool']).stat().st_size!=plan['bounds']['existing_dictionary_pool_bytes']:
+        raise ValueError('comparison_dictionary_pool_size_changed')
+    old=list(rows(plan['source']['dictionary_pool'],maximum_bytes=plan['bounds']['existing_dictionary_pool_bytes']))
     if (len(old)!=162502 or len({r['stable_id'] for r in old})!=len(old)
             or any(r['population']!='train' or r['corpus'] not in ('jawiki','aozora') for r in old)):
         raise ValueError('comparison_dictionary_pool_changed')
