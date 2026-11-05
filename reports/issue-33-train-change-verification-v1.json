@@ -1,0 +1,20 @@
+{
+  "code_sha256": "200b2dabf5fdef5a76a72e10c40a36a60f610406b192d6fe2bea9bfeb42e1c6e",
+  "cpu_numerical_limit": "Original audit CPU/GPU sample is not allclose in six of fourteen conditions; no tolerance increase or claim of CPU-equivalent full census.",
+  "cpu_parity_independently_rerun": false,
+  "cpu_parity_passed": false,
+  "exposure_sha256": "5f3dd2408c4949f9ab5e21924d6d61f4927474e6c961bc1497e57de1ceeacc07",
+  "final_test_used": false,
+  "forbidden_data_read_attempts": 0,
+  "gold_certified": false,
+  "kind": "train_change_direct_verification",
+  "new_fits": 0,
+  "paired_populations": 78,
+  "production_adoption": false,
+  "profile_duplicate_checks": 3,
+  "report_sha256": "b3b6132943e576753e8d608b15168fd5cbaa3c24a3fa43b9c88d74b743448ce5",
+  "scalar_metric_populations": 420,
+  "scores_sha256": "e84c7f3f8b2c63804ebbe436078a5ac0430c4ce0251eae18822b97cfb0642625",
+  "status": "passed",
+  "training_rows": 75000
+}

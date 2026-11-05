@@ -1,0 +1,60 @@
+{
+  "kind": "fixed_sampler_replay",
+  "new_fits": 0,
+  "seeds": [
+    {
+      "common_wikipedia_exposures": {
+        "annotation": 63965,
+        "dictionary": 63965
+      },
+      "common_wikipedia_same_per_update": true,
+      "exposure_count_histograms": {
+        "annotation": {
+          "2": 22000,
+          "3": 28000
+        },
+        "dictionary": {
+          "2": 22000,
+          "3": 28000
+        }
+      },
+      "seed": 20260814
+    },
+    {
+      "common_wikipedia_exposures": {
+        "annotation": 63954,
+        "dictionary": 63954
+      },
+      "common_wikipedia_same_per_update": true,
+      "exposure_count_histograms": {
+        "annotation": {
+          "2": 22000,
+          "3": 28000
+        },
+        "dictionary": {
+          "2": 22000,
+          "3": 28000
+        }
+      },
+      "seed": 20261103
+    },
+    {
+      "common_wikipedia_exposures": {
+        "annotation": 63995,
+        "dictionary": 63995
+      },
+      "common_wikipedia_same_per_update": true,
+      "exposure_count_histograms": {
+        "annotation": {
+          "2": 22000,
+          "3": 28000
+        },
+        "dictionary": {
+          "2": 22000,
+          "3": 28000
+        }
+      },
+      "seed": 20261104
+    }
+  ]
+}

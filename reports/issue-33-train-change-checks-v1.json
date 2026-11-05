@@ -1,0 +1,58 @@
+{
+  "ast_compile_import_files": 6,
+  "cpu_gpu_allclose_passed": false,
+  "cpu_sample_rows_per_condition": 292,
+  "cpu_winner_mismatches_in_sample": 0,
+  "figure": {
+    "categorical_seed_axis": true,
+    "exact_values": [
+      472,
+      481,
+      504,
+      866,
+      900,
+      861
+    ],
+    "initial_numeric_seed_axis_replaced_before_publication": true,
+    "path": "reports/issue-33-train-change-common-wikipedia-v1.png",
+    "rendered_inspected": true,
+    "renderer": "Windows PowerShell 5.1 / .NET System.Windows.Forms.DataVisualization.Charting",
+    "script_sha256": "d8d91caee05c2bd5cdcec5b14988c8818891f05765bc02b24287ede83aa08abe",
+    "sha256": "d14eb0a3a5a559181b7ccc03a7f4da4ce64b07358864d0b5fda91b2c1717d0cd",
+    "source_sha256": "3d0a973a2086bd125ffd01c758c21e6c0c2f885fbc0063f572ff3b1007aeacc0"
+  },
+  "final_test_used": false,
+  "initial_failed_unit": {
+    "errors": 77,
+    "failures": 0,
+    "skipped": 0,
+    "successful": false,
+    "tests": 104
+  },
+  "kind": "train_change_completion_checks",
+  "new_fits": 0,
+  "no_independent_accuracy_claim": true,
+  "original_integrity": {
+    "bound_fit_artifacts": 25,
+    "original_artifacts": 16,
+    "report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab",
+    "status": "passed"
+  },
+  "production_adoption": false,
+  "publication_copies_verified": 4,
+  "status": "passed_with_numerical_limit",
+  "type_checker_run": false,
+  "unit_receipt_sha256": "bbac43bbd3f01f5fe3f5087e81e6b09bc5a064b4c165d53d95a41f9b1152c8c0",
+  "unit_tests": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "successful": true,
+    "tests": 664
+  },
+  "verified_counts": {
+    "metric_populations": 420,
+    "paired_populations": 78,
+    "train_rows": 75000
+  }
+}

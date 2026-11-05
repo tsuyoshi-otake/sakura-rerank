@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #33's [train-only change audit](../../../research/issue-33-train-change-audit/README.md)
+reuses the authenticated 75,000-row cache and all seven fixed checkpoints.
+Shared Wikipedia and both Aozora cohorts stay disjoint in reporting; saved
+scores, exposure replay and scalar recounts diagnose excessive changes without
+new labels, fitting, evaluation backfill or cache admission changes. The
+sampled GPU/CPU tolerance failures remain explicit. Contracts are in
+`tests/test_train_change_audit.py`; these fitted-data observations do not certify
+independent accuracy, Gold quality or a safety gate.
+
 Issue #33's [paired extraction experiment](../../../research/issue-33-annotation-experiment/README.md)
 completed the separately bound six fits and fresh research evaluation. Its
 train-only reader authenticates all 75,000 union rows and denies unbound data
