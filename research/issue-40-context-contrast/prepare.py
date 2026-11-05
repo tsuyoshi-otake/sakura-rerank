@@ -1,7 +1,6 @@
 """Authenticate each source and retain fixed main slots plus full source coverage."""
 from collections import Counter
 import json
-from pathlib import Path
 
 from sakura_rerank.data.context_contrasts import extract_pool
 from sakura_rerank.data.context_pilot import annotation_units
