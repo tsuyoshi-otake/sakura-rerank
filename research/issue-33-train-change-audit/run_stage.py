@@ -30,7 +30,8 @@ def run(name, script, timeout, arguments):
     try:
         with (ROOT/(name+'.log')).open('xb') as log:
             child=subprocess.Popen([sys.executable,'-u',str(HERE/script),*arguments],
-                stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+                stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                env={**os.environ,'PYTHONPATH':os.pathsep.join((str(Path.cwd()/'src'),str(Path.cwd())))})
             result['child_pid']=child.pid
             print(json.dumps(dict(stage=name,status='running',child_pid=child.pid)),flush=True)
             try:

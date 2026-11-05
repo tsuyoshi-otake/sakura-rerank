@@ -73,7 +73,7 @@ def infer():
     import torch
     plan, fit = authenticate()
     code_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True, timeout=15).strip()
-    code = [HERE/'audit_training.py', HERE/'change_metrics.py']
+    code = [HERE/name for name in ('audit_training.py','change_metrics.py','run_stage.py','unit_checks.py')]
     for path in code:
         boundary.committed(path, code_commit)
     ROOT.mkdir(exist_ok=True)
