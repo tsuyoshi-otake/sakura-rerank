@@ -1,0 +1,1 @@
+{"kind":"consumed_source_cleanup","status":"passed","target":"~/tmp/issue32-consumption-20261105","files":1,"directories":2,"bytes":2663,"owned_runners_before":0,"retained":["data/generated/issue-32-consumed-source-v1/",".codex/goal-loop/issue-32-consumed-source/","branch:issue-32-consumed-source-v1"],"owned_runners_after":0,"target_exists_after":false}

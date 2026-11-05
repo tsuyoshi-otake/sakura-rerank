@@ -1,5 +1,15 @@
 # Data boundary tooling
 
+Issue #32's [consumed-source quarantine trial](../../../research/issue-32-consumed-source/README.md)
+separates immutable full-source inventory from a proposed paragraph consumption
+scope. `consumed_source.py` rejects whole historically related paragraphs, checks
+exact original context/annotation positions, and emits hash-only receipts for
+`source_verification` only. Training/body/cache/model/checkpoint consumers remain
+disabled by this trial; the existing training pipeline is not changed. Relations
+must be rebuilt from retained nodes, not obtained by deleting old representative
+edges. Contracts: `tests/test_consumed_source.py`. Isolation is not label quality,
+Gold certification, or permission to restore old exclusions.
+
 Issue #32's [source relation paths](../../../research/issue-32-source-relations/README.md)
 add `relation_witnesses.py` for read-only typed connectivity and historical path
 certificates. Equal-signature stars alone are insufficient for removing relation
