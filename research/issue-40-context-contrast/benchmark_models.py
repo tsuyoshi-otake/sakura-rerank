@@ -20,6 +20,16 @@ from model_common import ROOT,reference,build,sha
 from feasibility import boundary
 
 
+def latency_summary(times, errors):
+    """Return only JSON-native scalar types; NumPy booleans are not JSON."""
+    import numpy as np
+    milliseconds=np.asarray(times,dtype=np.int64)/1_000_000.0
+    quantiles=np.quantile(milliseconds,[.5,.95,.99],method="linear")
+    return dict(p50_ms=float(quantiles[0]),p95_ms=float(quantiles[1]),p99_ms=float(quantiles[2]),
+                maximum_ms=float(milliseconds.max()),
+                latency_limits_passed=bool(not errors and quantiles[1]<=2.0 and quantiles[2]<=5.0))
+
+
 def run(evaluation_commit,implementation_commit):
     import numpy as np
     import onnx
@@ -43,19 +53,19 @@ def run(evaluation_commit,implementation_commit):
     conditions=json.loads((ROOT/"model-conditions.json").read_bytes())
     chosen=[model for model in bound["models"] if model.get("seed")==20260814]
     if [m["architecture"] for m in chosen]!=["c2","context_initialized"]:raise ValueError("benchmark_seed_or_architectures_changed")
-    prior=ROOT/"cpu-benchmark-r2/report.json"
+    prior=ROOT/"cpu-benchmark-r3/report.json"
     prior_report=json.loads(prior.read_bytes())
-    if prior_report["status"]!="failed" or prior_report["models"][0]["measured"]!=0:
-        raise ValueError("preserved_first_export_failure_required")
-    output=ROOT/"cpu-benchmark-r3";output.mkdir(exist_ok=False)
+    if prior_report["status"]!="failed" or prior_report["error_type"]!="ContractError":
+        raise ValueError("preserved_serialization_failure_required")
+    output=ROOT/"cpu-benchmark-r4";output.mkdir(exist_ok=False)
     receipt=dict(kind="context_architecture_cpu_benchmark",status="failed",implementation_commit=implementation_commit,
         evaluation_commit=evaluation_commit,script_sha256=sha(__file__),gpu_disabled=True,
         environment=dict(python=platform.python_version(),torch=torch.__version__,onnx=onnx.__version__,onnxruntime=ort.__version__,
                          platform=platform.platform(),processor=platform.processor()),
         batch=1,intra_op_threads=1,inter_op_threads=1,warmup=200,measured_per_model=10000,models=[],production_eligible=False,
-        adapter_revision=3,prior_failed_report_sha256=sha(prior),
+        adapter_revision=4,prior_failed_report_sha256=sha(prior),
         cpu_reference_scores_sha256=numerical["cpu_scores_sha256"],numerical_audit_sha256=sha(ROOT/"numerical-audit/report.json"),
-        revision_reason="Compare CPU ONNX to authenticated CPU PyTorch scores at the unchanged 1e-5 tolerance. Preserve separate default-GPU/strict-GPU/CPU diagnostics, including observed winner changes. Models, inputs, safety and timing limits remain unchanged.")
+        revision_reason="Serialize the latency limit result as a native bool. The prior NumPy bool caused canonical JSON finalization to fail after the first 10000 timing samples. Preserve those samples and failed receipt. All parity, model, input, timing and safety criteria are unchanged.")
     start=time.monotonic()
     try:
         for item in chosen:
@@ -100,21 +110,18 @@ def run(evaluation_commit,implementation_commit):
                     times[i]=time.perf_counter_ns()-tick
                     result["measured"]=i+1
                 np.save(directory/"latencies-ns.npy",times,allow_pickle=False)
-                milliseconds=times/1_000_000.0
-                quantiles=np.quantile(milliseconds,[.5,.95,.99],method="linear")
                 result.update(status="complete" if not errors else "complete_with_failures",failures=sum(errors.values()),
                     error_types=dict(errors),onnx_sha256=sha(onnx_path),onnx_bytes=onnx_path.stat().st_size,parity=parity,
-                    p50_ms=float(quantiles[0]),p95_ms=float(quantiles[1]),p99_ms=float(quantiles[2]),maximum_ms=float(milliseconds.max()),
                     latency_samples_sha256=sha(directory/"latencies-ns.npy"),
-                    latency_limits_passed=not errors and quantiles[1]<=2.0 and quantiles[2]<=5.0)
+                    **latency_summary(times,errors))
                 del session,model,latency_feeds,feeds
             except Exception as error:
                 result["error_type"]=type(error).__name__;raise
             finally:
                 result["elapsed_seconds"]=round(time.monotonic()-model_start,3)
                 result["unattempted_measured_runs"]=10000-result["measured"]
-                write_once(directory/"report.json",canonical_json_bytes(result)+b"\n")
                 receipt["models"].append(result)
+                write_once(directory/"report.json",canonical_json_bytes(result)+b"\n")
             print(json.dumps({k:result[k] for k in ("model","measured","failures","p50_ms","p95_ms","p99_ms","latency_limits_passed")}),flush=True)
         bound_evaluation(evaluation_commit)
         receipt["status"]="complete"
@@ -123,7 +130,7 @@ def run(evaluation_commit,implementation_commit):
     finally:
         receipt["elapsed_seconds"]=round(time.monotonic()-start,3)
         write_once(output/"report.json",canonical_json_bytes(receipt)+b"\n")
-        write_once(Path("reports/issue-40-context-cpu-r3.json"),canonical_json_bytes(receipt)+b"\n")
+        write_once(Path("reports/issue-40-context-cpu-r4.json"),canonical_json_bytes(receipt)+b"\n")
     return dict(status=receipt["status"],models=len(receipt["models"]),elapsed_seconds=receipt["elapsed_seconds"])
 
 
