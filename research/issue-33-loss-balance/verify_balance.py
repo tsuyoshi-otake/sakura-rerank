@@ -15,7 +15,7 @@ import sys
 import numpy as np
 
 from sakura_rerank.data.kwdlc_probe import blob_sha1
-from balance_common import ROOT,read,rows,save,sha
+from balance_common import ROOT,boundary,read,rows,save,sha
 from balance_fit_contract import authenticated_bytes
 from evaluate_balance import bound_evaluation,evaluation_arrays,helpers
 
@@ -198,7 +198,9 @@ def verify(commit):
     prep=read(ROOT/'preparation.json');cohort=read(ROOT/'cohort.json')
     for value,base in ((prep,ROOT/'prepared'),(cohort,ROOT/'cohort')):
         for artifact in value['artifacts'].values():assert_same(sha(base/artifact['path']),artifact['sha256'],'source_cohort_artifact')
-        for path,digest in value['implementation'].items():assert_same(sha(path),digest,'source_cohort_implementation')
+        for path,digest in value['code'].items():
+            assert_same(sha(path),digest,'source_cohort_implementation')
+            boundary.committed(path,value['code_commit'])
     assert_same(cohort['preparation_sha256'],sha(ROOT/'preparation.json'),'cohort_preparation_binding')
     assert_same(cohort['full_reverse_replay'],True,'full_reverse_graph_required')
     slots=list(rows(ROOT/'cohort/main-terminal.jsonl.gz'))
