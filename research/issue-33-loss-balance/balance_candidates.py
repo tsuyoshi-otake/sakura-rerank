@@ -9,7 +9,7 @@ from sakura_rerank.data.contracts import canonical_json_hash
 from sakura_rerank.data.corpus_v5 import _publish_directory_atomically
 from sakura_rerank.data.growth_numeric import encode
 from sakura_rerank.data.input_boundary import request_id
-from balance_common import ROOT,HERE,PLAN,PAST,authenticate,boundary,read,rows,save,sha,write_rows
+from balance_common import ROOT,HERE,PLAN,PAST,authenticate,boundary,previous,read,rows,save,sha,write_rows
 
 jsonl=boundary.jsonl
 verify_saved=boundary.load_script("balance_independent_numeric","research/issue-33-annotation-experiment/numeric_verifier.py").verify_saved
@@ -20,10 +20,14 @@ BINDING=HERE/'candidate-binding-v1.json'
 
 def previous_snapshots(targets):
     # Use converter evidence only: old target labels and model scores are not opened.
-    legacy=boundary.load_script('balance_previous_candidates','research/issue-33-annotation-experiment/candidates.py')
-    identity,known=legacy.previous_snapshots(targets)
+    prior=previous.preparation.prior
+    old_execution=read(prior.forward.ROOT/'execution.json')
+    _,identity,_,_,_,old_requests=prior.forward.authenticate(old_execution['binding_commit'])
+    known=prior.candidate_verifier.snapshots(targets,identity,old_execution,old_requests)
     wanted={row['candidate_request_id']:row['reading'] for row in targets}
     if set(known)-set(wanted):raise ValueError('balance_unrequested_cached_result')
+    if any(value['reading']!=wanted[key] for key,value in known.items()):
+        raise ValueError('balance_cached_reading_join')
     report=read(PAST/'candidate-report.json')
     proof=read('reports/issue-33-annotation-experiment-verification-v1.json')
     if sha(PAST/'candidate-report.json')!=proof['candidate_report_sha256']:
