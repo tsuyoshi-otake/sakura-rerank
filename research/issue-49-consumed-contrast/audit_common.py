@@ -20,7 +20,7 @@ try:
 finally:
     sys.path.pop(0)
 
-ROOT = Path("data/generated/issue-49-consumed-contrast-v1")
+ROOT = Path("data/generated/issue-49-consumed-contrast-v1/attempt-02")
 PLAN = Path("research/issue-49-consumed-contrast/plan-v1.json")
 PLAN_COMMIT = "784bd2da86d6fbcae39b966dcc57939ceb7c7bbb"
 BINDING = Path("manifests/consumed-contrast-forward-v1.json")
