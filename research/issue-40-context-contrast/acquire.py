@@ -43,7 +43,8 @@ def authenticate():
                 or not re.fullmatch(r"[0-9a-f]{40}",doc["git_blob_sha1"])
                 or not 0<doc["bytes"]<=plan["acquisition"]["file_bytes_max"]):
             raise ValueError("source_file_contract_differs")
-    if sum(d["bytes"] for d in docs)!=plan["expected_source_bytes"]:
+    if (sum(d["bytes"] for d in docs)!=plan["expected_source_bytes"]
+            or plan["expected_source_bytes"]+2*(plan["acquisition"]["file_bytes_max"]+1)>plan["acquisition"]["total_bytes_max"]):
         raise ValueError("source_population_size_differs")
     return plan,selection
 
@@ -76,7 +77,7 @@ def run():
     plan,selection=authenticate()
     (ROOT/"source").mkdir(exist_ok=False)
     (ROOT/"receipts").mkdir(exist_ok=False)
-    start=time.monotonic();last_start=None;attempts=[]
+    start=time.monotonic();last_start=None;attempts=[];scheduled=set()
     receipt=dict(kind="unused_context_source_acquisition",status="failed",plan_commit=PLAN_COMMIT,
         plan_sha256=sha(PLAN),selection_sha256=sha(ROOT/"selection.json"),script_sha256=sha(__file__),
         started_at=datetime.now(timezone.utc).isoformat(),attempts=attempts,retries=0,replacements=0)
@@ -91,6 +92,7 @@ def run():
                         delay=plan["acquisition"]["minimum_request_start_interval_seconds"]-(time.monotonic()-last_start)
                         if delay>0:time.sleep(delay)
                     last_start=time.monotonic()
+                    scheduled.add(offset+i)
                     futures.append(executor.submit(fetch_one,offset+i,doc,plan))
                 wave=[future.result() for future in futures]
                 attempts.extend(wave)
@@ -104,7 +106,13 @@ def run():
     finally:
         attempted={a["index"] for a in attempts}
         for i,doc in enumerate(selection["documents"]):
-            if i not in attempted:attempts.append(dict(index=i,document_id=doc["document_id"],status="not_attempted"))
+            if i not in attempted:
+                terminal=ROOT/"receipts"/f"document-{i:04d}.json"
+                if i in scheduled and terminal.is_file():
+                    attempts.append(json.loads(terminal.read_bytes()))
+                else:
+                    attempts.append(dict(index=i,document_id=doc["document_id"],
+                                         status="failed_without_receipt" if i in scheduled else "not_attempted"))
         attempts.sort(key=lambda a:a["index"])
         receipt["elapsed_seconds"]=round(time.monotonic()-start,3)
         receipt["finished_at"]=datetime.now(timezone.utc).isoformat()
