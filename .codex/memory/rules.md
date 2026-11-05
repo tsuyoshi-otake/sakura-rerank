@@ -143,3 +143,5 @@
   unit. All 46 first-pass targets remained unchanged when all 50 parsed.
   Dictionary-index absence is not an N-best oracle miss; only authenticated
   converter execution can measure that. See reports/issue-31-kwdlc-probe-v1.md.
+
+- [relation certificates] Full-graph parity does not prove a relation-removal diagnostic: one near edge between signature representatives depends on exact-signature stars. Preserve per-near-pair bipartite spanning evidence (or prove each view independently). Verified by the failing-then-passing omission fixture and full edge/path checks in research/issue-32-source-relations/README.md.
