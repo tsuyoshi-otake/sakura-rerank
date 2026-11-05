@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #32's [source relation paths](../../../research/issue-32-source-relations/README.md)
+add `relation_witnesses.py` for read-only typed connectivity and historical path
+certificates. Equal-signature stars alone are insufficient for removing relation
+types: distinct near-signature pairs retain their own bipartite spanning evidence.
+Diagnostic disconnection never admits a row, rewrites a split, or certifies Gold.
+Contracts: `tests/test_relation_witnesses.py`; full #49 component parity and
+all-parent verification are recorded in the linked report.
+
 Issue #49's [annotation-first source and candidate audit](../../../research/issue-49-annotation-first/README.md)
 adds `annotation_first.py` for whole original ruby bases and all retained-source
 coverage, and `annotation_isolation.py` for the existing relation core with its
