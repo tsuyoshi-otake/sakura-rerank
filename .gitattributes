@@ -10,3 +10,6 @@
 *.json text eol=lf
 *.patch text eol=lf
 *.ps1 text eol=crlf
+
+# Preserve the byte-bound research figure script across Windows checkouts.
+research/issue-33-train-change-audit/plot_training_harms.ps1 text eol=lf
