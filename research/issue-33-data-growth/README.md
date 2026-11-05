@@ -101,3 +101,9 @@ candidate surfaces. Training reads only the training tensor file; all nine fixed
 fits must finish before any development inference. `env/uv.lock` and its project
 file preserve the already installed Issue-21 environment (including its original
 project name); no new package installation or version selection is required.
+
+The subsequent [fundamental accuracy diagnosis](../issue-33-fundamentals/README.md)
+uses a separately registered posthoc analysis of these exposed development cases.
+It preserves the original experiment and reports all 60 context interventions,
+gate/selection ceilings, and the next task/representation/calibration hypotheses.
+It does not fit another model or consume an independent final Test.

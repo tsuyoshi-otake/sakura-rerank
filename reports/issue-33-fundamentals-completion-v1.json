@@ -1,0 +1,28 @@
+{
+  "context_runs": 60,
+  "diagnostic_report_sha256": "6bad9d2fb2210509df18e2174e32130a243cad48693ea10ac71dc51e8793dd67",
+  "fit_bound_artifacts_unchanged": 25,
+  "gold_certified": false,
+  "intact_max_absolute_score_difference": 0.0,
+  "kind": "fundamental_diagnostic_completion",
+  "new_final_test_used": false,
+  "original_artifacts_unchanged": 16,
+  "owned_runners_remaining": 0,
+  "point_reports_recounted": 120,
+  "retained_local_artifacts": "data/generated/issue-33-fundamentals-v1/",
+  "runtime_or_production_files_changed": false,
+  "safety_threshold": 0.0025,
+  "static_syntax_files": 3,
+  "status": "passed",
+  "task_scratch_removed": true,
+  "tests": {
+    "count": 463,
+    "elapsed_seconds": 24.751,
+    "exit_code": 0,
+    "log_sha256": "2f6a09284a6d9b0eb8d751c42e3a1b8e50487e62124fda83a7f723dbc528a005",
+    "skipped": 0
+  },
+  "threshold_selection": false,
+  "training_runs": 0,
+  "verification_report_sha256": "c844d53eb71512557c5c1f82d412727ceccc1ec2d39e5ae488f4e37634b3cd91"
+}
