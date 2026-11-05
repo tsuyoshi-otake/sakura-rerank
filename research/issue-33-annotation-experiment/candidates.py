@@ -10,9 +10,9 @@ from sakura_rerank.data.corpus_v5 import _publish_directory_atomically
 from sakura_rerank.data.growth_numeric import encode
 from sakura_rerank.data.input_boundary import request_id
 from experiment_common import ROOT,HERE,EXECUTION_PLAN,authenticate,boundary,preparation,read,rows,save,sha,write_rows,jsonl
-from cohort import EXECUTION_COMMIT
 from numeric_verifier import verify_saved
 
+EXECUTION_COMMIT='dc39ee520df68cb99d99ec85905c19b3388e32f5'
 BINDING=HERE/'candidate-binding-v1.json'
 
 
@@ -48,6 +48,7 @@ def prepare():
         (('forward-targets',targets),('requests',requested),('new-requests',new))}
     paths=[HERE/'candidates.py',HERE/'numeric_verifier.py',HERE/'experiment_common.py',
            'research/reference_execution.py','src/sakura_rerank/data/growth_numeric.py',
+           'src/sakura_rerank/data/corpus_v5.py','src/sakura_rerank/data/consumed_numeric.py',
            'research/issue-49-consumed-contrast/verify_audit.py']
     bound=dict(kind='annotation_evaluation_candidate_binding',cohort_sha256=sha(ROOT/'cohort.json'),
         execution_plan_sha256=sha(EXECUTION_PLAN),artifacts=artifacts,targets=len(targets),requests=len(requested),
