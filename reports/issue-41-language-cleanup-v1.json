@@ -1,0 +1,11 @@
+{
+  "kind": "language_task_cleanup",
+  "task_temp": "~/tmp/issue41-language-20261105",
+  "owned_processes_before_cleanup": 0,
+  "files": 0,
+  "bytes": 0,
+  "raw_reproduction_artifacts_retained": "data/generated/issue-41-language-pretraining-v1",
+  "delete_authority": "task_created_temp_only",
+  "task_temp_removed": true,
+  "owned_processes_after_cleanup": 0
+}

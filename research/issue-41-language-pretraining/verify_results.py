@@ -1,6 +1,5 @@
 """Scalar metric recount, paired-difference replay and CPU sample verification."""
 import json
-from pathlib import Path
 import sys
 
 import numpy as np
@@ -88,8 +87,9 @@ def run():
     result=dict(kind="language_results_independent_verification",status="passed",scalar_metric_populations=checks,rate_and_wilson_checks=rates,
         primary_intervals_replayed=3,primary_comparisons=primary,registered_advancement=advance,cpu_measured_runs=20000,cpu_winner_mismatches=0,
         control_tensor_checks=controls,script_sha256=sha(__file__),report_sha256=sha(ROOT/"model-report.json"),
-        benchmark_sha256=sha(ROOT/"cpu-benchmark/report.json"),gold_certified=False,final_test_used=False,safety_threshold=.0025)
-    save(ROOT/"result-verification.json",result);save("reports/issue-41-language-result-verification-v1.json",result)
+        benchmark_sha256=sha(ROOT/"cpu-benchmark/report.json"),gold_certified=False,final_test_used=False,safety_threshold=.0025,
+        prior_verification_sha256=sha(ROOT/"result-verification.json"),revision_reason="Independent replay after removing an unused import; no model, metric or criterion change.")
+    save(ROOT/"result-verification-r2.json",result);save("reports/issue-41-language-result-verification-r2.json",result)
     return {k:result[k] for k in ("status","scalar_metric_populations","rate_and_wilson_checks","primary_intervals_replayed","registered_advancement","cpu_measured_runs")}
 
 
