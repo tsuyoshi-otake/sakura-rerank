@@ -1,5 +1,16 @@
 # Data boundary tooling
 
+Issue #49's [annotation-first source and candidate audit](../../../research/issue-49-annotation-first/README.md)
+adds `annotation_first.py` for whole original ruby bases and all retained-source
+coverage, and `annotation_isolation.py` for the existing relation core with its
+one-million-node research bound. Source-only nodes carry no synthetic input hash.
+Every annotation has a terminal outcome; original readings and positions remain
+provisional evidence, never certified Gold or admitted training labels. The
+historical adapter and source artifacts are immutable. Contracts are in
+`tests/test_annotation_first.py`, `tests/test_annotation_isolation.py`, and
+`tests/test_annotation_relation_audit.py`. The linked report separates historical
+roles, short-text relations and conditional candidate presence from accuracy.
+
 Issue #48's [train contrast and original reading evidence audit](../../../research/issue-48-contrast-data/README.md)
 adds `contrast_capacity.py` for source-balanced planning and separate document/component
 witnesses, and `aozora_ruby_evidence.py` for exact original span and ruby recovery.
