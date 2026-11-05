@@ -10,6 +10,7 @@ import time
 
 from sakura_rerank.data.consumed_numeric import MODEL_FIELDS,LABEL_FIELDS,chain_entry,schema,validate_arrays,verify_chain
 from sakura_rerank.data.contracts import canonical_json_bytes,canonical_json_hash
+from sakura_rerank.data.corpus_v5 import _publish_directory_atomically
 from sakura_rerank.data.growth_numeric import encode
 from comparison_common import ROOT,HERE,PLAN,authenticate,implementation,rows,read,save,sha
 from prepare_cohorts import SCOPE_ROOT,SCOPE_PLAN
@@ -20,8 +21,10 @@ try:
 finally:
     sys.path.pop(0)
 
-OUTPUT=ROOT/'numeric-v1'
-CODE=(HERE/'prepare_numeric.py',HERE/'comparison_common.py',HERE/'reserve_plan.py')
+RUN_ROOT=ROOT/'numeric-r2'
+OUTPUT=RUN_ROOT/'cache'
+CODE=(HERE/'prepare_numeric.py',HERE/'comparison_common.py',HERE/'reserve_plan.py',
+      'src/sakura_rerank/data/corpus_v5.py')
 
 
 def projection(snapshot):
@@ -54,7 +57,7 @@ def profile(indices,records,snapshots):
 
 def run():
     import numpy as np
-    started=time.monotonic();plan=authenticate();head,code=implementation(CODE)
+    started=time.monotonic();authenticate();head,code=implementation(CODE)
     cohort=read(SCOPE_ROOT/'report.json');execution=read(SCOPE_ROOT/'execution.json')
     if (execution['status']!='complete' or execution['report_sha256']!=sha(SCOPE_ROOT/'report.json')
             or cohort['status']!='ready_for_numeric_verification' or not cohort['reverse_replay_passed'] or not cohort['legacy_graph_byte_parity']
@@ -90,7 +93,7 @@ def run():
     snapshot_hashes={key:canonical_json_hash(value) for key,value in snapshots.items()}
     policy_hash=sha(HERE/'policy-v1.md')
     arrays,_=encode([r['encoder_input'] for r in records],projected);validate_arrays(arrays,len(records))
-    output=ROOT/'numeric-v1.partial';output.mkdir(exist_ok=False)
+    output=RUN_ROOT/'cache.partial';output.mkdir(exist_ok=False)
     with (output/'arrays.npz').open('xb') as stream:
         np.savez_compressed(stream,**arrays);stream.flush();os.fsync(stream.fileno())
     previous='0'*64;input_hashes=[];label_hashes=[];components=[];seals=[]
@@ -158,19 +161,22 @@ def run():
         model_fits=0,model_inferences=0,new_native_requests=0,final_test_used=False,gold_certified=False,legacy_label_admissions=0,
         further_conditions='Fresh reserved research cohort readiness and a separate committed fit binding remain required; no training or production admission from this receipt.')
     save(output/'verification.json',result)
-    output.rename(OUTPUT);save(ROOT/'numeric-report.json',result)
+    _publish_directory_atomically(output,OUTPUT,immutable_message='comparison_numeric_destination_exists')
+    save(RUN_ROOT/'report.json',result)
     return result
 
 
 if __name__=='__main__':
-    if (ROOT/'numeric-reservation.json').exists(): raise SystemExit('comparison_numeric_already_reserved')
-    save(ROOT/'numeric-reservation.json',dict(plan_sha256=sha(PLAN),stage='paired_numeric_verification'))
+    if RUN_ROOT.exists(): raise SystemExit('comparison_numeric_already_reserved')
+    RUN_ROOT.mkdir()
+    save(RUN_ROOT/'reservation.json',dict(plan_sha256=sha(PLAN),stage='paired_numeric_verification'))
     started=time.monotonic()
     try: result=run()
     except Exception as error:
         code=str(error) if isinstance(error,ValueError) and re.fullmatch(r'[a-z_0-9]{3,120}',str(error)) else 'unclassified_error'
-        save(ROOT/'numeric-execution.json',dict(status='failed',error_type=type(error).__name__,code=code,elapsed_seconds=round(time.monotonic()-started,3)))
+        save(RUN_ROOT/'execution.json',dict(status='failed',error_type=type(error).__name__,code=code,
+            errno=getattr(error,'errno',None),winerror=getattr(error,'winerror',None),elapsed_seconds=round(time.monotonic()-started,3)))
         print(json.dumps(dict(status='failed',error_type=type(error).__name__,code=code)),flush=True)
         raise SystemExit(1) from None
-    save(ROOT/'numeric-execution.json',dict(status='complete',report_sha256=sha(ROOT/'numeric-report.json'),elapsed_seconds=round(time.monotonic()-started,3)))
+    save(RUN_ROOT/'execution.json',dict(status='complete',report_sha256=sha(RUN_ROOT/'report.json'),elapsed_seconds=round(time.monotonic()-started,3)))
     print(json.dumps({k:result[k] for k in ('status','rows','rows_per_arm','tensor_elements_verified','input_duplicates_per_arm','elapsed_seconds')}),flush=True)
