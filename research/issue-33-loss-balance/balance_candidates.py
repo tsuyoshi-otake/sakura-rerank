@@ -23,9 +23,12 @@ def previous_snapshots(targets):
     prior=previous.preparation.prior
     old_execution=read(prior.forward.ROOT/'execution.json')
     _,identity,_,_,_,old_requests=prior.forward.authenticate(old_execution['binding_commit'])
-    known=prior.candidate_verifier.snapshots(targets,identity,old_execution,old_requests)
     wanted={row['candidate_request_id']:row['reading'] for row in targets}
-    if set(known)-set(wanted):raise ValueError('balance_unrequested_cached_result')
+    # The legacy verifier authenticates complete native batches and returns a
+    # superset. Restrict this consumer to the frozen requested keys.
+    known={key:value for key,value in
+        prior.candidate_verifier.snapshots(targets,identity,old_execution,old_requests).items()
+        if key in wanted}
     if any(value['reading']!=wanted[key] for key,value in known.items()):
         raise ValueError('balance_cached_reading_join')
     report=read(PAST/'candidate-report.json')
