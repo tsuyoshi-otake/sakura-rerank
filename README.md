@@ -10,6 +10,13 @@ candidate generator.
 
 ## Status
 
+The latest [paired extraction preparation](research/issue-33-annotation-comparison/README.md)
+binds two 50,000-row Wikipedia/Aozora cohorts to verified original source,
+mixed-source isolation, and all numeric inputs. A fresh 1,000-document research
+evaluation reservation is fixed before body access. This preparation has no new
+model accuracy result; the recorded adopted result remains 90.72%, and the
+0.25% safety criterion, independent Gold requirements, and Gates A/B are unchanged.
+
 The repository has completed the current-HEAD audit, current Tiny baseline
 reproduction, deterministic data contracts, fixed jawiki acquisition, and a
 reproducible research-only top-32 exporter. The first expanded Tier A snapshot
