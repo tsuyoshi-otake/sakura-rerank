@@ -1,0 +1,17 @@
+{
+  "kind": "annotation_experiment_tmp_cleanup",
+  "target": "~/tmp/issue33-annotation-experiment-20261105",
+  "files": 3,
+  "bytes": 28646,
+  "owned_processes": 0,
+  "path_checked": true,
+  "reparse_points": 0,
+  "status": "removed",
+  "retained": [
+    "data/generated/issue-33-annotation-experiment-v1/",
+    ".codex/goal-loop/issue-33-annotation-experiment/",
+    "issue-33-annotation-experiment-v1 (unmerged branch)"
+  ],
+  "elapsed_seconds": 1.967,
+  "target_exists": false
+}

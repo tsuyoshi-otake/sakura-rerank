@@ -1,0 +1,74 @@
+{
+  "artifacts": {
+    "main-terminal": {
+      "decoded_bytes": 153165,
+      "path": "main-terminal.jsonl.gz",
+      "rows": 1000,
+      "sha256": "4a3ade8db45b4d4150ae49ece36a6fab17ed97dc5e4eed44db3c7ae187e09e95"
+    },
+    "selected": {
+      "decoded_bytes": 3636862,
+      "path": "selected.jsonl.gz",
+      "rows": 1212,
+      "sha256": "b2faf4aa1d5d552eb4d90262eb6a31d7ae1f1f8bc806402ceca54d2f38871f69"
+    }
+  },
+  "audit": {
+    "components": 116177,
+    "counts": {
+      "evaluation/historical_relation": 162,
+      "evaluation/retained": 10410
+    },
+    "exact_input_duplicate_groups": 2763,
+    "historical_coverage_shared_paragraph_groups": 114398,
+    "largest_component": 542201,
+    "near_pairs": 225266102,
+    "near_signature_comparisons": 542073,
+    "population_component_counts": {
+      "evaluation": 983,
+      "evaluation+historical": 6,
+      "historical": 115188
+    },
+    "records": 979593,
+    "source_only_input_edges": 0,
+    "source_only_nodes": 484887
+  },
+  "contrast_counts": {
+    "eligible_groups": 62,
+    "no_supported_lexical_quartet": 4078,
+    "reading_pos_groups": 4140,
+    "selected_groups": 62,
+    "selected_rows": 248
+  },
+  "elapsed_seconds": 247.307,
+  "excluded_rows": 162,
+  "execution_commit": "2da87623c070353b2d25259bda6199efaa8d5955",
+  "final_test_used": false,
+  "full_reverse_replay": true,
+  "gold_certified": false,
+  "historical_nodes_are_evaluation_only_copies": true,
+  "implementation": {
+    "research/issue-33-annotation-experiment/cohort.py": "5127d7fa21ca733588d2dd30f32259f9d424fd5534df324a230b94d3a605cd86",
+    "research/issue-33-annotation-experiment/experiment_common.py": "768a3bfa10624d60e0e72ef07a960173443f83345be1cc64e0c29466a7b652ac",
+    "src/sakura_rerank/data/context_contrasts.py": "61d12d0757f60c40094b14e4d9e4fe0fef3be4086aea947a5c38fa2d334eb224",
+    "src/sakura_rerank/data/context_pilot.py": "95d195e738ba0a70c7278c0f3a0612094320268e03cb19bad6dd506da61993f7",
+    "src/sakura_rerank/data/reconstruction_graph.py": "b10ae16b08744d243dff7cb81eb9fc94dd86ef46a276a0bba4a471178a96dd9b"
+  },
+  "kind": "annotation_experiment_cohort",
+  "main_slots": 1000,
+  "main_statuses": {
+    "historical_relation": 15,
+    "retained": 985
+  },
+  "model_fits": 0,
+  "model_predictions": 0,
+  "original_training_changed": false,
+  "pool_rows": 10572,
+  "preparation_sha256": "4861049974d710cef6eb7578049410a44911d1fabbff6ef24396a3a343c87557",
+  "prior_inventory_nodes": 965889,
+  "relations_sha256": "d6b525d466247836c7081b6dce3cd1f5a8e0ba53fab070fc685f2a3e67faf64f",
+  "retained_pool_rows": 10410,
+  "selected_rows": 1212,
+  "source_units": 3132,
+  "status": "ready"
+}

@@ -1,5 +1,16 @@
 # Data boundary tooling
 
+Issue #33's [paired extraction experiment](../../../research/issue-33-annotation-experiment/README.md)
+completed the separately bound six fits and fresh research evaluation. Its
+train-only reader authenticates all 75,000 union rows and denies unbound data
+reads during fitting; evaluation uses the same 985 isolated main examples for
+all models. The annotation recipe failed its prespecified comparison and is not
+adopted. This research consumer leaves the source cache's original unverified
+admission state unchanged and does not authorize Gold or production use.
+Boundary tests: `tests/test_annotation_fit_boundary.py`,
+`tests/test_annotation_experiment_numeric.py`, and
+`tests/test_annotation_experiment_statistics.py`.
+
 Issue #33's [paired extraction preparation](../../../research/issue-33-annotation-comparison/README.md)
 adds `reconstruction_inputs.py` for original dictionary-fragment positions and
 `reconstruction_graph.py` for complete neutral-source metadata. Neutral source
@@ -8,7 +19,8 @@ algorithms are unchanged. Full legacy parity, mixed-source closure and all
 numeric rows are checked before any fit. Contracts are in
 `tests/test_reconstruction_inputs.py` and `tests/test_reconstruction_graph.py`.
 The two fixed 50,000-row cohorts remain weak source reconstruction, not Gold;
-fresh research evaluation readiness and a separate fit binding are still required.
+fresh research evaluation readiness and a separate fit binding were required
+before the linked experiment, and remain required for any new fit.
 
 Issue #33's [consumed numeric preparation](../../../research/issue-33-consumed-numeric/README.md)
 adds `consumed_numeric.py` for minimal encoder projections, row provenance chains
