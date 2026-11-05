@@ -7,7 +7,7 @@ import time
 from sakura_rerank.data.context_source_isolation import isolate_with_source_coverage
 from sakura_rerank.data.contracts import canonical_json_bytes,canonical_json_hash
 from sakura_rerank.data.kwdlc_probe import write_once
-from acquire import ROOT,PLAN,authenticate,sha
+from acquire import ROOT,authenticate,sha
 from feasibility import boundary
 from history import load_history
 from prepare import generate
