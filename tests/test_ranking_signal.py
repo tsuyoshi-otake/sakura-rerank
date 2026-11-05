@@ -33,7 +33,7 @@ class RankingSignalTests(unittest.TestCase):
         self.assertEqual(result["empirical_deterministic_source_ceiling"],.75)
 
     def test_audit_replay_is_order_independent_and_duplicate_ids_fail(self):
-        data=[row(i,"甲" if i<3 else "乙") for i in range(6)]
+        data=[row(i,"甲" if i%6<3 else "乙",reading="こう" if i<6 else "おつ") for i in range(12)]
         first=describe(data);second=describe(list(reversed(data)))
         self.assertEqual(first[0],second[0]);self.assertEqual(first[1],second[1]);self.assertEqual(first[2],second[2])
         with self.assertRaises(ValueError):describe([row(0),row(0)])

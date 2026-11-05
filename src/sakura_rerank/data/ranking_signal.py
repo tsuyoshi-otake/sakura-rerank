@@ -24,7 +24,7 @@ def describe(rows):
     single=[reading for reading,c in form_counts.items() if len(c)==1]
     multiple=[reading for reading,c in form_counts.items() if len(c)>1]
     witnesses=[];witness_readings=set();selector_counts=Counter()
-    for reading in multiple:
+    for reading in sorted(multiple,key=canonical_json_hash):
         adapted=[dict(row,document_id=row["source"]["article_id"],pos="unspecified",
                       lexical_basis="literal_source_surface",lexical_key=row["target"]) for row in grouped[reading]]
         selected,count=select_contrasts(adapted,maximum_groups=1);selector_counts.update(count)
