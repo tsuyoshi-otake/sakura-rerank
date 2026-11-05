@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #48's [train contrast and original reading evidence audit](../../../research/issue-48-contrast-data/README.md)
+adds `contrast_capacity.py` for source-balanced planning and separate document/component
+witnesses, and `aozora_ruby_evidence.py` for exact original span and ruby recovery.
+Neither admits new training labels nor certifies Gold. Missing, conflicting and
+partial annotation evidence remains explicit; frozen source data and old sidecars
+are unchanged. Contracts: `test_contrast_capacity.py`, `test_aozora_ruby_evidence.py`,
+and `test_contrast_evidence_publication.py` under `tests/`.
+
 Issue #31/#32's [literal and input-boundary audit](../../../research/issue-31-input-boundary/README.md)
 defines exact phonetic/literal hypotheses in `input_boundary.py`. Whole-reading
 N-best presence and all-components presence are different metrics. Export
