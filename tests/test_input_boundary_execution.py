@@ -20,9 +20,18 @@ common = load("boundary_test_common", "research/issue-31-input-boundary/common.p
 with mock.patch.dict(sys.modules, {"common": common}):
     forward = load("boundary_test_forward", "research/issue-31-input-boundary/forward.py")
     isolated = load("boundary_test_isolated", "research/issue-31-input-boundary/isolated_forward.py")
+    publication = load("boundary_test_publication", "research/issue-31-input-boundary/publish.py")
 
 
 class InputBoundaryExecutionTests(unittest.TestCase):
+    def test_composed_top1_counts_exact_output_even_if_segment_boundaries_shift(self):
+        view = dict(status="ready", parts=[dict(kind="convert", request_id="one", target="橋"),
+                                          dict(kind="convert", request_id="two", target="の道")])
+        candidates = {"one": [dict(surface="橋の")], "two": [dict(surface="道")]}
+        self.assertTrue(publication.composed_top1(view, candidates))
+        self.assertIsNone(publication.composed_top1(view, {"one": candidates["one"]}))
+        self.assertFalse(publication.composed_top1(view, {"one": candidates["one"], "two": []}))
+
     def failure_case(self, result, validation_failure=False):
         with tempfile.TemporaryDirectory(prefix="boundary-execution-test-") as directory:
             root = Path(directory)

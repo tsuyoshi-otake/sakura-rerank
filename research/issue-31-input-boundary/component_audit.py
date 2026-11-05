@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 import json
 from pathlib import Path
 
-from sakura_rerank.data.contracts import canonical_json_bytes, canonical_json_hash
+from sakura_rerank.data.contracts import canonical_json_hash
 from sakura_rerank.data.input_boundary import request_id
 from sakura_rerank.data.pilot_doubt_evidence import dictionary_evidence
 from common import ROOT, identity, load_old_snapshots, sha
@@ -99,8 +99,8 @@ def run():
                   private_details_sha256=sha(ROOT/"component-audit-details.json"), script_sha256=sha(__file__),
                   safety_threshold=report["safety_threshold"], labels_changed=0,
                   caveat="Categories are observed support discrepancies, not certified causes or label errors. Per-slot categories overlap. Indexed-pair absence from Top32 does not alone distinguish cost, quality filtering, segmentation or search budget.")
-    publish(ROOT/"component-audit.json", result)
-    publish(Path("reports/issue-31-input-boundary-components-v1.json"), result)
+    publish(ROOT/"component-audit-r2.json", result)
+    publish(Path("reports/issue-31-input-boundary-components-r2.json"), result)
     return result
 
 

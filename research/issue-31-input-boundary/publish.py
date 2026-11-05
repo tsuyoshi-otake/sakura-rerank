@@ -2,7 +2,6 @@
 from collections import Counter, defaultdict
 import json
 from pathlib import Path
-import unicodedata
 
 from sakura_rerank.data.contracts import canonical_json_bytes
 from sakura_rerank.data.kwdlc_probe import write_once
@@ -170,8 +169,8 @@ def run():
         isolated_terminal_requests=len(requests), independent_scalar_recount=True,
         original_747_presence_unchanged=True, rejected_inputs_kept_unmeasured=True,
         report_sha256=sha(ROOT/"report.json"), script_sha256=sha(__file__))
-    publish(ROOT/"verification.json", verification)
-    publish(Path("reports/issue-31-input-boundary-verification-v1.json"), verification)
+    publish(ROOT/"verification-r2.json", verification)
+    publish(Path("reports/issue-31-input-boundary-verification-r2.json"), verification)
     return report
 
 

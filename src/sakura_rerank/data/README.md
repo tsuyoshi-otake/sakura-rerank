@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #31/#32's [literal and input-boundary audit](../../../research/issue-31-input-boundary/README.md)
+defines exact phonetic/literal hypotheses in `input_boundary.py`. Whole-reading
+N-best presence and all-components presence are different metrics. Export
+rejections remain unmeasured with explicit receipts; they are never empty
+certified candidate lists. Contracts: `tests/test_input_boundary.py` and
+`tests/test_input_boundary_execution.py`. No annotations, training inputs,
+production boundaries or Gold admission rules are changed.
+
 The approved Issue #31/#32 [Gold operations pilot](../../../research/gold-pilot-protocol.md)
 uses separate `gold_pilot` and read-only `frozen_diagnostics` commands. It never
 applies labels or certifies Gate A, even after 1,000 unanimous human judgments.
