@@ -12,7 +12,8 @@ from sakura_rerank.data.corpus_v5 import _publish_directory_atomically
 from sakura_rerank.data.kwdlc_probe import blob_sha1
 from sakura_rerank.data.reconstruction_graph import isolate_source_scope
 from balance_common import ROOT,HERE,PAST,authenticate,boundary,read,rows,save,sha,write_rows
-from acquire_sources import PLAN_COMMIT
+
+PLAN_COMMIT='8ea14eed349b375a63b09c744d3bf40c15ee196b'
 
 PAST_CODE='research/issue-33-annotation-experiment/cohort.py'
 
