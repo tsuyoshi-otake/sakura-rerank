@@ -1,5 +1,7 @@
 # Verified project learnings
 
+- Python audit hooks on Windows must derive the access-mode mask from `os.O_WRONLY | os.O_RDWR`; `os.O_ACCMODE` is unavailable. Check both string-mode and `mode=None` open events. Verified by `tests/test_annotation_fit_boundary.py` and six guarded fits in #33.
+
 - On Windows, publish independently reproduced immutable queue directories
   sequentially. A 2026-08-13 run that published sibling directories in
   parallel hit `Access denied` at the atomic rename boundary; the same two

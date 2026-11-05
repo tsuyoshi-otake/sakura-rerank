@@ -10,12 +10,16 @@ candidate generator.
 
 ## Status
 
-The latest [paired extraction preparation](research/issue-33-annotation-comparison/README.md)
-binds two 50,000-row Wikipedia/Aozora cohorts to verified original source,
-mixed-source isolation, and all numeric inputs. A fresh 1,000-document research
-evaluation reservation is fixed before body access. This preparation has no new
-model accuracy result; the recorded adopted result remains 90.72%, and the
-0.25% safety criterion, independent Gold requirements, and Gates A/B are unchanged.
+The latest [paired extraction experiment](research/issue-33-annotation-experiment/README.md)
+completed six fixed fits and all evaluations on 985 isolated research examples.
+The original-annotation recipe failed the prespecified primary comparison:
+mean accuracy difference versus dictionary extraction was -3.45 percentage points
+(paired component 95% CI -5.10 to -1.89). It is not adopted. Both fixed-seed CPU
+exports passed parity and 10,000-run latency checks; 658 unit tests passed.
+These source-reconstruction results are not independent IME Gold accuracy.
+The recorded adopted result remains 90.72%; the 0.25% safety criterion,
+independent Gold requirements, and Gates A/B are unchanged. Next is a train-only
+audit of source distribution and excessive changes before any further fit.
 
 The repository has completed the current-HEAD audit, current Tiny baseline
 reproduction, deterministic data contracts, fixed jawiki acquisition, and a

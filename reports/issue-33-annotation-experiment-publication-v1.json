@@ -1,0 +1,45 @@
+{
+  "artifacts": {
+    "reports/issue-33-annotation-experiment-candidates-v1.json": {
+      "published_sha256": "533b5de31bf2911d408577e4d54150b4f288534a0a0370b4a65a0537bc4c5f9a",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/candidate-report.json",
+      "source_sha256": "440b11f1fa94d99f80c8d01fb427e074ee4aec2258ceb277003b2225501c1e28"
+    },
+    "reports/issue-33-annotation-experiment-cohort-v1.json": {
+      "published_sha256": "0f58787b5ab751d6c9f4b8b35874ab4e55f3e1c821f3ed13157d92d4196dfaf8",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/cohort.json",
+      "source_sha256": "0e9df17cf4c67fcb2ea46a640982ad293fe31ba333fd7775204879fda56dd42c"
+    },
+    "reports/issue-33-annotation-experiment-cpu-v1.json": {
+      "published_sha256": "6463fd82ae6948d314d63dcdd28a48710f8444e6077461244c185722aea45ca0",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/cpu-benchmark/report.json",
+      "source_sha256": "3eadacdfb55fcb4af7f095a607d9e22e777739c58c1902177055b7c03e83a1b9"
+    },
+    "reports/issue-33-annotation-experiment-length-diagnostic-v1.json": {
+      "published_sha256": "20431dfe5f1ab37880a8c60a23f915663b3b6333e8af650f8d17921d5223bd1f",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/length-diagnostic.json",
+      "source_sha256": "495420557f8c459286a74964d488cc5fc7b3d2c704eb8b4e9d84103b247be764"
+    },
+    "reports/issue-33-annotation-experiment-models-v1.json": {
+      "published_sha256": "a1880e673d26f12aaaef131a7a360c319d88566e803f68b6de7ffe56ef06dde9",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/model-report.json",
+      "source_sha256": "8465b0677fe4757e776011ffd7081d7351e29de83be025400b95309f33610d85"
+    },
+    "reports/issue-33-annotation-experiment-source-v1.json": {
+      "published_sha256": "fa3802eae0537ad5ceea1a9bb8d8ad6ea3413312f4fdaddfcafdfb98b484847d",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/preparation.json",
+      "source_sha256": "4861049974d710cef6eb7578049410a44911d1fabbff6ef24396a3a343c87557"
+    },
+    "reports/issue-33-annotation-experiment-training-v1.json": {
+      "published_sha256": "a790788c67d72eaabc2137ad65a3877b3648f693d4574c263aa808362159a998",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/training-execution.json",
+      "source_sha256": "8a747df3896ba604e66b1e2e6fddf33f622e76ec2d09c46595d6a199a09e9472"
+    },
+    "reports/issue-33-annotation-experiment-verification-v1.json": {
+      "published_sha256": "2e4c644f7fd450c46efbbf25eb8dbf7c21a9cb6c4f08266171397e8526ebda76",
+      "source_path": "data/generated/issue-33-annotation-experiment-v1/verification.json",
+      "source_sha256": "b39c39eb57e3f93e0f1eb361a816c3e30d98fbfda480e7ae603acfc70c2f942b"
+    }
+  },
+  "kind": "aggregate_publication_map"
+}

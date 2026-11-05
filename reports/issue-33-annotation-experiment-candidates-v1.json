@@ -1,0 +1,46 @@
+{
+  "arrays_sha256": "073d7e7a0bf4881e6ca7bc0b5c904adaa096457a0130d26c23576db28b07596d",
+  "binding_commit": "d142dd5fe4e2a1884b2cfb6cd1c1268df92dae2f",
+  "candidate_surface_truncations": 0,
+  "contrast_groups": 62,
+  "execution_sha256": "a792a2274fdcfcbd31b20983d816fdfe66a98655386272b5b51be63b8e90dc0b",
+  "failed_targets": 0,
+  "final_test_used": false,
+  "gold_certified": false,
+  "kind": "annotation_experiment_candidates",
+  "main_rows": 985,
+  "metadata_sha256": "72af2641992f08ade3db8963734c16ac8840d779b51400663bf5fa1d3eb32fc8",
+  "model_fits": 0,
+  "model_predictions": 0,
+  "new_requests": 792,
+  "not_attempted": 0,
+  "numeric_verification": {
+    "arrays": 11,
+    "bitwise_equal": true,
+    "elements": 432684,
+    "rows": 1212
+  },
+  "outcomes": {
+    "complete": 792
+  },
+  "reused_requests": 0,
+  "source_exact_counts": {
+    "all": {
+      "1": 903,
+      "10": 1185,
+      "32": 1186,
+      "5": 1173,
+      "6": 1180
+    },
+    "main": {
+      "1": 823,
+      "10": 972,
+      "32": 973,
+      "5": 964,
+      "6": 970
+    }
+  },
+  "status": "ready",
+  "supported_groups": 53,
+  "targets": 1212
+}
