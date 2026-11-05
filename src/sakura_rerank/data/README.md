@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #49's [consumed annotation contrast audit](../../../research/issue-49-consumed-contrast/README.md)
+adds `annotation_contrast.py` for descriptive source-boundary observations and
+conservative contrast capacity within #32's verified consumption scope. Character
+adjacency never certifies or rejects a label; right-side source classes are audit
+metadata, not model inputs. Fixed native batches and per-member failure accounting
+live in the linked research scripts. All source inputs and candidate snapshots
+require final receipt verification; preparation alone is not trusted admission.
+Contracts: `tests/test_annotation_contrast.py` and `tests/test_consumed_batch_execution.py`.
+
 Issue #32's [consumed-source quarantine trial](../../../research/issue-32-consumed-source/README.md)
 separates immutable full-source inventory from a proposed paragraph consumption
 scope. `consumed_source.py` rejects whole historically related paragraphs, checks

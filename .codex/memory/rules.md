@@ -147,3 +147,5 @@
 - [relation certificates] Full-graph parity does not prove a relation-removal diagnostic: one near edge between signature representatives depends on exact-signature stars. Preserve per-near-pair bipartite spanning evidence (or prove each view independently). Verified by the failing-then-passing omission fixture and full edge/path checks in research/issue-32-source-relations/README.md.
 
 - [node-removal diagnostics] Deleting nodes from a graph requires rebuilding relation groups on the retained nodes; filtering saved representative-star edges can lose surviving member relations. Keep the original inventory/exclusions and distinguish the new consumption scope from data admission. Verified by tests/test_consumed_source.py and research/issue-32-consumed-source/README.md.
+
+- [canonical artifact bytes] On Windows, write hash-bound JSON/manifests with write_bytes or explicit LF; Path.write_text default newline translation can differ from Git-committed bytes even when the policy is identical. Preserve the failed attempt and restore exact committed bytes rather than weakening authentication. Evidence: research/issue-49-consumed-contrast/README.md.
