@@ -1,6 +1,6 @@
 """Reading-controlled research contrasts from original morphological evidence.
 
-Different representative forms are a proxy for lexical contrast, not human
+Different source lexical keys are a proxy for contrast, not human
 certification of semantic intent. Source admission/isolation remains external.
 """
 from collections import Counter, defaultdict
@@ -15,7 +15,9 @@ REPRESENTATIVE = re.compile(r'代表表記:([^\s"]+)')
 SEED = 20261105
 
 
-def extract_pool(document_id, raw):
+def extract_pool(document_id, raw, *, lexical_basis="representative"):
+    if lexical_basis not in ("representative", "original_lemma"):
+        raise ValueError("unsupported_lexical_evidence")
     units = annotation_units(document_id, raw)
     metadata, current = [], []
     for line in raw.decode("utf8").splitlines():
@@ -26,7 +28,7 @@ def extract_pool(document_id, raw):
         elif line and not line.startswith("@ ") and not STRUCTURE.match(line):
             fields = line.split()
             representatives = REPRESENTATIVE.findall(" ".join(fields[11:]))
-            current.append(dict(pos=fields[3], representatives=representatives))
+            current.append(dict(pos=fields[3], lemma=fields[2], representatives=representatives))
     if len(metadata) != len(units) or any(len(m) != len(u) for m, u in zip(metadata, units)):
         raise ValueError("annotation_sidecar_alignment_differs")
     rows, counts = [], Counter()
@@ -52,8 +54,10 @@ def extract_pool(document_id, raw):
                 status = "no_kanji_target"
             elif len(context) < 8:
                 status = "insufficient_left_context"
-            elif len(reps) != 1 or reps[0].count("/") != 1 or "?" in reps[0] or len(reps[0]) > 128:
+            elif lexical_basis == "representative" and (len(reps) != 1 or reps[0].count("/") != 1 or "?" in reps[0] or len(reps[0]) > 128):
                 status = "unresolved_representative_annotation"
+            elif lexical_basis == "original_lemma" and not 1 <= len(meta["lemma"]) <= 128:
+                status = "unresolved_original_lemma"
             else:
                 status = "eligible_research_pool"
             counts[status] += 1
@@ -62,7 +66,8 @@ def extract_pool(document_id, raw):
             rows.append(dict(stable_id="context-contrast-"+canonical_json_hash([COMMIT, document_id, unit_index, token_index]),
                              document_id=document_id, annotation_unit=unit_index, morpheme=token_index,
                              reading=reading, target=target, left_context=context,
-                             representative=reps[0], pos=meta["pos"], source=source,
+                             lexical_key=reps[0] if lexical_basis == "representative" else meta["lemma"],
+                             lexical_basis=lexical_basis, pos=meta["pos"], source=source,
                              context_origin="synthetic_source_prefix_not_observed_session",
                              gold_certified=False, training_eligible=False))
     return rows, dict(counts)
@@ -71,7 +76,7 @@ def extract_pool(document_id, raw):
 def select_contrasts(rows, maximum_groups=100):
     """Four distinct documents/contexts: two surfaces, two examples per surface.
 
-Selection uses only original annotations. Up to 32 representative/surface types
+    Selection uses only original annotations. Up to 32 lexical-key/surface types
 per reading/POS group are examined; larger groups remain explicitly unresolved.
 The caller supplies only source-admitted rows and retains its exclusion ledger.
 """
@@ -81,12 +86,12 @@ The caller supplies only source-admitted rows and retains its exclusion ledger.
         raise ValueError("duplicate_contrast_input")
     groups = defaultdict(list)
     for row in rows:
-        groups[(row["reading"], row["pos"])].append(row)
+        groups[(row["lexical_basis"], row["reading"], row["pos"])].append(row)
     selected, counts = [], Counter()
     for group in sorted(groups, key=lambda key: canonical_json_hash([SEED, *key])):
         by_type = defaultdict(list)
         for row in groups[group]:
-            by_type[(row["representative"], row["target"])].append(row)
+            by_type[(row["lexical_key"], row["target"])].append(row)
         if len(by_type) > 32:
             counts["too_many_types"] += 1
             continue

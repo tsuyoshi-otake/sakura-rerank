@@ -6,7 +6,7 @@ from test_context_pilot import DOC, document, token
 
 def row(index, target, representative, document_id=None, context=None):
     return dict(stable_id="r"+str(index), reading="はし", pos="名詞", target=target,
-                representative=representative, document_id=document_id or "d"+str(index),
+                lexical_key=representative, lexical_basis="representative", document_id=document_id or "d"+str(index),
                 left_context=context or "文脈を区別する"+str(index))
 
 
@@ -18,7 +18,7 @@ class ContextContrastTests(unittest.TestCase):
         self.assertEqual(len(rows),1)
         self.assertEqual(rows[0]["left_context"],"あ"*64)
         self.assertEqual(rows[0]["target"],"橋")
-        self.assertEqual(rows[0]["representative"],"橋/はし")
+        self.assertEqual(rows[0]["lexical_key"],"橋/はし")
         self.assertFalse(rows[0]["gold_certified"] or rows[0]["training_eligible"])
         self.assertEqual(sum(counts.values()),5)
 
@@ -28,6 +28,15 @@ class ContextContrastTests(unittest.TestCase):
             rows,counts=extract_pool(DOC,raw)
             self.assertEqual(rows,[])
             self.assertEqual(counts["unresolved_representative_annotation"],1)
+
+    def test_original_lemma_is_explicit_evidence_not_an_inferred_representative(self):
+        raw=document("+ -1D\n"+token("あ"*8,"あ"*8)+"\n+ -1D\n"+token("橋","はし"))
+        rows,counts=extract_pool(DOC,raw,lexical_basis="original_lemma")
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]["lexical_key"],"橋")
+        self.assertEqual(rows[0]["lexical_basis"],"original_lemma")
+        self.assertFalse(rows[0]["gold_certified"])
+        with self.assertRaises(ValueError):extract_pool(DOC,raw,lexical_basis="guessed_semantics")
 
     def test_lexical_quartet_has_two_targets_four_documents_and_distinct_contexts(self):
         rows=[row(i,"橋" if i<2 else "箸","橋/はし" if i<2 else "箸/はし") for i in range(4)]
