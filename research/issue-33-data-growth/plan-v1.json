@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "kind": "source_exact_data_growth_research_plan",
+  "issue": 33,
+  "parent_issue": 1,
+  "seed": 20261105,
+  "scope": "Research training and exposed development evaluation, not independent Gold or final Test",
+  "current_reference": "Keep the existing Issue-29 model and its 12516-row training history unchanged",
+  "cohorts": {
+    "wiki_small": {"new_training_rows": 12516, "nested_in": "wiki_large"},
+    "wiki_large": {"new_training_rows": 50000, "source": "jawiki"},
+    "mixed": {"new_training_rows": 50000, "jawiki_rows": 25000, "aozora_rows": 25000},
+    "development_evaluation": {"jawiki_rows": 2000, "aozora_rows": 2000, "gold_certified": false}
+  },
+  "comparisons": [
+    "Frozen Issue-29 reference on the same new development population",
+    "wiki_small versus wiki_large: nested source population, identical adaptation procedure and fixed update budget",
+    "wiki_large versus mixed: equal row count, identical extraction/label rules and update budget; source composition changes"
+  ],
+  "jawiki": {
+    "snapshot_date": "2026-08-01",
+    "path": "data/downloads/jawiki-20260801-pages-articles-multistream.xml.bz2",
+    "sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+    "page_selection": "SHA256 canonical JSON [seed, jawiki, page_id, sample] modulo 100 is zero; decide before cleaning or target extraction",
+    "max_targets_per_page": 8,
+    "target_selection": "Lowest SHA256 keys within each complete page, never the first eight textual matches",
+    "cleaner": "Existing conservative cleaner plus versioned left-context/target quality quarantine"
+  },
+  "aozora": {
+    "index_url": "https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip",
+    "index_zip_sha256": "a615fa6ddb6ef3e0ad598337f5d08f1570c3d2aa51cc5d43a62998ca904905be",
+    "index_csv_sha256": "753987275d2d168d654b1ff4385fcaed14063e21575f9db279c8beff41e9cf4d",
+    "eligibility": "Exactly one metadata row per work, author role only, work and person copyright flags both nashi, shinji-shinkana, NDC 913 or 914, official HTTPS text ZIP URL",
+    "partition_group": "author_id",
+    "max_works_per_author": 8,
+    "training_works": 600,
+    "evaluation_works": 150,
+    "selection": "Lowest SHA256 [seed, aozora, work_id, select] within the fixed author partition and author cap",
+    "max_targets_per_work": 128,
+    "network_concurrency": 1,
+    "minimum_request_spacing_seconds": 1,
+    "request_timeout_seconds": 30,
+    "max_requests_per_work": 1,
+    "max_zip_bytes_per_work": 8388608,
+    "max_uncompressed_bytes_per_work": 33554432,
+    "max_total_download_bytes": 536870912,
+    "failure_policy": "Retain selected failed/missing works and reasons; no adaptive replacements; rate limit stops acquisition for later bounded resume"
+  },
+  "labels": {
+    "kind": "source_exact_weak_supervision",
+    "reading": "Exact unique dictionary reading, unchanged dictionary hash; no guessed or AI-certified readings",
+    "targets": "Same longest dictionary-surface matching and bounded context policy for both sources",
+    "context": "At most 64 preceding characters in the cleaned source paragraph; synthetic replay, not observed Sakura user-session text",
+    "normalization": "Exact Unicode surface equality; no global spelling normalization",
+    "candidate_source": "Separately bound research reference identity b12db1c5ab5b0c0ca1337665ec654bf784b1b645",
+    "legacy_training_eligible": false,
+    "independent_gold_eligible": false,
+    "training_eligibility": "Exactly one source-exact target in Top-6, complete system-dictionary path, at least two candidates; preserve all other outcomes in the acquisition report",
+    "evaluation_eligibility": "All fixed source targets, including Top-6 misses, empty/failed outputs and unresolved execution; no oracle-based evaluation selection"
+  },
+  "isolation": {
+    "partition": "SHA256 [seed, corpus, source_group, partition] modulo 10: 0-1 development evaluation, 2-9 training",
+    "historical_sources": "Authenticate all six previous jawiki source-span generations; exclude their articles before new extraction and their exact/near-duplicate content from all new populations",
+    "relations": ["article_or_work", "aozora_author", "paragraph_hash", "sentence_hash", "sentence_shingle_Jaccard_ge_0.8", "exact_bounded_left_context_and_reading"],
+    "cross_partition_component": "Quarantine the entire component, never move evaluation members into training",
+    "old_holdout": "Hash/source-metadata isolation only; do not parse labels/candidates or train on old evaluation rows",
+    "selection_before_outcomes": true,
+    "new_final_test_consumed": false
+  },
+  "training": {
+    "status": "Freeze exact input hashes and execution recipe before model fitting; no model fitting in source preparation",
+    "structure": "Unchanged Issue-29/C2 architecture",
+    "seeds": [20260814, 20261103, 20261104],
+    "matched_controls": "Same initialization, loss, features, optimizer and update/token budget across all three new-data arms; preserve frozen Issue-29 reference separately",
+    "old_dev_selection": false,
+    "language_pretraining": false,
+    "gate_threshold_tuning": false
+  },
+  "metrics": ["source-exact Accuracy", "rescue", "harm", "wrong-to-wrong", "application", "Precision", "Recall", "95% intervals", "paired baseline gain", "failure and fallback counts", "per-source and per-length slices"],
+  "bounds": {"source_preparation_timeout_seconds": 3600, "candidate_batch_rows": 100, "candidate_timeout_seconds": 120, "safety_threshold": 0.0025},
+  "stop_conditions": ["source/hash/license mismatch", "insufficient fixed-cohort yield", "cross-partition leakage", "historical inputs changed", "unaccounted failures"],
+  "expected_effect": "Test whether sample count and source diversity improve generalization; no assumed accuracy gain or release eligibility"
+}

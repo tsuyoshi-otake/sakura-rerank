@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "scope": "Source-exact conditional development evidence, left context 8-64 characters, not independent Gold",
+  "source_denominator": {"jawiki":2000,"aozora":2000},
+  "access": "After all nine fixed fits complete; no model selection or threshold changes",
+  "models": "Frozen Issue-29 plus wiki_small/wiki_large/mixed for each preregistered seed",
+  "modes": {"ungated":"argmax over valid candidates","gated":"same argmax only if score minus rank-1 score > 1.7, else original rank 1"},
+  "prediction_unit": "Output surface; candidate-index changes with identical surfaces are not overrides",
+  "failures": "Keep every fixed row. Missing candidate execution is scored incorrect for all models and reported separately; this is an acquisition-inclusive research metric, not a measurement of production fallback correctness.",
+  "precision": "rescue / changed surfaces",
+  "recall": "rescue / baseline-incorrect rows, including source-target misses",
+  "application_to_error": "changed surfaces among baseline-incorrect rows / all baseline-incorrect rows",
+  "harm_rate": "baseline-correct to incorrect / baseline-correct rows",
+  "safety_threshold": 0.0025,
+  "confidence": {
+    "row_intervals":"Wilson 95%; harm additionally exact Clopper-Pearson 95%, with row-independence assumption explicit",
+    "paired_intervals":"10000 full source/input-component bootstrap replicates, fixed PCG64 seed 20261105",
+    "bootstrap_failure":"Undefined denominator replicates counted; interval null rather than dropping them",
+    "certification":"Intervals do not certify label truth or source independence"
+  },
+  "comparison_family": "For each of two modes: every model versus converter baseline (10); each adapted model versus frozen Issue-29 (9); wiki_large versus wiki_small for each seed (3); mixed versus wiki_large for each seed (3). Total 50 directional accuracy contrasts.",
+  "multiple_comparisons":"Holm adjustment of the complete 50 exact McNemar p-values; row-exchangeability assumption explicit. Paired component intervals reported alongside, without claiming familywise simultaneous intervals.",
+  "slices":["jawiki","aozora","reading length <=9","reading length >=10"],
+  "selection":"Report all seeds; do not choose best seed, retrain, or tune after observing these results",
+  "new_final_test_used":false,
+  "production_promotion":false
+}
