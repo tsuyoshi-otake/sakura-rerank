@@ -35,21 +35,27 @@ def run(evaluation_commit,implementation_commit):
     score_receipt=json.loads((ROOT/"scores/execution.json").read_bytes())
     if sha(ROOT/"scores/all.npz")!=score_receipt["scores_sha256"]:raise ValueError("score_parity_reference_changed")
     with np.load(ROOT/"scores/all.npz",allow_pickle=False) as saved:scores={k:np.array(saved[k]) for k in saved.files}
+    numerical=json.loads((ROOT/"numerical-audit/report.json").read_bytes())
+    if (numerical["original_gpu_scores_sha256"]!=score_receipt["scores_sha256"]
+            or sha(ROOT/"numerical-audit/cpu-scores.npz")!=numerical["cpu_scores_sha256"]):
+        raise ValueError("cpu_reference_evidence_changed")
+    with np.load(ROOT/"numerical-audit/cpu-scores.npz",allow_pickle=False) as saved:cpu_scores={k:np.array(saved[k]) for k in saved.files}
     conditions=json.loads((ROOT/"model-conditions.json").read_bytes())
     chosen=[model for model in bound["models"] if model.get("seed")==20260814]
     if [m["architecture"] for m in chosen]!=["c2","context_initialized"]:raise ValueError("benchmark_seed_or_architectures_changed")
-    prior=ROOT/"cpu-benchmark/report.json"
+    prior=ROOT/"cpu-benchmark-r2/report.json"
     prior_report=json.loads(prior.read_bytes())
     if prior_report["status"]!="failed" or prior_report["models"][0]["measured"]!=0:
         raise ValueError("preserved_first_export_failure_required")
-    output=ROOT/"cpu-benchmark-r2";output.mkdir(exist_ok=False)
+    output=ROOT/"cpu-benchmark-r3";output.mkdir(exist_ok=False)
     receipt=dict(kind="context_architecture_cpu_benchmark",status="failed",implementation_commit=implementation_commit,
         evaluation_commit=evaluation_commit,script_sha256=sha(__file__),gpu_disabled=True,
         environment=dict(python=platform.python_version(),torch=torch.__version__,onnx=onnx.__version__,onnxruntime=ort.__version__,
                          platform=platform.platform(),processor=platform.processor()),
         batch=1,intra_op_threads=1,inter_op_threads=1,warmup=200,measured_per_model=10000,models=[],production_eligible=False,
-        adapter_revision=2,prior_failed_report_sha256=sha(prior),
-        revision_reason="The legacy exporter treats a list as one positional argument; pass the eight tensors as a tuple. No model, input, metric or timing condition changed.")
+        adapter_revision=3,prior_failed_report_sha256=sha(prior),
+        cpu_reference_scores_sha256=numerical["cpu_scores_sha256"],numerical_audit_sha256=sha(ROOT/"numerical-audit/report.json"),
+        revision_reason="Compare CPU ONNX to authenticated CPU PyTorch scores at the unchanged 1e-5 tolerance. Preserve separate default-GPU/strict-GPU/CPU diagnostics, including observed winner changes. Models, inputs, safety and timing limits remain unchanged.")
     start=time.monotonic()
     try:
         for item in chosen:
@@ -69,16 +75,19 @@ def run(evaluation_commit,implementation_commit):
                 options.execution_mode=ort.ExecutionMode.ORT_SEQUENTIAL
                 session=ort.InferenceSession(str(onnx_path),sess_options=options,providers=["CPUExecutionProvider"])
                 if session.get_providers()!=["CPUExecutionProvider"]:raise ValueError("unexpected_execution_provider")
-                parity={};latency_feeds=None
+                parity={};result["parity"]=parity;latency_feeds=None
                 for context in conditions["contexts"]:
                     modified=context_arrays(arrays,conditions,context)
                     feeds=[{name:modified[name][i:i+1] for name in names} for i in range(len(arrays["gold"]))]
                     actual=np.concatenate([session.run(["scores"],feed)[0] for feed in feeds])
-                    expected=scores[context+"/"+item["name"]]
+                    expected=cpu_scores[context+"/"+item["name"]]
+                    gpu=scores[context+"/"+item["name"]]
                     if not np.isfinite(actual).all():raise ValueError("nonfinite_export_scores")
                     parity[context]=dict(rows=len(actual),maximum_absolute_difference=float(np.max(np.abs(actual-expected))),
                         winner_mismatches=int((actual.argmax(axis=1)!=expected.argmax(axis=1)).sum()),
-                        allclose=bool(np.allclose(actual,expected,atol=1e-5,rtol=1e-5)))
+                        allclose=bool(np.allclose(actual,expected,atol=1e-5,rtol=1e-5)),
+                        saved_gpu_maximum_absolute_difference=float(np.max(np.abs(actual-gpu))),
+                        saved_gpu_winner_mismatches=int((actual.argmax(axis=1)!=gpu.argmax(axis=1)).sum()))
                     if not parity[context]["allclose"] or parity[context]["winner_mismatches"]:raise ValueError("export_score_or_winner_parity_failed")
                     if context=="intact":latency_feeds=feeds
                 for i in range(200):session.run(["scores"],latency_feeds[i%len(latency_feeds)])
@@ -114,7 +123,7 @@ def run(evaluation_commit,implementation_commit):
     finally:
         receipt["elapsed_seconds"]=round(time.monotonic()-start,3)
         write_once(output/"report.json",canonical_json_bytes(receipt)+b"\n")
-        write_once(Path("reports/issue-40-context-cpu-r2.json"),canonical_json_bytes(receipt)+b"\n")
+        write_once(Path("reports/issue-40-context-cpu-r3.json"),canonical_json_bytes(receipt)+b"\n")
     return dict(status=receipt["status"],models=len(receipt["models"]),elapsed_seconds=receipt["elapsed_seconds"])
 
 
