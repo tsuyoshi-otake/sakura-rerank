@@ -21,9 +21,9 @@ finally:
     sys.path.pop(0)
 
 ROOT = Path("data/generated/issue-48-contrast-data-v1")
-PLAN = Path("research/issue-48-contrast-data/plan-v1.json")
+PLAN = Path("research/issue-48-contrast-data/plan-v2.json")
 POLICY = Path("research/issue-48-contrast-data/quality-policy-v1.md")
-PLAN_COMMIT = "dc722c2d8796a82a2aee13497d952aa61976ff1e"
+PLAN_COMMIT = "986f77208b4cabf5b308fb114602cf15faf2a380"
 PRIOR_COMMIT = "f38066ac0f1a2d992bc31abf34d4930356f13c9f"
 IMPLEMENTATION = ("research/issue-48-contrast-data/audit_capacity.py",
                   "src/sakura_rerank/data/contrast_capacity.py")
@@ -232,7 +232,7 @@ def run():
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--attempt", choices=("initial", "replay"), required=True)
+    parser.add_argument("--attempt", choices=("initial-r2", "replay-r2"), required=True)
     attempt = parser.parse_args().attempt
     ROOT.mkdir(exist_ok=True)
     receipt_path = ROOT / ("execution-" + attempt + ".json")
