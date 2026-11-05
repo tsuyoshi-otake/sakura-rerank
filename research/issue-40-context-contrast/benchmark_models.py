@@ -38,12 +38,18 @@ def run(evaluation_commit,implementation_commit):
     conditions=json.loads((ROOT/"model-conditions.json").read_bytes())
     chosen=[model for model in bound["models"] if model.get("seed")==20260814]
     if [m["architecture"] for m in chosen]!=["c2","context_initialized"]:raise ValueError("benchmark_seed_or_architectures_changed")
-    output=ROOT/"cpu-benchmark";output.mkdir(exist_ok=False)
+    prior=ROOT/"cpu-benchmark/report.json"
+    prior_report=json.loads(prior.read_bytes())
+    if prior_report["status"]!="failed" or prior_report["models"][0]["measured"]!=0:
+        raise ValueError("preserved_first_export_failure_required")
+    output=ROOT/"cpu-benchmark-r2";output.mkdir(exist_ok=False)
     receipt=dict(kind="context_architecture_cpu_benchmark",status="failed",implementation_commit=implementation_commit,
         evaluation_commit=evaluation_commit,script_sha256=sha(__file__),gpu_disabled=True,
         environment=dict(python=platform.python_version(),torch=torch.__version__,onnx=onnx.__version__,onnxruntime=ort.__version__,
                          platform=platform.platform(),processor=platform.processor()),
-        batch=1,intra_op_threads=1,inter_op_threads=1,warmup=200,measured_per_model=10000,models=[],production_eligible=False)
+        batch=1,intra_op_threads=1,inter_op_threads=1,warmup=200,measured_per_model=10000,models=[],production_eligible=False,
+        adapter_revision=2,prior_failed_report_sha256=sha(prior),
+        revision_reason="The legacy exporter treats a list as one positional argument; pass the eight tensors as a tuple. No model, input, metric or timing condition changed.")
     start=time.monotonic()
     try:
         for item in chosen:
@@ -56,7 +62,7 @@ def run(evaluation_commit,implementation_commit):
                 inputs,_=harness._tensors(arrays,arrays["features"],np.array([0]),torch.device("cpu"))
                 onnx_path=directory/"model-fp32.onnx"
                 names=list(harness.INPUT_NAMES)
-                torch.onnx.export(model,inputs,onnx_path,input_names=names,output_names=["scores"],
+                torch.onnx.export(model,tuple(inputs),onnx_path,input_names=names,output_names=["scores"],
                     dynamic_axes={name:{0:"batch"} for name in (*names,"scores")},opset_version=18,dynamo=False,do_constant_folding=True)
                 onnx.checker.check_model(onnx.load(onnx_path))
                 options=ort.SessionOptions();options.intra_op_num_threads=1;options.inter_op_num_threads=1
@@ -108,7 +114,7 @@ def run(evaluation_commit,implementation_commit):
     finally:
         receipt["elapsed_seconds"]=round(time.monotonic()-start,3)
         write_once(output/"report.json",canonical_json_bytes(receipt)+b"\n")
-        write_once(Path("reports/issue-40-context-cpu-v1.json"),canonical_json_bytes(receipt)+b"\n")
+        write_once(Path("reports/issue-40-context-cpu-r2.json"),canonical_json_bytes(receipt)+b"\n")
     return dict(status=receipt["status"],models=len(receipt["models"]),elapsed_seconds=receipt["elapsed_seconds"])
 
 
