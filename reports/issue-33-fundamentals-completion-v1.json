@@ -24,5 +24,7 @@
   },
   "threshold_selection": false,
   "training_runs": 0,
-  "verification_report_sha256": "c844d53eb71512557c5c1f82d412727ceccc1ec2d39e5ae488f4e37634b3cd91"
+  "local_verification_receipt_sha256": "c844d53eb71512557c5c1f82d412727ceccc1ec2d39e5ae488f4e37634b3cd91",
+  "published_verification_report_sha256": "3ae1dcca49558b1f1199dad9e206a5576801b4416c9881d145130b59394b91c9",
+  "verification_publication_note": "Original local receipt is preserved with Windows CRLF; Git publishes LF. Both identities are explicit, and future receipt writes use LF. No metric or inference changed."
 }

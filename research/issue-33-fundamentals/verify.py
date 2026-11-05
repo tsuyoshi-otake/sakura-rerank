@@ -54,7 +54,7 @@ def main():
                 new_inference_runs=0,new_fits=0,report_sha256=sha(ROOT/"report.json"),
                 diagnostic_scores_sha256=report["diagnostic_scores_sha256"],
                 method="Scalar candidate/surface-equivalence selection; no diagnostic outcome helper")
-    with (ROOT/"verification.json").open("x",encoding="utf-8") as stream:
+    with (ROOT/"verification.json").open("x",encoding="utf-8",newline="\n") as stream:
         json.dump(result,stream,indent=2,sort_keys=True);stream.write("\n")
     print(json.dumps(result))
 
