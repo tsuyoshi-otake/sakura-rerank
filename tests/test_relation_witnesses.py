@@ -127,6 +127,15 @@ class RelationWitnessTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             component_labels(graph, ["invented"])
 
+    def test_near_only_view_preserves_full_bipartite_connectivity_without_exact_stars(self):
+        records = [row(i, shingles=list("abcd" if i < 5 else "abcde")) for i in range(9)]
+        graph = build_witness_graph(records)
+        labels = component_labels(graph, ["sentence_near"])
+        self.assertEqual(len(set(labels)), 1)
+        self.assertEqual(graph.audit["distinct_near_signature_pairs"], 1)
+        self.assertEqual(graph.audit["edge_kinds"]["sentence_near"], 8)
+        self.assertEqual(graph.audit["conceptual_near_record_pairs"], 36)
+
 
 if __name__ == "__main__":
     unittest.main()

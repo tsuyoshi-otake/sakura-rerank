@@ -1,8 +1,8 @@
 """Typed connectivity certificates for research source isolation, never admission.
 
-Equal-key groups use spanning stars; the frozen signature join emits one edge
-per matching signature pair. Connectivity is exact, but these are not all raw
-record pairs and compressed path lengths are not raw-graph shortest distances.
+Equal-key groups use spanning stars; each distinct matching signature pair uses
+a bipartite spanning tree. This preserves near connectivity even when exact
+stars are removed. These are not all raw pairs or raw-graph shortest distances.
 """
 from array import array
 from collections import Counter, deque
@@ -29,18 +29,32 @@ class WitnessGraph:
 class _Recorder:
     def __init__(self, graph, maximum):
         self.graph, self.maximum, self.kind = graph, maximum, 0
+        self.peers = {}
+        self.near_signature_pairs = 0
 
-    def union(self, left, right):
+    def _append(self, left, right, kind):
         if len(self.graph.left) >= self.maximum:
             raise ValueError("relation_witness_edge_bound")
-        kind = self.kind
-        if kind == 4:
-            records = self.graph.records
-            if records[left]["source"]["sentence_shingle_hashes"] != records[right]["source"]["sentence_shingle_hashes"]:
-                kind = 5
         self.graph.left.append(min(left, right))
         self.graph.right.append(max(left, right))
         self.graph.kinds.append(kind)
+
+    def union(self, left, right):
+        if self.kind != 4:
+            self._append(left, right, self.kind)
+            return
+        records = self.graph.records
+        if records[left]["source"]["sentence_shingle_hashes"] == records[right]["source"]["sentence_shingle_hashes"]:
+            # The pinned core emits all identical-group stars before near pairs.
+            self.peers.setdefault(left, []).append(right)
+            self._append(left, right, 4)
+            return
+        self.near_signature_pairs += 1
+        self._append(left, right, 5)
+        for peer in self.peers.get(left, ()):
+            self._append(peer, right, 5)
+        for peer in self.peers.get(right, ()):
+            self._append(left, peer, 5)
 
 
 def build_witness_graph(records, *, max_edges=MAX_EDGES):
@@ -77,7 +91,8 @@ def build_witness_graph(records, *, max_edges=MAX_EDGES):
     graph.audit = dict(nodes=len(ordered), representative_edges=len(graph.left),
         edge_kinds={KINDS[k]: count for k, count in sorted(Counter(graph.kinds).items())},
         duplicate_key_groups=groups, conceptual_near_record_pairs=pairs,
-        distinct_signatures=signatures, actual_signature_comparisons=comparisons)
+        distinct_signatures=signatures, actual_signature_comparisons=comparisons,
+        distinct_near_signature_pairs=recorder.near_signature_pairs)
     return graph
 
 

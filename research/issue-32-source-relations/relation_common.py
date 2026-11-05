@@ -18,9 +18,9 @@ try:
 finally:
     sys.path.pop(0)
 
-ROOT = Path("data/generated/issue-32-source-relations-v1")
-PLAN = Path("research/issue-32-source-relations/plan-v1.json")
-PLAN_COMMIT = "fb3b55841ce7b39e99e4ae8d4b61b00a87dce836"
+ROOT = Path("data/generated/issue-32-source-relations-v2")
+PLAN = Path("research/issue-32-source-relations/plan-v2.json")
+PLAN_COMMIT = "61fdeeb29f40ded909f4c5687058473c4bf71e9d"
 EVALUATION_ROLES = frozenset(("frozen_dev", "frozen_final-holdout", "reserved_growth_evaluation", "exposed_kwdlc_research_evaluation"))
 
 

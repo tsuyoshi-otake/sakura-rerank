@@ -106,11 +106,11 @@ def run():
         graph=graph.audit, node_order_sha256=order_digest(graph.records), historical_roles=dict(Counter(roles.values())),
         views=views, path_certificates=paths, baseline_parity=parity,
         omitted_representative_edges=sum(omitted), artifacts=artifacts,
-        interpretation="Diagnostic disconnection is not data admission. All nodes, including historical training and unknown roles, remain in every graph. No character-length threshold was selected or applied; representative stars preserve connectivity, not all raw pair/path multiplicities.",
+        interpretation="Diagnostic disconnection is not data admission. All nodes, including historical training and unknown roles, remain in every graph. No character-length threshold was selected or applied; exact stars and per-near-pair bipartite spanning trees preserve each view's connectivity, not all raw pair/path multiplicities.",
         rules_unchanged=True, exclusions_restored=0, training_labels_admitted=0, model_fits=0,
         model_inferences=0, final_test_used=False, gold_certified=False, safety_threshold=.0025)
     save(ROOT / "report.json", result)
-    save("reports/issue-32-source-relations-v1.json", result)
+    save("reports/issue-32-source-relations-v2.json", result)
     return dict(status=result["status"], graph=graph.audit, parity=parity)
 
 
