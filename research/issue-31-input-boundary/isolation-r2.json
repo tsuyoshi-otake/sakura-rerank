@@ -1,0 +1,21 @@
+{
+  "kind": "input_boundary_single_reading_failure_isolation",
+  "issues": [31, 32],
+  "original_plan_commit": "8627f98bcfcf7ea4b025adcf85dcd38ee2ceb173",
+  "input_commit": "c5dead92e5c4ca704cf6259fb8a678d01b280b40",
+  "input_binding_sha256": "9dbd03bef93f8d33be4e6583b7d6a566dc1aced9ec13e7e8aa9570fe4bf48cbe",
+  "first_attempt": {"status": "partial", "failed_batch_requests": 100, "not_attempted_requests": 1326, "native_exit": 2, "error": "converter returned an invalid candidate count", "authenticated_new_snapshots": 0},
+  "reason": "The pinned exporter rejects an empty or oversized candidate list and writes the batch atomically. One rejection hides all other requests in the same batch. Preserve r1 and perform a separately preregistered per-reading diagnostic over the identical 1426 new requests, not target replacement or an automatic retry.",
+  "source_evidence": "research/exporter/src/main.rs make_record rejects an empty or >32 candidate list before write_pair_atomic; pinned conversion.rs truncates to max_candidates. Do not weaken the snapshot validator or infer exact missing-target counts from a failed export.",
+  "population": "All 1426 previously bound new requests, in stable_id order, each attempted at most once in r2. The same 722 authenticated historical reading snapshots are reused.",
+  "bounds": {"requests": 1426, "concurrency": 2, "batch": 1, "request_timeout_seconds": 30, "run_timeout_seconds": 600, "retries": 0},
+  "expected_rejection": "Exit 2 and exact fixed ASCII invalid-candidate-count stderr with no output or native report is terminal candidate_count_rejected. Preserve it as an unmeasured input; continue the independent remaining requests.",
+  "other_failure": "Any different error, invalid snapshot, timeout or changed identity stops scheduling. Drain the at-most-two in-flight subprocesses under their timeouts, write all terminal receipts, mark the rest not_attempted. No retry.",
+  "metrics": "Original plan metrics and all failure counts. Rejected readings are not empty validated candidate snapshots; affected slots remain unmeasured, and never leave the denominator.",
+  "implementation_contract": "Commit this plan and isolated_forward.py before executing. Authenticate the original plan, population, input binding, exact implementation commit, binary/dictionary and all reused snapshots. Audit execution records and native receipts independently before publication.",
+  "model_training": false,
+  "model_predictions": false,
+  "gold_certified": false,
+  "independent_test": false,
+  "safety_threshold": 0.0025
+}

@@ -19,6 +19,7 @@ def load(name, path):
 common = load("boundary_test_common", "research/issue-31-input-boundary/common.py")
 with mock.patch.dict(sys.modules, {"common": common}):
     forward = load("boundary_test_forward", "research/issue-31-input-boundary/forward.py")
+    isolated = load("boundary_test_isolated", "research/issue-31-input-boundary/isolated_forward.py")
 
 
 class InputBoundaryExecutionTests(unittest.TestCase):
@@ -59,6 +60,30 @@ class InputBoundaryExecutionTests(unittest.TestCase):
 
     def test_invalid_snapshot_stops_even_when_native_exit_was_zero(self):
         self.failure_case(SimpleNamespace(returncode=0), validation_failure=True)
+
+    def test_isolated_known_rejection_keeps_no_candidate_snapshot(self):
+        with tempfile.TemporaryDirectory(prefix="boundary-isolated-test-") as directory:
+            root = Path(directory)
+            (root/"candidates").mkdir()
+            def rejected(*args, **kwargs):
+                kwargs["stderr"].write(isolated.EXPECTED_ERROR)
+                return SimpleNamespace(returncode=2)
+            with (mock.patch.object(isolated, "R2", root),
+                  mock.patch.object(isolated.subprocess, "run", side_effect=rejected)):
+                receipt, record = isolated.execute_one(0, dict(stable_id="synthetic", reading="あ。"), {}, 30)
+            self.assertEqual(receipt["status"], "candidate_count_rejected")
+            self.assertIsNone(record)
+            self.assertFalse((root/"candidates/request-0000/output.jsonl").exists())
+
+    def test_isolated_unknown_error_does_not_use_known_rejection_path(self):
+        with tempfile.TemporaryDirectory(prefix="boundary-isolated-test-") as directory:
+            root = Path(directory)
+            (root/"candidates").mkdir()
+            with (mock.patch.object(isolated, "R2", root),
+                  mock.patch.object(isolated.subprocess, "run", return_value=SimpleNamespace(returncode=2))):
+                receipt, record = isolated.execute_one(0, dict(stable_id="synthetic", reading="あ"), {}, 30)
+            self.assertEqual(receipt["status"], "failed")
+            self.assertIsNone(record)
 
 
 if __name__ == "__main__":
