@@ -1,0 +1,28 @@
+{
+  "artifacts": [
+    {
+      "public": "reports/issue-33-train-change-audit-v1.json",
+      "public_sha256": "3d0a973a2086bd125ffd01c758c21e6c0c2f885fbc0063f572ff3b1007aeacc0",
+      "source": "data/generated/issue-33-train-change-audit-v1/report.json",
+      "source_sha256": "b3b6132943e576753e8d608b15168fd5cbaa3c24a3fa43b9c88d74b743448ce5"
+    },
+    {
+      "public": "reports/issue-33-train-change-inference-v1.json",
+      "public_sha256": "6cca735789b9a352404d7beb5490dbc680d7afb954a47e8b0cab73e9a0f50f62",
+      "source": "data/generated/issue-33-train-change-audit-v1/inference.json",
+      "source_sha256": "db78b48f3bbcf773833bdafa24ab34c3999778fe9c8403f5359420df9e27ec2e"
+    },
+    {
+      "public": "reports/issue-33-train-change-verification-v1.json",
+      "public_sha256": "d21f064de8d689595ff2f8008c54a014295f1094e70fef084fbd0b47622123c1",
+      "source": "data/generated/issue-33-train-change-audit-v1/verification.json",
+      "source_sha256": "6f2f7090435381b1aaa94cc8e21a8147a7ccf43554e4bc357d9262a36458e8c8"
+    },
+    {
+      "public": "reports/issue-33-train-change-exposure-v1.json",
+      "public_sha256": "9bade9dc87c115450bc811dd03ff6b7bffa4552eeeae2598e392e16992b04542",
+      "source": "data/generated/issue-33-train-change-audit-v1/exposure-replay.json",
+      "source_sha256": "5f3dd2408c4949f9ab5e21924d6d61f4927474e6c961bc1497e57de1ceeacc07"
+    }
+  ]
+}

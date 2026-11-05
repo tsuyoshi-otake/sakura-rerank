@@ -10,6 +10,16 @@ candidate generator.
 
 ## Status
 
+The latest [train-only change audit](research/issue-33-train-change-audit/README.md)
+found 357–419 additional harmful changes on the same 25,000 Wikipedia training
+rows after the annotation-recipe fits, despite identical per-update Wikipedia
+exposure. The Aozora target-rank distribution changed substantially. This narrows
+the next hypothesis to preserving correct local choices and separating loss
+contributions; no new fit or independent accuracy gain is claimed. All 420
+metric groups and 78 paired comparisons were recounted. GPU/CPU numerical
+parity did not pass every sampled condition, so this remains a GPU training
+diagnostic, not a CPU-equivalence or safety claim.
+
 The latest [paired extraction experiment](research/issue-33-annotation-experiment/README.md)
 completed six fixed fits and all evaluations on 985 isolated research examples.
 The original-annotation recipe failed the prespecified primary comparison:

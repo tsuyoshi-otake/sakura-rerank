@@ -1,0 +1,16 @@
+{
+  "kind": "train_change_tmp_cleanup",
+  "target": "~/tmp/issue33-train-change-audit-20261106",
+  "files": 3,
+  "bytes": 18961,
+  "owned_processes": 0,
+  "reparse_points": 0,
+  "resolved_path_checked": true,
+  "status": "removed",
+  "retained": [
+    "data/generated/issue-33-train-change-audit-v1/",
+    ".codex/goal-loop/issue-33-train-change-audit/",
+    "issue-33-train-change-audit-v1 (unmerged branch)"
+  ],
+  "target_exists": false
+}
