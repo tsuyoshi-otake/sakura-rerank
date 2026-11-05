@@ -1,0 +1,43 @@
+{
+  "code_sha256": {
+    "research/issue-39-context-pilot/acquire.py": "ffe1ebb1451c5617e3f013aa9479db10a8fee90182af55450c18cfd481147978",
+    "research/issue-39-context-pilot/forward.py": "13f048677aa5d986f1bb77cfec19123ecbd7a7e373951509e17aab178b5eaa73",
+    "research/issue-39-context-pilot/prepare.py": "dae375646e01803590499c6e3a5deceb99ef36748412930d24478bf691579c97",
+    "research/issue-39-context-pilot/verify_publish.py": "48221057f7dd41490a4d48c2df82f2af439807e84873816d27d31c60fe678feb",
+    "src/sakura_rerank/data/context_pilot.py": "95d195e738ba0a70c7278c0f3a0612094320268e03cb19bad6dd506da61993f7",
+    "tests/test_context_pilot.py": "c00ce59b8590a3af4aa61c5d6f4c1c47176e67bccad36a077476abdf67268eb1",
+    "tests/test_context_pilot_acquisition.py": "f4c296d4431c5773592fe775f77155e52393532c8c93df0805dd880f75536cb0"
+  },
+  "final_test_used": false,
+  "fit_bound_artifacts_unchanged": 25,
+  "independent_gold_certifications": 0,
+  "kind": "context_pilot_completion",
+  "new_model_fits": 0,
+  "new_model_predictions": 0,
+  "original_artifacts_unchanged": 16,
+  "owned_runners_remaining": 0,
+  "previous_kwdlc_source_blobs_authenticated": 50,
+  "report_sha256": "54d54928a5e1bf6ac65472441b5162c4ddc56e34cff08fe7d3648455ff4691f5",
+  "retained_local_artifacts": "data/generated/issue-39-context-pilot-v1",
+  "safety_threshold": 0.0025,
+  "skipped": 0,
+  "status": "passed",
+  "supplemental_distribution": {
+    "distinct_inputs": 994,
+    "duplicate_excess": 6,
+    "duplicate_groups": 6,
+    "historically_related_documents": 15,
+    "label_conflicts": 0,
+    "measured_reading_over9": 157,
+    "reading_over9": 346
+  },
+  "task_scratch_removed": true,
+  "test_count": 475,
+  "tests": {
+    "elapsed_seconds": 28.813,
+    "exit_code": 0,
+    "log_sha256": "a92bd7b0b38bf82ef7ed475f74e60391916902f86f240d1fa8a073e393dce01e",
+    "static_syntax_files": 7
+  },
+  "verification_sha256": "f0f3604bf95372b1b042cfe078d4bcf81a8b58d7d9b55c1b40dfed7acceff602"
+}
