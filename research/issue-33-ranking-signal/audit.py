@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 
-from sakura_rerank.data.contracts import canonical_json_bytes,canonical_json_hash
+from sakura_rerank.data.contracts import canonical_json_bytes
 from sakura_rerank.data.ranking_signal import conflicts,describe,coverage
 from sakura_rerank.research_tiny import character_ids
 
