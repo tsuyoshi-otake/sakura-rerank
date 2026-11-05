@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from sakura_rerank.data.contracts import canonical_json_hash
-from balance_common import ROOT,HERE,PLAN,PAST,read,save,sha
+from balance_common import ROOT,PLAN,PAST,read,save,sha
 
 
 def run():
