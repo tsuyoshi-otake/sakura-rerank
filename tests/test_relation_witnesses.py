@@ -74,6 +74,7 @@ class RelationWitnessTests(unittest.TestCase):
         self.assertTrue(all(graph.kinds[i] in (3, 4) for i, value in enumerate(omit) if value))
         labels = component_labels(graph, omitted=omit)
         self.assertEqual(labels[0], labels[2])
+        self.assertEqual(labels[1], labels[2])  # Each equal-signature member also has the near edge.
         self.assertEqual(labels[3], labels[4])
 
     def test_signature_match_boundary_and_all_pair_oracle(self):
