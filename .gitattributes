@@ -13,3 +13,4 @@
 
 # Preserve the byte-bound research figure script across Windows checkouts.
 research/issue-33-train-change-audit/plot_training_harms.ps1 text eol=lf
+research/issue-33-loss-balance/plot_balance_harms.ps1 text eol=lf

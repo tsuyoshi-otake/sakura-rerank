@@ -1,5 +1,16 @@
 # Data boundary tooling
 
+Issue #33's [fixed loss-balance experiment](../../../research/issue-33-loss-balance/README.md)
+reuses the same authenticated training rows and changes only train-derived
+per-example loss weights. Separate committed fit and evaluation permissions,
+the train-only read guard, full history closure, and all-model sealing remain
+required. The weighted recipe passed its narrow research comparison on 593 fresh
+examples but did not beat dictionary anchors or establish safety. The KWDLC
+public-train reservation has no unused documents left. Future comparisons need
+new isolated sources; the existing cache admission and Gold contracts stay
+unchanged. Loss and statistics contracts are in
+`tests/test_balanced_reconstruction_loss.py` and `tests/test_loss_balance_statistics.py`.
+
 Issue #33's [train-only change audit](../../../research/issue-33-train-change-audit/README.md)
 reuses the authenticated 75,000-row cache and all seven fixed checkpoints.
 Shared Wikipedia and both Aozora cohorts stay disjoint in reporting; saved

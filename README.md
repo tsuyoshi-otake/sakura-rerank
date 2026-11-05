@@ -10,17 +10,27 @@ candidate generator.
 
 ## Status
 
-The latest [train-only change audit](research/issue-33-train-change-audit/README.md)
+The latest [fixed loss-balance experiment](research/issue-33-loss-balance/README.md)
+improved the annotation recipe by a mean 1.349 percentage points on 593 previously
+unused research examples (paired component 95% CI 0.112 to 2.586). All three seeds
+reduced harmful changes, satisfying the frozen research rule. However, it did
+not beat the dictionary anchors and fixed-gate accuracy decreased. No model is
+adopted: 90.72%, the 0.25% safety requirement, Gold requirements and Gates A/B remain
+unchanged. All 676 tests and independent metric/weight/exposure checks passed.
+The KWDLC public-train reservation is exhausted; new source-isolated evaluation
+and independent calibration must precede another comparison.
+
+The preceding [train-only change audit](research/issue-33-train-change-audit/README.md)
 found 357–419 additional harmful changes on the same 25,000 Wikipedia training
 rows after the annotation-recipe fits, despite identical per-update Wikipedia
 exposure. The Aozora target-rank distribution changed substantially. This narrows
-the next hypothesis to preserving correct local choices and separating loss
-contributions; no new fit or independent accuracy gain is claimed. All 420
+the loss-contribution hypothesis tested above; the audit itself used no new fits
+and claimed no independent accuracy gain. All 420
 metric groups and 78 paired comparisons were recounted. GPU/CPU numerical
 parity did not pass every sampled condition, so this remains a GPU training
 diagnostic, not a CPU-equivalence or safety claim.
 
-The latest [paired extraction experiment](research/issue-33-annotation-experiment/README.md)
+The earlier [paired extraction experiment](research/issue-33-annotation-experiment/README.md)
 completed six fixed fits and all evaluations on 985 isolated research examples.
 The original-annotation recipe failed the prespecified primary comparison:
 mean accuracy difference versus dictionary extraction was -3.45 percentage points
@@ -28,8 +38,8 @@ mean accuracy difference versus dictionary extraction was -3.45 percentage point
 exports passed parity and 10,000-run latency checks; 658 unit tests passed.
 These source-reconstruction results are not independent IME Gold accuracy.
 The recorded adopted result remains 90.72%; the 0.25% safety criterion,
-independent Gold requirements, and Gates A/B are unchanged. Next is a train-only
-audit of source distribution and excessive changes before any further fit.
+independent Gold requirements, and Gates A/B are unchanged. The subsequent audit
+and one-change comparison are linked above.
 
 The repository has completed the current-HEAD audit, current Tiny baseline
 reproduction, deterministic data contracts, fixed jawiki acquisition, and a

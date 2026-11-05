@@ -1,5 +1,7 @@
 # Verified project learnings
 
+- Frozen research entrypoints can collide through generic sibling module names (`cohort`, `acquire_sources`), even when their parent was loaded by explicit path. Use unique new module names or the existing contract API; preserve executed historical code hashes. The #33 loss-balance preparation failures and successful direct-API candidate/numeric verification establish this boundary.
+
 - Source-layout research stage owners must set the child `PYTHONPATH` explicitly to repository `src` and the repository root; a subprocess working directory alone is insufficient. The #33 train-change audit reproduced 77 import errors without it and passed all 664 tests with the explicit child environment.
 
 - Python audit hooks on Windows must derive the access-mode mask from `os.O_WRONLY | os.O_RDWR`; `os.O_ACCMODE` is unavailable. Check both string-mode and `mode=None` open events. Verified by `tests/test_annotation_fit_boundary.py` and six guarded fits in #33.
