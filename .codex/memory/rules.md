@@ -145,3 +145,5 @@
   converter execution can measure that. See reports/issue-31-kwdlc-probe-v1.md.
 
 - [relation certificates] Full-graph parity does not prove a relation-removal diagnostic: one near edge between signature representatives depends on exact-signature stars. Preserve per-near-pair bipartite spanning evidence (or prove each view independently). Verified by the failing-then-passing omission fixture and full edge/path checks in research/issue-32-source-relations/README.md.
+
+- [node-removal diagnostics] Deleting nodes from a graph requires rebuilding relation groups on the retained nodes; filtering saved representative-star edges can lose surviving member relations. Keep the original inventory/exclusions and distinguish the new consumption scope from data admission. Verified by tests/test_consumed_source.py and research/issue-32-consumed-source/README.md.
