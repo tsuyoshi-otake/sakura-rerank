@@ -146,6 +146,30 @@ class ConsumedNumericTests(unittest.TestCase):
                 arrays,_,_=numeric.load_prepared_cache(root,digest,purpose=numeric.PURPOSE)
             self.assertEqual(arrays["gold"].tolist(),[1])
 
+    def test_object_or_wrong_shape_archive_is_rejected_before_numpy_load(self):
+        import numpy as np
+        for invalid in ("object","shape"):
+            with self.subTest(invalid=invalid),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);self.cache(root)
+                arrays,_=self.prepared()
+                arrays["context_ids"]=arrays["context_ids"].astype(object) if invalid=="object" else np.zeros((1,65),dtype="<i8")
+                np.savez_compressed(root/"arrays.npz",**arrays)
+                manifest=json.loads((root/"manifest.json").read_bytes())
+                manifest["artifacts"]["arrays.npz"]=hashlib.sha256((root/"arrays.npz").read_bytes()).hexdigest()
+                (root/"manifest.json").write_bytes(canonical_json_bytes(manifest)+b"\n")
+                digest=hashlib.sha256((root/"manifest.json").read_bytes()).hexdigest()
+                with patch.object(np,"load",side_effect=AssertionError("unexpected_array_load")),self.assertRaises(ValueError):
+                    numeric.load_prepared_cache(root,digest,purpose=numeric.PURPOSE)
+
+    def test_manifest_cannot_promote_gold_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);self.cache(root)
+            manifest=json.loads((root/"manifest.json").read_bytes());manifest["independent_gold_eligible"]=True
+            (root/"manifest.json").write_bytes(canonical_json_bytes(manifest)+b"\n")
+            digest=hashlib.sha256((root/"manifest.json").read_bytes()).hexdigest()
+            with self.assertRaises(ValueError):
+                numeric.load_prepared_cache(root,digest,purpose=numeric.PURPOSE)
+
 
 if __name__=="__main__":
     unittest.main()

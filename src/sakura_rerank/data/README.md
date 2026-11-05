@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #33's [consumed numeric preparation](../../../research/issue-33-consumed-numeric/README.md)
+adds `consumed_numeric.py` for minimal encoder projections, row provenance chains
+and bounded authenticated array loading. The only enabled reader purpose is
+numeric verification. Original source labels remain unpromoted; a separate
+verification receipt does not authorize fitting or Gold evaluation. Right-side
+source observations and origin metadata never enter feature tensors. All source,
+snapshot and tensor bindings are recorded in the linked report; contracts are in
+`tests/test_consumed_numeric.py`.
+
 Issue #49's [consumed annotation contrast audit](../../../research/issue-49-consumed-contrast/README.md)
 adds `annotation_contrast.py` for descriptive source-boundary observations and
 conservative contrast capacity within #32's verified consumption scope. Character
