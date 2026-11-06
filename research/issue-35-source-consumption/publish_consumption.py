@@ -9,7 +9,8 @@ def run():
     if verification['status']!='passed':raise ValueError('consumption_verified_report_required')
     reports={name:read(ROOT/filename) for name,filename in (
         ('selection','selection-report.json'),('preparation','preparation.json'),
-        ('history','history-report.json'),('native','native-report.json'),('verification','verification.json'))}
+        ('history','history-report.json'),('native','native-report.json'),('verification','verification.json'),
+        ('source_exposure','source-exposure-report.json'),('final_metrics','source-metrics-v2.json'))}
     if (reports['native']['status']!='complete_with_explicit_rejections'
             or reports['native']['not_attempted'] or reports['preparation']['slots']!=1000):
         raise ValueError('consumption_full_population_required')

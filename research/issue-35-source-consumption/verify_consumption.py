@@ -6,12 +6,31 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import unicodedata
 
 from sakura_rerank.data.contracts import canonical_json_hash
-from sakura_rerank.data.tatoeba_source import parse_transcription
+from sakura_rerank.data.tatoeba_source import audit_pair
 from consume35_common import HERE, PAST, ROOT, UNITS, authenticate, committed, load_script, read, save, sha
 from native_consumption import bound_inputs, checked_result
 from prepare_cohort import metadata_rows
+
+
+def scalar_groups(slots,snapshots,excluded):
+    manual=defaultdict(Counter)
+    for row in slots:
+        isolation='no_input_hypothesis' if not row['inputs'] else 'historically_related' if any(p['stable_id'] in excluded for p in row['inputs']) else 'isolated_hypothesis'
+        status=row['view']['status'] if row['view'] is not None else row['status']
+        if status=='ready':status='measured' if all(p['request_id'] in snapshots for p in row['inputs']) else 'unmeasured'
+        for group in ('all',row['stratum'],isolation):
+            counts=manual[group];counts['slots']+=1;counts[status]+=1
+            if status=='measured':
+                counts['parts']+=len(row['inputs'])
+                for k in (1,5,6,10,32):counts['all_parts_at_'+str(k)]+=all(p['target'] in snapshots[p['request_id']][:k] for p in row['inputs'])
+            for part in row['inputs']:
+                if part['request_id'] not in snapshots:counts['unmeasured_parts']+=1;continue
+                counts['measured_parts']+=1
+                for k in (1,5,6,10,32):counts['parts_at_'+str(k)]+=part['target'] in snapshots[part['request_id']][:k]
+    return {k:dict(v) for k,v in manual.items()}
 
 
 def run():
@@ -34,9 +53,18 @@ def run():
         assert row['provenance']['transcription_editor_token']==meta['transcription']['editor_token']
         assert row['provenance']['original_author_token'] is None and row['provenance']['translation_lineage'] is None
         assert not row['ime_gold'] and not row['calibration_admitted'] and not row['final_test']
+        alignment,parsed=audit_pair(row['sentence'],row['transcription'])
+        assert alignment['source_exact']==row['source_exact']
         if row['status']!='ready_source_hypothesis':
-            assert not row['inputs'];continue
-        sentence=row['sentence'];parsed=parse_transcription(row['transcription'])
+            assert not row['inputs']
+            if row['status']=='empty_or_missing_ruby':assert alignment['status']==row['status']
+            elif row['status']=='unsupported_source_or_reading':
+                phonetic=lambda c: 0x3041<=ord(c)<=0x3096 or 0x30a1<=ord(c)<=0x30f6 or c=='ー'
+                assert parsed is not None and (any(not phonetic(c) for p in parsed.spans for c in p.reading)
+                    or any(not phonetic(c) and unicodedata.category(c)[0] not in 'PS' for p in parsed.literal_segments for c in p))
+            else:raise ValueError('consumption_unexpected_source_terminal')
+            continue
+        sentence=row['sentence']
         assert parsed.surface==sentence and row['source_exact']
         # Original source positions and reading spans are reconstructed without build_source_units.
         by_start={p.start:p for p in parsed.spans}
@@ -72,21 +100,8 @@ def run():
         assert result['status']==item['status']
         if (directory/'output.jsonl').exists():observed_bytes+=(directory/'output.jsonl').stat().st_size
         if record is not None:snapshots[request['stable_id']]=[p['surface'] for p in record['candidate_snapshots']['training_top32']['candidates']]
-    excluded=read(ROOT/'source-relations.json')['excluded'];manual=defaultdict(Counter)
-    for row in slots:
-        isolation='no_input_hypothesis' if not row['inputs'] else 'historically_related' if any(p['stable_id'] in excluded for p in row['inputs']) else 'isolated_hypothesis'
-        status=row['view']['status'] if row['view'] is not None else row['status']
-        if status=='ready':status='measured' if all(p['request_id'] in snapshots for p in row['inputs']) else 'unmeasured'
-        for group in ('all',row['stratum'],isolation):
-            counts=manual[group];counts['slots']+=1;counts[status]+=1
-            if status=='measured':
-                counts['parts']+=len(row['inputs'])
-                for k in (1,5,6,10,32):counts['all_parts_at_'+str(k)]+=all(p['target'] in snapshots[p['request_id']][:k] for p in row['inputs'])
-            for part in row['inputs']:
-                if part['request_id'] not in snapshots:counts['unmeasured_parts']+=1;continue
-                counts['measured_parts']+=1
-                for k in (1,5,6,10,32):counts['parts_at_'+str(k)]+=part['target'] in snapshots[part['request_id']][:k]
-    assert {k:dict(v) for k,v in manual.items()}==native['groups']
+    excluded=read(ROOT/'source-relations.json')['excluded'];manual=scalar_groups(slots,snapshots,excluded)
+    assert manual==native['groups']
     assert dict(Counter(r['status'] for r in ledger))==native['outcomes']
     assert observed_bytes==native['output_bytes'] and not native['not_attempted'] and native['native_calls']==len(requests)
     history=read(ROOT/'history-report.json')
@@ -97,21 +112,34 @@ def run():
     assert {p['request_id'] for p in occurrences}==prior_requests
     assert len(occurrences)==history['previous_native_occurrences'] and len(prior_requests)==history['previous_native_requests']
     assert history['history_nodes']==988073+100+312+len(occurrences)
+    exposure=read(ROOT/'source-exposure-report.json')
+    exposure_binding=json.loads(committed(HERE/'source-exposure-binding-v1.json',exposure['binding_commit']))
+    for path,digest in {**exposure_binding['inputs'],**exposure_binding['code']}.items():assert sha(path)==digest
+    assert exposure['full_reverse_parity'] and exposure['exposed_source_count']==100
+    assert exposure['relations_sha256']==sha(ROOT/'source-relations-v2.json')
+    revised=read(ROOT/'source-relations-v2.json')['excluded']
+    assert all(revised.get(key)==reason for key,reason in excluded.items())
+    assert len(set(revised)-set(excluded))==exposure['additional_excluded_inputs']
+    corrected=scalar_groups(slots,snapshots,revised)
+    assert corrected['all']==manual['all']
     models=json.loads(committed('research/issue-33-loss-balance/evaluation-binding-v1.json','5fcbb79afcf109391f75e6e880228c259d11f4a4'))['models']
     for model in models:assert sha(model['path'])==model['sha256']
     completed=subprocess.run([sys.executable,'research/issue-33-data-growth/verify_integrity.py'],capture_output=True,timeout=300)
     assert completed.returncode==0
     integrity=json.loads(completed.stdout)
     assert integrity['status']=='passed' and integrity['original_artifacts']==16 and integrity['bound_fit_artifacts']==25
-    files=list(HERE.glob('*.py'))+[Path('src/sakura_rerank/data/tatoeba_consumption.py'),Path('tests/test_tatoeba_consumption.py'),Path('tests/test_source_consumption_metrics.py')]
+    files=list(HERE.glob('*.py'))+[Path('src/sakura_rerank/data/tatoeba_consumption.py'),Path('src/sakura_rerank/data/source_exposure.py'),
+        Path('tests/test_tatoeba_consumption.py'),Path('tests/test_source_consumption_metrics.py'),Path('tests/test_source_exposure.py')]
     for path in files:
         tree=ast.parse(path.read_bytes());compile(tree,str(path),'exec')
         names={n.id for n in ast.walk(tree) if isinstance(n,ast.Name)}
         for node in ast.walk(tree):
             if isinstance(node,(ast.Import,ast.ImportFrom)) and getattr(node,'module',None)!='__future__':
                 assert all((a.asname or a.name.split('.')[0]) in names for a in node.names)
-    tests=read(ROOT/'full-unit-tests.json')
+    tests=read(ROOT/'full-unit-tests-r2.json')
     assert tests['successful'] and not tests['errors'] and not tests['failures'] and not tests['skipped']
+    save(ROOT/'source-metrics-v2.json',dict(groups=corrected,original_native_report_sha256=sha(ROOT/'native-report.json'),
+        explicit_source_exposure_sha256=sha(ROOT/'source-exposure-report.json'),native_retries=0))
     report=dict(status='passed',slots=len(slots),positions=positions,requests=len(requests),groups=len(manual),
         verification_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True,timeout=30).strip(),
         verification_code_sha256=sha(HERE/'verify_consumption.py'),
@@ -119,6 +147,7 @@ def run():
         native_receipts_revalidated=True,scalar_metric_recount=True,full_unit_tests=tests,
         old_integrity=integrity,unchanged_checkpoints=len(models),python_files_compiled=len(files),unused_imports=0,
         native_report_sha256=sha(ROOT/'native-report.json'),history_report_sha256=sha(ROOT/'history-report.json'),
+        source_exposure_sha256=sha(ROOT/'source-exposure-report.json'),corrected_metrics_sha256=sha(ROOT/'source-metrics-v2.json'),
         fits=0,model_inference=0,gold_admission=0,final_test=False)
     save(ROOT/'verification.json',report)
     print(json.dumps(report))
