@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #34's [OOF metadata audit](../../../research/issue-34-oof-design/README.md)
+preserves all training components plus original/numeric-input equality before
+fold allocation. `gate_oof.py` checks fitting and selection exposures through
+initialization/teacher ancestry; unknown ancestry is never a clean root. Nested
+gate evaluation excludes its outer fold from every inner proposal generator.
+Recorded evidence cannot self-certify source independence, Gold or fit permission.
+Contracts are in `tests/test_gate_oof.py`; individual identities/folds stay private.
+
 Issue #35's [fixed source-model comparison](../../../research/issue-35-source-models/README.md)
 projects authenticated candidates into eight label-free inputs with empty observed
 session context. `source_model_inputs.py` preserves the legacy 32-character prefix
