@@ -80,12 +80,19 @@ def run():
             if key.startswith('status/'):
                 assert status[stratum+'/'+key.split('/',1)[1]]==count
     slots={s['sentence_id']:s for s in decoded['slots']}
-    input_ids=set();input_status=Counter()
+    input_ids=set();input_status=Counter();boundary_counts=Counter()
     for row in decoded['input_hypotheses']:
         slot=slots[row['sentence_id']];span=slot['parsed']['spans'][row['annotation_index']]
         assert row['target']==slot['sentence'][span['start']:span['end']]==span['base']
         assert row['reading']==span['reading'] and row['left_context']==slot['sentence'][:span['start']][-64:]
         assert row['input_hash']==digest([row['left_context'],row['reading']])
+        following=slot['sentence'][span['end']:span['end']+1]
+        preceding=slot['sentence'][max(0,span['start']-1):span['start']]
+        boundary_counts['total']+=1
+        boundary_counts['single_codepoint_base']+=len(span['base'])==1
+        boundary_counts['following_hiragana']+=bool(following and '\u3041'<=following<='\u3096')
+        boundary_counts['following_basic_han']+=bool(following and '\u4e00'<=following<='\u9fff')
+        boundary_counts['preceding_basic_han']+=bool(preceding and '\u4e00'<=preceding<='\u9fff')
         assert row['stable_id'] not in input_ids;input_ids.add(row['stable_id'])
         label='historically_related' if row['stable_id'] in relations['excluded'] else 'isolated_hypothesis'
         input_status[slot['stratum']+'/'+label]+=1
@@ -100,6 +107,7 @@ def run():
         metadata_ids_reselected=len(chosen),licensed_sentence_ids=len(licensed),transcription_counts=dict(counts),
         source_slots_recounted=100,regex_span_positions_reconstructed=positions,statuses=dict(status),
         malformed_annotation_reasons=dict(malformed),input_hypotheses_reconstructed=len(input_ids),
+        boundary_observations_not_quality_verdicts=dict(boundary_counts),
         isolation_counts_recounted=True,python_files_compiled=len(code),
         compared_decoded_sha256=sha(ROOT/'decoded-pilot.json'),model_inference=0,new_human_verdicts=0,gold_certified=False)
     save(ROOT/'direct-verification.json',result)
