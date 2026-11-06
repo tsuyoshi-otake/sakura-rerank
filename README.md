@@ -10,6 +10,15 @@ candidate generator.
 
 ## Status
 
+The [original-reading preparation guard](research/issue-31-reading-consistency/README.md)
+now prevents source-reading contradictions and uncertain annotations from reaching
+new candidate/numeric preparation. On all75,000 consumed rows,335 known reading
+conflicts and580 uncertain cases remain pending;74,085 unchanged inputs are
+available only for source preparation. Missing annotations are pending by default;
+this explicit run preserves dictionary-only weak supervision without promoting it.
+All849 tests pass. Original data/models/evaluation remain unchanged; adopted90.72%,
+Gold, calibration, safety0.25% and release requirements are not newly satisfied.
+
 The [source-conflict diagnosis](research/issue-31-conflict-source/README.md)
 verifies all 75,000 original source spans and finds335 dictionary-derived Aozora
 readings that contradict the exact original ruby (1.34% of that25,000-row cohort).
