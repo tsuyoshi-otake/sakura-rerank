@@ -26,6 +26,10 @@ REPO = HERE.parents[1]
 NATIVE = 'crates/sakura-engine/src/'
 TEST = 'dispatch::tests::research_native_state::research_native_snapshot_probe'
 FILES = ('probe.py', 'dispatch_probe.rs.in', 'long_conversion_probe.rs.in')
+SUPPORT = ('research/issue-35-current-tiny-parity/parity.py',
+    'research/issue-35-current-tiny-parity/current_tiny_reference_adapter.py',
+    'src/sakura_rerank/evaluation_worker.py','src/sakura_rerank/current_tiny.py',
+    'src/sakura_rerank/data/contracts.py','manifests/reference-probe-build-profile-v1.json')
 
 
 def sha(path):
@@ -114,6 +118,7 @@ def prepare(source, work):
         'source_tree':command('git','-C',str(source),'rev-parse','HEAD^{tree}'),
         'source_archive_sha256':sha(packed),'original_source_files':original,'instrumented_files':changed,
         'implementation':{name:sha(HERE/name) for name in FILES},'compiler':build,
+        'support_implementation':{name:sha(REPO/name) for name in SUPPORT},
         'lock_sha256':sha(workspace/'Cargo.lock'),'test':TEST,'build_jobs':1,'expected_fixture_count':50,
         'build_timeout_seconds':600,'run_timeout_seconds':120,'synthetic_response_injection':True,
         'real_test':False,'model_inference':False,'gold_evidence':False,'production_edits':False}
@@ -150,11 +155,15 @@ def owned(args, cwd, work, label, env, timeout):
 
 
 def run(work, plan_sha):
+    if (Path.home()/'tmp').resolve() not in work.parents:
+        raise ValueError('private task directory required')
     if sha(work/'plan.json')!=plan_sha:
         raise ValueError('plan differs')
     plan=json.loads((work/'plan.json').read_bytes())
     if {name:sha(HERE/name) for name in FILES}!=plan['implementation']:
         raise ValueError('probe implementation changed')
+    if {name:sha(REPO/name) for name in SUPPORT}!=plan['support_implementation']:
+        raise ValueError('probe support implementation changed')
     if compiler()!=plan['compiler']:
         raise ValueError('compiler environment changed')
     source=work/'source'
@@ -167,7 +176,9 @@ def run(work, plan_sha):
     try:
         (work/'temp').mkdir()
         c=plan['compiler']
-        env=dict(os.environ,LIB=';'.join(c['library_roots']),RUSTC=c['rustc'],RUSTUP_TOOLCHAIN=c['toolchain'],
+        env={key:value for key,value in os.environ.items()
+             if not key.startswith(('CARGO_','RUSTFLAGS','RUSTC','RUSTDOC'))}
+        env.update(LIB=';'.join(c['library_roots']),RUSTC=c['rustc'],RUSTUP_TOOLCHAIN=c['toolchain'],
             CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=c['linker'],CARGO_NET_OFFLINE='true',CARGO_INCREMENTAL='0',
             CARGO_TARGET_DIR=str(work/'target'),CARGO_PROFILE_DEV_DEBUG='0',CARGO_PROFILE_TEST_DEBUG='0',
             TEMP=str(work/'temp'),TMP=str(work/'temp'))

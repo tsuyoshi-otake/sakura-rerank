@@ -150,6 +150,7 @@ def inspect_event(event):
             and work['response_fingerprints']==fingerprints and work['response_finite'])
     choice=protected_choice(scores,[c['evidence_tag'] for c in prefix]) if calls and response_matches else None
     applied=choice is not None
+    require(not applied or request_matches, 'applied native result lacks its original request identity')
     require(selected==(choice if applied else baseline),'native selection differs from captured identity/priority')
     require((event['terminal']=='Applied')==applied,'native application terminal differs')
     if event['baseline_run']:
@@ -194,6 +195,8 @@ def verify_capture(plan_raw,result_raw,capture_raw,*,expected_plan_sha256,expect
     for key in ('real_test','model_inference','gold_evidence','production_edits'):
         require(result.get(key) is False,'diagnostic cannot assert evaluation or production permission')
     lines=capture_raw.splitlines()
+    integer(plan.get('expected_fixture_count'),1,MAX_EVENTS)
+    for key in ('fixture_count','capture_count','applied'): integer(result.get(key),0,MAX_EVENTS)
     require(0<len(lines)<=MAX_EVENTS and len(lines)==result.get('fixture_count')==plan.get('expected_fixture_count'),
             'native event denominator differs')
     values=[inspect_event(_document(line)) for line in lines]
@@ -224,7 +227,8 @@ def bind_evaluator_input(snapshot,request,facts):
     require(snapshot is not None,'no native conversion snapshot to bind')
     candidates=snapshot['candidates']
     require(len(candidates)<=32, 'native population exceeds legacy evaluator contract')
-    require(isinstance(request,dict) and request.get('reading')==snapshot['reading']
+    fields(request, {'reading','left_context','context_policy','candidates'})
+    require(request.get('reading')==snapshot['reading']
             and request.get('left_context')=='' and request.get('context_policy')=='sakura_input_committed_same_session',
             'native input or context differs')
     supplied=request.get('candidates')
