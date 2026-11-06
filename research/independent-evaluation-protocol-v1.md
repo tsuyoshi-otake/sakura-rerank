@@ -7,6 +7,10 @@ student and power calculation must be committed before any Test access.
 The existing pilot, dev and previously audited holdout are historical exposure.
 None is an independent Test. There is no certified new Gold Test at this date.
 
+The later [prospective source/input partition](issue-35-consumption-partition/README.md)
+is a metadata feasibility proposal, not an amendment to this frozen protocol or
+an admitted evaluation. Existing full-closure outcomes remain authoritative.
+
 ## Ownership and admission
 
 The data boundary owns immutable source/candidate/label provenance and partition

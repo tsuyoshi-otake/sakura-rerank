@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "kind": "gold_quality_evidence_audit",
+  "date": "2026-11-07",
+  "parent_issue": 1,
+  "issues": [
+    31,
+    35
+  ],
+  "repository_head_at_audit": "9c5cd7a72a34486367b6888b08c3e0f5221fb8d7",
+  "audit_terminal": "complete",
+  "release_decision": "blocked_pending_external_task_matched_quality_evidence",
+  "adopted_historical_dev_accuracy_percent": 90.72,
+  "demonstrated_adopted_accuracy_gain": false,
+  "new_source_payloads": 0,
+  "new_fits": 0,
+  "new_model_predictions": 0,
+  "new_calibrations": 0,
+  "new_final_test_runs": 0,
+  "source_or_model_edits": 0,
+  "verified_gold_certificate_count": 0,
+  "certified_independent_test_rows": 0,
+  "independent_quality_audit": {
+    "completed": null,
+    "correct": null,
+    "precision": null,
+    "wilson95": null,
+    "reason": "No independently justified IME-label correctness audit denominator for the proposed cohort"
+  },
+  "prior_counterfactual_only": {
+    "metadata_unblocked_inputs": 615,
+    "source_components": 47,
+    "frame_currently_consumed": true,
+    "actual_independent_test_rows": 0
+  },
+  "metadata": [
+    {
+      "id": "kwdlc-readme",
+      "commit": "c6ae49d29eca4e1134c6676d682adf5ed6a25f5a",
+      "path": "README.md",
+      "git_blob": "318bd75a35e36498b9a94b965068cce4669b07b8",
+      "utf8_sha256": "4826071d5558031a0b1bf42ef05d9f08ce27997aee94fc7168097b8e70d9e941"
+    },
+    {
+      "id": "tatoeba-export",
+      "commit": "f2c80b81032630648f7896182174a9f5784ccde2",
+      "path": "docs/database/scripts/weekly_exports.sql",
+      "git_blob": "44ca5b9164e8b74d2ac2f1b1ffa628fd06f3919a",
+      "utf8_sha256": "c20f89b48e6f356ed5ddae677c90386aee4f3128137b755b867aa1aff5095460"
+    },
+    {
+      "id": "tatoeba-transcriptions",
+      "commit": "f2c80b81032630648f7896182174a9f5784ccde2",
+      "path": "src/Model/Table/TranscriptionsTable.php",
+      "git_blob": "637e31316f24541a20fd8fedbf3a3c0e6a59846d",
+      "utf8_sha256": "3dd5e54566e871482d953325ce3113efaa81bc4d70369a319f168cae44694102"
+    },
+    {
+      "id": "ajimee-readme",
+      "commit": "401666cd56d1a570c2021798b64b6da4396bfd45",
+      "path": "README.md",
+      "git_blob": "e1afc14425f0377a3dd73209db9871b5edde2729",
+      "utf8_sha256": "4ca749b3bbd907cca9de26fadcc3e2bfbb6f247d310ac9a2c6acc72fa636d79b"
+    }
+  ],
+  "knbc": {
+    "provider_url": "https://nlp.ist.i.kyoto-u.ac.jp/kuntt/",
+    "archive_snapshot": "KNBC_v1.0_090925_utf8.tar.bz2",
+    "archive_sha256": "2df066f321f57413dc94404a60273b84a85c67b55fc5d2c8a34926074c1b83a4",
+    "manual_sha256": "e8b42f07b5aefe1a1b5a737feb2f8d8ce4aa8621e56b148ecb4fb387905fbc59",
+    "manual_readable_pages_sha256": "0bdba835aa570f95d6b24d4920b7dc38ffc916626dd0adc5aaeee6d91cc9f921",
+    "manual_sections": [
+      "4.1",
+      "4.4.1"
+    ],
+    "manual_visual_layout_verified": false,
+    "evidence_property": "linguistic annotation and correction policy",
+    "ime_quality_certified": false
+  },
+  "kwdlc": {
+    "papers": [
+      "https://aclanthology.org/Y12-1058.pdf",
+      "https://www.jstage.jst.go.jp/article/jnlp/21/2/21_213/_pdf/-char/ja"
+    ],
+    "paper_local_snapshot_sha256": null,
+    "agreement_scope": "2014 section6.5 semantic annotations; morphology and related analyses jointly confirmed before independent semantic annotation",
+    "ime_quality_certified": false
+  },
+  "tatoeba": {
+    "download_page_read": {
+      "status": 429,
+      "attempts": 1,
+      "retry": false
+    },
+    "evidence_property": "sentence filter and transcription generation/edit provenance, not independent IME correctness",
+    "ime_quality_certified": false
+  },
+  "ajimee": {
+    "declared_items": 200,
+    "declared_with_context": 100,
+    "declared_without_context": 100,
+    "data_license": "CC-BY-SA-3.0",
+    "evaluation_code_license": "CC0-1.0",
+    "evidence_property": "human-checked estimated readings and extracted boundaries, accepted outputs",
+    "observed_user_keystrokes_claimed": false,
+    "payload_accessed_in_this_audit": false,
+    "history_independence_certified": false,
+    "ime_quality_certified": false,
+    "disposition": "potential supplemental public challenge benchmark; not training, calibration or certified representative final Test"
+  },
+  "requirements_unchanged": {
+    "gold_point_min": 0.995,
+    "gold_wilson95_lower_min": 0.99,
+    "gold_audit_completed_min": 1000,
+    "final_valid_min": 3000,
+    "oracle6_min": 0.97,
+    "harm_max_each_reference": 0.0025,
+    "harm_references": [
+      "raw_converter",
+      "native_local"
+    ],
+    "independent_calibration": true,
+    "frozen_final_test_once": true,
+    "full_parent_release_scope_retained": true
+  },
+  "verification": {
+    "suite": {
+      "tests": 1095,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "elapsed_seconds": 70.612,
+      "exit_code": 0,
+      "seconds_limit": 900
+    },
+    "receipts": [
+      {
+        "path": "data/generated/issue-31-gold-evidence-v1/tests-01/owner.json",
+        "sha256": "2b66c8f53c576eec47ba04540ef2883f2989e584872cddc387612628c5cb9f03"
+      },
+      {
+        "path": "data/generated/issue-31-gold-evidence-v1/tests-01/report.json",
+        "sha256": "d464f61ef5bc04dfd52a29b1a8d529feb8212889dd8ebb0e6d9a2e35d2fdb784"
+      },
+      {
+        "path": "data/generated/issue-31-gold-evidence-v1/tests-01/terminal.json",
+        "sha256": "6338a9bb4b71d8aee5bf65ee0c2ab55b879f23545fc761e46943805269743ff0"
+      }
+    ],
+    "original_artifacts_unchanged": 16,
+    "bound_fit_artifacts_unchanged": 25,
+    "checkpoints_unchanged": 10,
+    "prior_reports_unchanged": 7,
+    "owned_test_pids_absent": [
+      15636,
+      72996
+    ],
+    "matching_task_commands_absent": true,
+    "separate_type_checker_run": false,
+    "new_dependencies": 0,
+    "new_branch_or_worktree": false
+  },
+  "limitations": [
+    "Bounded audit does not prove that no qualifying external dataset exists",
+    "Missing evidence is not a measured corpus error rate",
+    "Provider lineage/agreement cannot substitute for independent IME correctness",
+    "Public challenge benchmark cannot satisfy the representative final Test by itself",
+    "Gold evidence is necessary but not the only remaining release requirement"
+  ]
+}

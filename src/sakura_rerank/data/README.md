@@ -1,5 +1,31 @@
 # Data boundary tooling
 
+Issue #35's [prospective source/input partition](../../../research/issue-35-consumption-partition/README.md)
+is research-only and grants no admission. Source components retain every original
+non-input relation; known/shared input units quarantine individually without
+merging articles. A fixed consumed-frame counterfactual leaves 615/47, but actual
+independent Test capacity is 0. The span diagnostic tests context/teacher/body
+re-entry while refusing to certify missing coverage. Existing isolation and Gold
+readers are unchanged. Contracts: `tests/test_consumption_partition.py`.
+
+Issue #33's [single KNBC research frame](../../../research/issue-33-knbc-screening/README.md)
+adds `knbc_research.py`: preserve previously consumed families, choose a complete
+provider bunsetsu before validity checks, and retain every pending slot. Source
+reading/surface evidence is not IME intent. Historical input aliases and explicit
+source consumption can only exclude complete components of the existing graph.
+Direct input matches and propagated exclusions are reported separately. The
+2,786-slot application retained eight slots/one component and therefore stopped
+before candidate binding or fitting; the original isolation/admission rules are
+unchanged. Contracts: `tests/test_knbc_research.py`.
+
+The subsequent [relation trace](../../../research/issue-33-knbc-screening/README.md#exclusion-trace-2026-11-07)
+replays all 1,158 component identities and 1,150 exclusions. Input equality and
+prefix grouping suffice; content relations add zero excluded inputs in this
+frame. The `author` edge name denotes `template_cluster_id`, not verified KNBC
+authorship. Its eight views are diagnostic only and cannot admit an excluded
+row or reuse the consumed frame as independent Test. `tests/test_knbc_trace.py`
+checks propagation and rejects invalid path certificates.
+
 Issue #35's [native path features](../../../research/issue-35-native-paths/README.md)
 adds schema5 with exact pre-fusion raw edges. Native construction supplies source
 kinds/UTF-8 boundaries; display counts and evidence tags never substitute for them.

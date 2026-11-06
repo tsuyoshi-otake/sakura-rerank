@@ -1,0 +1,141 @@
+{
+  "accuracy_improvement_demonstrated": false,
+  "kind": "prospective_consumption_partition_feasibility_v1",
+  "plan_commit": "edf348b0148b07ffece630ecbd62a5f8ae0f9217",
+  "policy_status": "prospective_specification_not_adopted",
+  "release_complete": false,
+  "study": {
+    "acquisition": {
+      "inputs": 1158,
+      "pending_without_input": {
+        "pending_document_correction": 74,
+        "pending_exposed_documentation": 6,
+        "pending_knbc_morpheme_columns": 15,
+        "pending_no_kanji_target": 543,
+        "pending_non_kana_reading": 984,
+        "pending_style_annotation": 6
+      },
+      "slots": 2786
+    },
+    "adopted_accuracy_percent": 90.72,
+    "calibration": false,
+    "current_history": {
+      "actual_independent_test_rows": 0,
+      "all_reference_slots_consumed": true,
+      "existing_exclusions_restored": 0
+    },
+    "elapsed_seconds": 137.838,
+    "final_test": false,
+    "fits": 0,
+    "gold_admission": false,
+    "graph": {
+      "actual_signature_comparisons": 548613,
+      "conceptual_near_record_pairs": 225295926,
+      "distinct_near_signature_pairs": 942,
+      "distinct_signatures": 618325,
+      "duplicate_key_groups": {
+        "article": 56384,
+        "author": 361,
+        "input": 2959,
+        "paragraph": 201899
+      },
+      "edge_kinds": {
+        "article": 871657,
+        "author": 534887,
+        "input": 5565,
+        "paragraph": 615786,
+        "sentence_exact": 376958,
+        "sentence_near": 2208
+      },
+      "nodes": 995283,
+      "representative_edges": 2407061
+    },
+    "metadata_readiness": {
+      "rule": {
+        "meaning": "Candidate-binding preparation only; not fit, Gold, calibration or final Test admission.",
+        "minimum_recorded_components": 20,
+        "minimum_retained_slots": 500
+      },
+      "sufficient": true
+    },
+    "missing_evidence": {
+      "certified_ime_gold_rows": 615,
+      "complete_numeric_candidate_rows": 615,
+      "consumption_footprint_rows": 615
+    },
+    "model_calls": 0,
+    "new_source_slots": 0,
+    "old_reference": {
+      "component_identities": 1158,
+      "unchanged_exclusions": 1150
+    },
+    "plan_sha256": "d93605d6996a2f08a598407744f8fa97c1e6695b5d770be890970a46e5fc077b",
+    "private_slots_sha256": "99f3b6688f4af793726252f7714def6a7b63c711cbc57e3ce1268f56469baa95",
+    "proposed": {
+      "calibration": false,
+      "exclusive_statuses": {
+        "historical_input": 139,
+        "historical_source_component": 323,
+        "metadata_only_unblocked": 615,
+        "repeated_new_input": 81
+      },
+      "final_test": false,
+      "gold_admission": false,
+      "inputs": 1158,
+      "metadata_only_unblocked": 615,
+      "metadata_only_unblocked_source_components": 47,
+      "overlapping_reasons": {
+        "historical_input": 181,
+        "historical_source_component": 323,
+        "repeated_new_input": 175
+      },
+      "source_components": 48,
+      "status": "diagnostic_only_pending_consumption_numeric_gold",
+      "training_admission": false,
+      "unique_supplied_historical_inputs": 395882
+    },
+    "status": "retrospective_metadata_complete_no_admission",
+    "training_admission": false,
+    "verification": {
+      "full_old_replay": true,
+      "retained_source_history_and_role_disjoint": true,
+      "retained_unique_inputs": true,
+      "reverse_records_edges_assignments": true
+    }
+  },
+  "study_report_sha256": "18a87746cac2447f50a19ec41bab012be74cfc85f9215ea82cee9a69d870d458",
+  "unresolved": {
+    "author_identity_certified": false,
+    "complete_channel_footprints_certified": false,
+    "historical_inventory_completeness_certified": false,
+    "independent_gold_quality_method": "unresolved",
+    "new_untouched_population_reserved": false,
+    "statistical_independence_certified": false
+  },
+  "verification": {
+    "dedicated_temp_created": false,
+    "independent_verifier": false,
+    "preservation": {
+      "checkpoint_hashes": 10,
+      "fit_bindings": 25,
+      "formal_type_checker": "not_run",
+      "frozen_plan_bytes": true,
+      "original_artifacts": 16,
+      "prior_reports": 6,
+      "status": "passed",
+      "syntax_import_files": 3
+    },
+    "private_recovery_bytes": 867813,
+    "private_recovery_files": 9,
+    "recorded_pids_absent": 4,
+    "survivors": 0,
+    "tests": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "status": "passed",
+      "tests": 1095
+    },
+    "working_agent_direct_verification": true
+  }
+}

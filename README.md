@@ -8,6 +8,35 @@ The project reranks bounded N-best full-path candidates produced by Sakura
 Input. It does **not** replace the dictionary, lattice, Viterbi search, or
 candidate generator.
 
+**Adopted accuracy remains 90.72%; an improvement has not been demonstrated.**
+The [Gold evidence audit](research/issue-31-gold-evidence/README.md) distinguishes
+KNBC/KWDLC/Tatoeba/AJIMEE annotation guarantees from independent IME-label quality.
+The certified Gold trust set and independently usable Test capacity are both zero.
+Release is blocked on externally justified, task-matched quality evidence;
+no automatic fit or source-search loop follows. All 1,095 tests pass.
+The [prospective partition](research/issue-35-consumption-partition/README.md)
+leaves615 inputs/47 source groups only as a metadata counterfactual, not new Gold.
+Safety0.25%, complete provenance and parent#1's full release requirements remain.
+
+The [bounded KNBC preparation](research/issue-33-knbc-screening/README.md)
+stopped the proposed 915-row screening comparison before any fitting. Of 2,786
+fixed slots, 1,158 produced complete-unit input hypotheses; current isolation
+retained only eight slots in one component, below the frozen 500/20 rule.
+Direct matches to consumed reading/context inputs account for 167 slots; another
+983 lie in connected components. They are not all duplicate or mislabeled
+sentences. No exclusions were restored and no substitute source was selected.
+All 1,077 tests pass. Adopted 90.72% and safety 0.25% remain unchanged; independent
+Gold and release remain incomplete. The next decision concerns the evaluation
+contract, rather than another automatic fit or infrastructure expansion.
+
+The [exclusion trace](research/issue-33-knbc-screening/README.md#exclusion-trace-2026-11-07)
+now establishes that input equality plus prefix grouping alone reproduces all
+1,150 exclusions: sentence/paragraph similarity adds none in this frame. Removing
+prefix grouping alone still leaves only 150 inputs. The next prerequisite is an
+explicit contract for source grouping versus actual consumed-input exclusion;
+no old row is restored by these diagnostic views. All 1,082 tests pass; this is
+an explanation of failed evaluation readiness, not an accuracy improvement.
+
 ## Status
 
 The [native path adapter](research/issue-35-native-paths/README.md) records real
@@ -56,7 +85,7 @@ refused for the unchanged product baseline; the separate snapshot adapter above
 now covers tensor/choice parity, while native-state provenance and deployment
 remain required.
 The Gold trust set stays empty. No real Test, model fit or production inference
-was run; adopted90.72%, safety0.25% and release gates remain unchanged.
+was run; adopted 90.72%, safety0.25% and release gates remain unchanged.
 
 The [fixed KNBC format pilot](research/issue-35-knbc-format-pilot/README.md)
 consumed exactly 100 reserved file slots: 99 annotation units and one empty
@@ -127,7 +156,7 @@ new candidate/numeric preparation. On all75,000 consumed rows,335 known reading
 conflicts and580 uncertain cases remain pending;74,085 unchanged inputs are
 available only for source preparation. Missing annotations are pending by default;
 this explicit run preserves dictionary-only weak supervision without promoting it.
-All849 tests pass. Original data/models/evaluation remain unchanged; adopted90.72%,
+All849 tests pass. Original data/models/evaluation remain unchanged; adopted 90.72%,
 Gold, calibration, safety0.25% and release requirements are not newly satisfied.
 
 The [source-conflict diagnosis](research/issue-31-conflict-source/README.md)
