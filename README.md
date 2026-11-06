@@ -10,8 +10,17 @@ candidate generator.
 
 ## Status
 
-The [current Tiny snapshot adapter](research/issue-35-current-tiny-parity/README.md)
-now matches the pinned native scorer's input tensors and protected candidate
+The [native state capture](research/issue-35-native-state/README.md) now drives
+the pinned engine dispatcher in a private research build.25 paired conditions
+produce50 executions and48 conversion snapshots; separate builds reproduce the
+same capture bytes. Schema3 binds those observations before model execution and
+refuses replay or unproven legacy features. All1,037 tests pass. Native snapshots
+can exceed the old32-row contract (108 observed), so full-population and per-edge
+feature migration remain necessary. Adoption stays90.72%, Gold remains uncertified,
+and safety0.25%/final Test/release requirements are unchanged.
+
+The earlier [current Tiny snapshot adapter](research/issue-35-current-tiny-parity/README.md)
+matched the pinned native scorer's input tensors and protected candidate
 choice:67 synthetic projection conditions,21,632 scalar values,1,756 choices
 and384 output scores agree. Each frozen parity run executes128 actual-model CPU
 requests; three recorded runs retain the policy/safety-binding changes. All1,017

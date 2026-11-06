@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #35's [native capture binding](../../../research/issue-35-native-state/README.md)
+adds `native_snapshot.py` and evaluator schema3. The actual private native build
+produces candidates, local selection and request/response identities; hash-bound
+row verification precedes inference and rejects replay. Full native populations
+are retained in diagnostics. The legacy evaluator still rejects populations over32
+and unproven per-edge research features, never silently truncates or guesses them.
+This evidence grants no Gold, real-session, training or final-Test admission.
+
 Issue #35's [current Tiny snapshot contract](../../../research/issue-35-current-tiny-parity/README.md)
 requires explicit native local-selection index, direct-prefix count, evidence
 tags and schedule/selection facts for version2 evaluation. Missing facts fail;

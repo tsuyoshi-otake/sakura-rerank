@@ -131,7 +131,8 @@ def runtime_identity() -> dict:
     root = Path(__file__).parent
     files = ("evaluation_worker.py", "evaluation_runner.py", "evaluation_payload.py",
              "evaluation_admission.py", "evaluation_metrics.py", "evaluation_statistics.py",
-             "source_model_inputs.py", "research_tiny.py", "research_tiny_r2.py", "data/contracts.py", "current_tiny.py")
+             "source_model_inputs.py", "research_tiny.py", "research_tiny_r2.py", "data/contracts.py", "current_tiny.py",
+             "native_snapshot.py")
     versions = {}
     for package in ("numpy", "onnxruntime"):
         try:

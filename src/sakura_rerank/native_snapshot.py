@@ -11,7 +11,7 @@ import json
 import math
 import struct
 
-from .current_tiny import EVIDENCE_TAGS, HEAD, protected_choice, validate_policy_facts
+from .current_tiny import EVIDENCE_TAGS, HEAD, protected_choice, snapshot_policy, validate_policy_facts
 from .data.contracts import canonical_json_bytes
 
 MAX_CANDIDATES = 768
@@ -244,3 +244,37 @@ def bind_evaluator_input(snapshot,request,facts):
             'native_snapshot_sha256':hashlib.sha256(canonical_json_bytes(snapshot)).hexdigest(),
             'purpose':'native_projection_binding','legacy_feature_provenance_verified':False,
             'gold_certified':False,'final_evaluation_admitted':False}
+
+
+def evaluation_policy(provenance_sha256):
+    """New policy version; never silently reseal an old calibrated gate."""
+    return dict(snapshot_policy(provenance_sha256),version=2,
+                native_provenance='native_dispatch_capture_v1')
+
+
+def validate_provenance(value,count):
+    """Check frozen hash-only metadata without opening Test inputs."""
+    fields(value, {'kind','version','source_head','producer_plan_sha256','producer_result_sha256',
+                   'capture_sha256','case_capture_sha256'})
+    require(value['kind']=='native_evaluation_provenance' and type(value['version']) is int
+            and value['version']==1 and value['source_head']==HEAD, 'native evaluation provenance differs')
+    def digest(v):
+        return isinstance(v,str) and len(v)==64 and set(v)<=set('0123456789abcdef')
+    require(all(digest(value[k]) for k in ('producer_plan_sha256','producer_result_sha256','capture_sha256')),
+            'native producer commitment missing')
+    mapping=value['case_capture_sha256']
+    require(isinstance(mapping,dict) and len(mapping)==count
+            and all(digest(k) and digest(v) for k,v in mapping.items())
+            and len(set(mapping.values()))==count,'native case commitments incomplete or replayed')
+    return dict(mapping)
+
+
+def bind_evaluation_case(row,commitment):
+    """After Test consumption, before inference: bind native capture to its row."""
+    require(hashlib.sha256(canonical_json_bytes(row['native_capture'])).hexdigest()==commitment,
+            'native case capture differs from frozen provenance')
+    checked=inspect_event(row['native_capture'])
+    require(not checked['baseline_run'],'paired diagnostic control is not an independent evaluation input')
+    snapshot=checked['snapshot']
+    receipt=bind_evaluator_input(snapshot,row['input'],row['product_state'])
+    return receipt,tuple(snapshot['identity'])
