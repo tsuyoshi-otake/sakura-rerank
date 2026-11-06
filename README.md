@@ -8,6 +8,15 @@ The project reranks bounded N-best full-path candidates produced by Sakura
 Input. It does **not** replace the dictionary, lattice, Viterbi search, or
 candidate generator.
 
+The [prospective source/input partition](research/issue-35-consumption-partition/README.md)
+leaves 615 inputs in 47 source components in a fixed metadata-only counterfactual,
+above the existing 500/20 preparation rule. It keeps 323 source-history-connected
+inputs quarantined and excludes direct/repeated input units separately. The old
+full closure and exclusions stay unchanged; this consumed frame has zero actual
+independent-Test rows. All 1,095 tests pass. Independent Gold quality, complete
+consumption/numeric provenance and release remain unresolved; adopted 90.72% has
+no demonstrated improvement. The next prerequisite is Gold-quality evidence.
+
 The [bounded KNBC preparation](research/issue-33-knbc-screening/README.md)
 stopped the proposed 915-row screening comparison before any fitting. Of 2,786
 fixed slots, 1,158 produced complete-unit input hypotheses; current isolation
@@ -75,7 +84,7 @@ refused for the unchanged product baseline; the separate snapshot adapter above
 now covers tensor/choice parity, while native-state provenance and deployment
 remain required.
 The Gold trust set stays empty. No real Test, model fit or production inference
-was run; adopted90.72%, safety0.25% and release gates remain unchanged.
+was run; adopted 90.72%, safety0.25% and release gates remain unchanged.
 
 The [fixed KNBC format pilot](research/issue-35-knbc-format-pilot/README.md)
 consumed exactly 100 reserved file slots: 99 annotation units and one empty
@@ -146,7 +155,7 @@ new candidate/numeric preparation. On all75,000 consumed rows,335 known reading
 conflicts and580 uncertain cases remain pending;74,085 unchanged inputs are
 available only for source preparation. Missing annotations are pending by default;
 this explicit run preserves dictionary-only weak supervision without promoting it.
-All849 tests pass. Original data/models/evaluation remain unchanged; adopted90.72%,
+All849 tests pass. Original data/models/evaluation remain unchanged; adopted 90.72%,
 Gold, calibration, safety0.25% and release requirements are not newly satisfied.
 
 The [source-conflict diagnosis](research/issue-31-conflict-source/README.md)

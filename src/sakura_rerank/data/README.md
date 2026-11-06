@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #35's [prospective source/input partition](../../../research/issue-35-consumption-partition/README.md)
+is research-only and grants no admission. Source components retain every original
+non-input relation; known/shared input units quarantine individually without
+merging articles. A fixed consumed-frame counterfactual leaves 615/47, but actual
+independent Test capacity is 0. The span diagnostic tests context/teacher/body
+re-entry while refusing to certify missing coverage. Existing isolation and Gold
+readers are unchanged. Contracts: `tests/test_consumption_partition.py`.
+
 Issue #33's [single KNBC research frame](../../../research/issue-33-knbc-screening/README.md)
 adds `knbc_research.py`: preserve previously consumed families, choose a complete
 provider bunsetsu before validity checks, and retain every pending slot. Source
