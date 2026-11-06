@@ -7,6 +7,7 @@ import re
 from types import MappingProxyType
 
 from .data.contracts import validate_conversion_candidates
+from .current_tiny import HEAD, POLICY, current_factory, validate_policy_facts
 from .evaluation_worker import gru_factory, runtime_identity
 
 SHA = re.compile(r"[0-9a-f]{64}\Z")
@@ -56,9 +57,9 @@ def fields(value, keys):
     return value
 
 
-def typed_document(raw, kind, keys):
+def typed_document(raw, kind, keys, *, versions=(1,)):
     value = fields(document(raw), {"kind", "version", *keys})
-    require(value["kind"] == kind and type(value["version"]) is int and value["version"] == 1,
+    require(value["kind"] == kind and type(value["version"]) is int and value["version"] in versions,
             "unsupported evaluator schema")
     return value
 
@@ -68,7 +69,8 @@ def prepare(snapshot, plan_bytes, adapters):
     plan = document(plan_bytes)
     data = plan["data"]
     experiment = typed_document(snapshot[data["experiment"]], "evaluation_execution_plan",
-                                 {"runtime", "models", "primary", "comparisons", "slices", "limits"})
+                                 {"runtime", "models", "primary", "comparisons", "slices", "limits"}, versions=(1, 2))
+    product = experiment["version"] == 2
     require(experiment["runtime"] == runtime_identity(), "runtime differs from the frozen experiment")
     require(experiment["runtime"]["system"] == "Windows", "bounded execution requires Windows")
     require(experiment["runtime"]["packages"]["numpy"] is not None, "metric runtime is unavailable")
@@ -105,6 +107,10 @@ def prepare(snapshot, plan_bytes, adapters):
         # Reject this known-incompatible factory regardless of registry alias.
         require(name != "current_tiny" or adapter.factory is not gru_factory,
                 "research score adapter does not implement current product policy")
+        require(adapter.factory is not current_factory or (product and name == "current_tiny"),
+                "current product adapter requires the product-policy experiment")
+        require(adapter.factory is not current_factory or limits["request_seconds"] <= .4,
+                "current protocol request deadline widened")
         require(adapter.identity() == spec["adapter_identity"], "adapter identity differs")
         require(type(spec["feature_width"]) is int and 0 <= spec["feature_width"] <= 64, "invalid feature width")
         artifacts = MappingProxyType({role: snapshot[key] for role, key in plan["models"][name].items()})
@@ -112,18 +118,26 @@ def prepare(snapshot, plan_bytes, adapters):
             require(adapter.validate(artifacts, spec["feature_width"]) is None, "adapter validator did not accept contract")
         except Exception:
             raise RunnerError("adapter metadata rejected before Test") from None
-        gate = fields(document(artifacts["gate"])["configuration"], {"kind", "threshold", "operator"})
-        require(gate["kind"] == "score_margin" and gate["operator"] == ">"
-                and type(gate["threshold"]) in (int, float) and math.isfinite(gate["threshold"])
-                and 0 <= gate["threshold"] <= 1e6, "unsupported frozen gate")
-        runs = fields(spec["runs"], {"ungated", "gated"})
+        configuration = document(artifacts["gate"])["configuration"]
+        shipped = product and name == "current_tiny"
+        if shipped:
+            gate = fields(configuration, {"kind", "source_head"})
+            require(gate == {"kind": POLICY, "source_head": HEAD}, "current product policy differs")
+            threshold = None
+        else:
+            gate = fields(configuration, {"kind", "threshold", "operator"})
+            require(gate["kind"] == "score_margin" and gate["operator"] == ">"
+                    and type(gate["threshold"]) in (int, float) and math.isfinite(gate["threshold"])
+                    and 0 <= gate["threshold"] <= 1e6, "unsupported frozen gate")
+            threshold = gate["threshold"]
+        runs = fields(spec["runs"], {"shipped"} if shipped else {"ungated", "gated"})
         for value in runs.values():
             require(isinstance(value, str) and NAME.fullmatch(value) and value != "baseline" and value not in run_names,
                     "run name missing or duplicate")
             run_names.add(value)
-        resolved.append({"spec": spec, "artifacts": artifacts, "adapter": adapter, "threshold": gate["threshold"]})
+        resolved.append({"spec": spec, "artifacts": artifacts, "adapter": adapter, "threshold": threshold})
     require(names == plan["models"].keys(), "model family incomplete")
-    current = next(m["spec"]["runs"]["gated"] for m in resolved if m["spec"]["model"] == "current_tiny")
+    current = next(m["spec"]["runs"]["shipped" if product else "gated"] for m in resolved if m["spec"]["model"] == "current_tiny")
     primary = experiment["primary"]
     require(primary in run_names and primary != current, "primary student run missing")
     pairs = experiment["comparisons"]
@@ -143,12 +157,13 @@ def prepare(snapshot, plan_bytes, adapters):
 
 
 def read_cohort(raw, prepared):
-    value = typed_document(raw, "evaluation_cohort", {"cases"})
+    version = prepared["experiment"]["version"]
+    value = typed_document(raw, "evaluation_cohort", {"cases"}, versions=(version,))
     rows = value["cases"]
     require(isinstance(rows, list) and len(rows) == prepared["sampling"]["test_count"], "Test population count differs")
     keys, components, normalized = set(), set(), []
     for row in rows:
-        fields(row, {"case_key", "component_key", "input", "gold", "tags"})
+        fields(row, {"case_key", "component_key", "input", "gold", "tags"} | ({"product_state"} if version == 2 else set()))
         require(all(isinstance(row[key], str) and SHA.fullmatch(row[key]) for key in ("case_key", "component_key")),
                 "invalid case/component identity")
         require(row["case_key"] not in keys, "duplicate case identity")
@@ -175,7 +190,9 @@ def read_cohort(raw, prepared):
                 "undeclared or duplicate slice tag")
         context_tag = "context-empty" if not context else "context-64" if len(context) == 64 else "context-1-63"
         require(set(tags) & {"context-empty", "context-1-63", "context-64"} == {context_tag}, "context slice differs")
-        normalized.append({**row, "input": {**request, "candidates": candidates}})
+        product_state = ({"product_state": validate_policy_facts(row["product_state"], len(candidates))}
+                         if version == 2 else {})
+        normalized.append({**row, "input": {**request, "candidates": candidates}, **product_state})
     require(len(components) == prepared["sampling"]["component_count"], "component count differs")
     oracle = sum(row["gold"] in [c["surface"] for c in row["input"]["candidates"][:6]] for row in normalized)
     require(oracle == prepared["quality"]["oracle6_present"], "actual oracle differs from quality evidence")

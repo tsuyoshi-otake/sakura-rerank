@@ -131,7 +131,7 @@ def runtime_identity() -> dict:
     root = Path(__file__).parent
     files = ("evaluation_worker.py", "evaluation_runner.py", "evaluation_payload.py",
              "evaluation_admission.py", "evaluation_metrics.py", "evaluation_statistics.py",
-             "source_model_inputs.py", "research_tiny.py", "research_tiny_r2.py", "data/contracts.py")
+             "source_model_inputs.py", "research_tiny.py", "research_tiny_r2.py", "data/contracts.py", "current_tiny.py")
     versions = {}
     for package in ("numpy", "onnxruntime"):
         try:
@@ -160,23 +160,36 @@ def validate_gru(artifacts: Mapping[str, bytes], feature_width: int) -> None:
         raise WorkerError("unsupported GRU feature contract")
 
 
-def gru_factory(artifacts: Mapping[str, bytes], feature_width: int):
-    import numpy as np
+def cpu_session(weights: bytes, feature_width: int):
+    """Shared CPU/batch-one ONNX boundary; each adapter owns its input semantics."""
     import onnxruntime as ort
-    from .research_tiny import character_ids
-    from .source_model_inputs import INPUT_NAMES, encode_snapshot, model_feed
-
-    validate_gru(artifacts, feature_width)
+    from .source_model_inputs import INPUT_NAMES
     options = ort.SessionOptions()
     options.intra_op_num_threads = options.inter_op_num_threads = 1
     options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
     options.log_severity_level = 4
-    session = ort.InferenceSession(artifacts["weights"], sess_options=options, providers=["CPUExecutionProvider"])
+    session = ort.InferenceSession(weights, sess_options=options, providers=["CPUExecutionProvider"])
     if (session.get_providers() != ["CPUExecutionProvider"]
             or [v.name for v in session.get_inputs()] != list(INPUT_NAMES)
             or session.get_inputs()[6].shape[-1] != feature_width
             or [v.name for v in session.get_outputs()] != ["scores"]):
         raise WorkerError("unsupported GRU ONNX signature")
+    return session
+
+
+def cpu_scores(session, feed):
+    import numpy as np
+    value = session.run(["scores"], feed)[0]
+    if not isinstance(value, np.ndarray) or value.shape != (1, 6) or value.dtype != np.float32:
+        return ()
+    return tuple(float(v) for v in value[0])
+
+
+def gru_factory(artifacts: Mapping[str, bytes], feature_width: int):
+    from .research_tiny import character_ids
+    from .source_model_inputs import encode_snapshot, model_feed
+    validate_gru(artifacts, feature_width)
+    session = cpu_session(artifacts["weights"], feature_width)
 
     class Scorer:
         def score(self, request):
@@ -187,10 +200,7 @@ def gru_factory(artifacts: Mapping[str, bytes], feature_width: int):
             ids, length = character_ids(request["left_context"], 64)
             arrays["context_ids"][0] = ids
             arrays["context_lengths"][0] = length
-            value = session.run(["scores"], model_feed(arrays, 0, feature_width))[0]
-            if not isinstance(value, np.ndarray) or value.shape != (1, 6) or value.dtype != np.float32:
-                return ()
-            return tuple(float(v) for v in value[0])
+            return cpu_scores(session, model_feed(arrays, 0, feature_width))
 
         def close(self):
             pass  # The isolated process owns the ORT session lifetime.
@@ -199,7 +209,9 @@ def gru_factory(artifacts: Mapping[str, bytes], feature_width: int):
 
 
 def default_adapters() -> dict[str, Adapter]:
-    return {"tiny-gru-onnx-v1": Adapter(gru_factory, validate_gru)}
+    from .current_tiny import current_factory, validate_current
+    return {"tiny-gru-onnx-v1": Adapter(gru_factory, validate_gru),
+            "current-tiny-protocol-v1": Adapter(current_factory, validate_current)}
 
 
 def _quiet_child() -> None:
