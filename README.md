@@ -10,6 +10,16 @@ candidate generator.
 
 ## Status
 
+The [fixed CPU proposal census](research/issue-34-cpu-proposals/README.md)
+reproduces all 150,000 #29 scores exactly. Removing context creates 2,114 identical
+input groups with incompatible source targets: at least 5,658/75,000 mismatches
+are unavoidable, giving a 92.456% empirical source-match ceiling for this pool.
+This is not the old dev or Japanese IME accuracy ceiling. The new projection also
+connects 73,623 rows to actual historical inputs through complete components;
+the original zero-overlap result applies only to source-prefix inputs. All 805
+tests pass. No gate fit, threshold selection, independent calibration, Gold
+admission, final Test, production change or adopted accuracy improvement occurred.
+
 The [fixed selector ancestry audit](research/issue-34-selector-lineage/README.md)
 resolves #29's previously unknown root against the 75,000-row research pool.
 All 22 recorded artifact ancestors are authenticated; the rebuilt source closure

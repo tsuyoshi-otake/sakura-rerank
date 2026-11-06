@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #34's [fixed CPU proposals](../../../research/issue-34-cpu-proposals/README.md)
+add strict label-free source/empty-context projections in `gate_proposal_inputs.py`.
+Projected input equality is joined with complete original components before folds;
+context removal can introduce old-input exposure that was absent in the original
+representation. Eight model inputs stay separate from the later source-label
+census. Contract tests are `test_gate_proposal_inputs.py` and
+`test_gate_proposal_metrics.py`. The proposal bundle authorizes no fit, calibration,
+Gold or final Test; empirical source-label ceilings are not IME accuracy ceilings.
+
 Issue #34's [OOF metadata audit](../../../research/issue-34-oof-design/README.md)
 preserves all training components plus original/numeric-input equality before
 fold allocation. `gate_oof.py` checks fitting and selection exposures through
