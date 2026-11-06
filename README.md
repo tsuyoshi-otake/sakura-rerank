@@ -16,9 +16,15 @@ annotation file. It preserves 1,479 token field sets. Five correction markers
 occur on phrase/segment lines, while 47 units carry lemma-ambiguity markers;
 these are not measured IME-label errors. Conservative reserved-family exclusions
 leave at most 2,786 sentence candidates for a future one-sentence/one-example
-Test, before quality/history exclusions. All 972 tests pass. The next priority
-is sufficient independent Gold capacity and source/correction correspondence;
-adopted 90.72%, 0.25% safety, Gold and release gates remain unchanged.
+Test, before quality/history exclusions. The
+[evaluation feasibility reconciliation](research/issue-35-knbc-format-pilot/README.md#evaluation-feasibility)
+distinguishes source sentences, full-reading cases, valid Gold and independent
+sampling units. The 3,000 valid Test minimum is separate from the initial planning
+target of 12,000 Test plus 3,000 calibration rows. A 1,000-case pilot cannot by
+itself establish the 0.25% harm bound. Independent label-quality evidence and
+final runner integration remain unresolved; existing admission and metric
+libraries can be reused. All 972 tests pass. Adopted 90.72%, safety, Gold and
+release gates remain unchanged.
 
 The [KNBC source qualification](research/issue-35-knbc-qualification/README.md)
 identifies an independently annotated blog source for a reserved research pilot.
