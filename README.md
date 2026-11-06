@@ -8,14 +8,15 @@ The project reranks bounded N-best full-path candidates produced by Sakura
 Input. It does **not** replace the dictionary, lattice, Viterbi search, or
 candidate generator.
 
-The [prospective source/input partition](research/issue-35-consumption-partition/README.md)
-leaves 615 inputs in 47 source components in a fixed metadata-only counterfactual,
-above the existing 500/20 preparation rule. It keeps 323 source-history-connected
-inputs quarantined and excludes direct/repeated input units separately. The old
-full closure and exclusions stay unchanged; this consumed frame has zero actual
-independent-Test rows. All 1,095 tests pass. Independent Gold quality, complete
-consumption/numeric provenance and release remain unresolved; adopted 90.72% has
-no demonstrated improvement. The next prerequisite is Gold-quality evidence.
+**Adopted accuracy remains 90.72%; an improvement has not been demonstrated.**
+The [Gold evidence audit](research/issue-31-gold-evidence/README.md) distinguishes
+KNBC/KWDLC/Tatoeba/AJIMEE annotation guarantees from independent IME-label quality.
+The certified Gold trust set and independently usable Test capacity are both zero.
+Release is blocked on externally justified, task-matched quality evidence;
+no automatic fit or source-search loop follows. All 1,095 tests pass.
+The [prospective partition](research/issue-35-consumption-partition/README.md)
+leaves615 inputs/47 source groups only as a metadata counterfactual, not new Gold.
+Safety0.25%, complete provenance and parent#1's full release requirements remain.
 
 The [bounded KNBC preparation](research/issue-33-knbc-screening/README.md)
 stopped the proposed 915-row screening comparison before any fitting. Of 2,786
