@@ -55,10 +55,10 @@ def terminal(source_terminal, allow_weak):
     return tier, status
 
 
-def summarize(rows, allow_weak):
+def summarize(rows, allow_weak, original_indices):
     require(isinstance(rows, list) and 1 <= len(rows) <= MAX_ROWS, 'row_bound')
-    original = {arm: [] for arm in ARMS}
-    selected = {arm: [] for arm in ARMS}
+    require(isinstance(original_indices, dict) and set(original_indices) == set(ARMS), 'arm_order_schema')
+    members = {arm: [] for arm in ARMS}
     seen = set()
     counts, tiers = Counter(), Counter()
     for i, row in enumerate(rows):
@@ -74,9 +74,15 @@ def summarize(rows, allow_weak):
         counts[status] += 1
         tiers[tier] += 1
         for arm in GROUPS[row['group']]:
-            original[arm].append(i)
-            if status == 'eligible_for_fit_binding':
-                selected[arm].append(i)
+            members[arm].append(i)
+    original, selected = {}, {}
+    for arm in ARMS:
+        order = original_indices[arm]
+        require(isinstance(order, list) and len(order) == len(members[arm])
+                and all(type(i) is int and 0 <= i < len(rows) for i in order)
+                and len(set(order)) == len(order) and set(order) == set(members[arm]), 'arm_order_membership')
+        original[arm] = list(order)
+        selected[arm] = [i for i in order if rows[i]['status'] == 'eligible_for_fit_binding']
     arms = {}
     for arm in ARMS:
         arms[arm] = dict(original_rows=len(original[arm]), selected_rows=len(selected[arm]),
@@ -88,12 +94,13 @@ def summarize(rows, allow_weak):
 
 
 def build_recipe(cohort, source_pool, receipts, *, source_manifest_sha256,
-                 numeric_manifest_sha256, numeric_manifest, allow_dictionary_only=False):
+                 numeric_manifest_sha256, numeric_manifest, original_indices, allow_dictionary_only=False):
     """Bind all original cache positions to source decisions, never source order.
 
     `source_pool` comes from load_prepared; receipts and numeric_manifest come
-    from authenticated, tensor-verified cache bytes. Eligibility here only means
-    eligible for a later, separately committed research fit binding.
+    from authenticated, tensor-verified cache bytes. `original_indices` is the
+    separately stored per-arm presentation order, not global numeric row order.
+    Eligibility only means eligibility for a later, separately committed fit binding.
     """
     current_policy = policy(allow_dictionary_only)
     require(digest(source_manifest_sha256) and digest(numeric_manifest_sha256), 'artifact_binding')
@@ -149,11 +156,12 @@ def build_recipe(cohort, source_pool, receipts, *, source_manifest_sha256,
         previous = receipt['record_sha256']
     require(previous == numeric_manifest['row_chain_head']
             and canonical_json_hash(identities) == numeric_manifest['source_order_sha256'], 'numeric_population')
-    original, selected, summary = summarize(rows, allow_dictionary_only)
+    original, selected, summary = summarize(rows, allow_dictionary_only, original_indices)
     return dict(kind='source_screened_research_recipe', version=1, status='ready_for_separate_fit_binding',
                 policy=current_policy, bindings=dict(source_manifest_sha256=source_manifest_sha256,
                 numeric_manifest_sha256=numeric_manifest_sha256, numeric_chain_head=previous,
-                source_order_sha256=numeric_manifest['source_order_sha256']), rows=rows,
+                source_order_sha256=numeric_manifest['source_order_sha256'],
+                original_arm_order_sha256=canonical_json_hash(original)), rows=rows,
                 original_indices=original, selected_indices=selected, summary=summary,
                 consumer_purposes=['fit_binding_preparation'], training_eligible=False,
                 independent_gold_eligible=False, independent_evaluation_eligible=False)
@@ -175,10 +183,11 @@ def load_recipe(path, expected_sha256, *, expected_bindings, purpose):
             and value['status'] == 'ready_for_separate_fit_binding'
             and value['consumer_purposes'] == ['fit_binding_preparation']
             and all(value[k] is False for k in ('training_eligible', 'independent_gold_eligible', 'independent_evaluation_eligible')), 'recipe_admission')
-    require(set(expected_bindings) == {'source_manifest_sha256', 'numeric_manifest_sha256', 'numeric_chain_head', 'source_order_sha256'}
+    require(set(expected_bindings) == {'source_manifest_sha256', 'numeric_manifest_sha256', 'numeric_chain_head', 'source_order_sha256', 'original_arm_order_sha256'}
             and all(digest(v) for v in expected_bindings.values()) and value['bindings'] == expected_bindings, 'consumer_bindings')
+    require(canonical_json_hash(value['original_indices']) == expected_bindings['original_arm_order_sha256'], 'consumer_arm_order')
     allow_weak = value['policy']['allow_dictionary_only']
     require(value['policy'] == policy(allow_weak), 'recipe_policy')
-    original, selected, summary = summarize(value['rows'], allow_weak)
+    original, selected, summary = summarize(value['rows'], allow_weak, value['original_indices'])
     require((value['original_indices'], value['selected_indices'], value['summary']) == (original, selected, summary), 'recipe_selection')
     return value

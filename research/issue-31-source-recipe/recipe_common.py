@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 
-from sakura_rerank.data.contracts import canonical_json_bytes
+from sakura_rerank.data.contracts import canonical_json_bytes, canonical_json_hash
 from sakura_rerank.data.consumed_numeric import verify_chain
 from sakura_rerank.data.source_reading_gate import load_prepared
 
@@ -20,7 +20,7 @@ finally:
     sys.path.pop(0)
 
 HERE = Path('research/issue-31-source-recipe')
-PLAN = HERE / 'plan-v2.json'
+PLAN = HERE / 'plan-v3.json'
 attempt = os.environ.get('SAKURA_RECIPE_ATTEMPT', 'attempt-01')
 if not re.fullmatch('attempt-0[1-8]', attempt):
     raise ValueError('recipe_run_attempt_bound')
@@ -66,10 +66,15 @@ def freeze():
     paths += [POOL / name for name in ('manifest.json', 'decisions.jsonl.gz', 'prepared-rows.jsonl.gz')]
     paths += [CACHE / name for name in ('manifest.json', 'row-receipts.jsonl', 'arrays.npz', 'cohort-indices.json')]
     failed_terminal = Path('data/generated/issue-31-source-recipe-v1/attempt-01/prepare-terminal.json')
-    paths += [HERE/'plan-v1.json', failed_terminal]
+    order_terminal = Path('data/generated/issue-31-source-recipe-v1/attempt-02/prepare-terminal.json')
+    paths += [HERE/'plan-v1.json', failed_terminal, HERE/'plan-v2.json', order_terminal]
+    require(read(failed_terminal)['status'] == read(order_terminal)['status'] == 'failed', 'preceding_attempt_terminals')
     diagnosis = read('.codex/goal-loop/issue-31-source-recipe/origin-diagnosis.json')
     require(diagnosis['status'] == 'root_cause_verified' and diagnosis['rows'] == 75000
             and diagnosis['counts']['producer_contract_mapping_mismatch'] == 0, 'origin_mapping_diagnosis')
+    order_diagnosis = read('.codex/goal-loop/issue-31-source-recipe/arm-order-diagnosis.json')
+    require(order_diagnosis['status'] == 'root_cause_verified' and order_diagnosis['rows'] == 75000
+            and all(v['same_members'] for v in order_diagnosis['arms'].values()), 'arm_order_diagnosis')
     source = read(SOURCE_REPORT)
     require(source['verification']['status'] == 'passed'
             and source['verification']['pool_manifest_sha256'] == sha(POOL/'manifest.json'), 'source_proof')
@@ -85,15 +90,19 @@ def freeze():
                 code.add(path.relative_to(workspace))
     head = subprocess.check_output(['git', '-C', '../sakura-input', 'rev-parse', 'HEAD'], text=True, timeout=30).strip()
     require(not subprocess.check_output(['git', '-C', '../sakura-input', 'status', '--porcelain'], timeout=30), 'dirty_sakura_input')
-    plan = dict(kind='source_screened_research_recipe_plan', version=2, issue=31, parent_issue=1,
+    plan = dict(kind='source_screened_research_recipe_plan', version=3, issue=31, parent_issue=1,
         created_at_utc=datetime.now(timezone.utc).isoformat(), parent_commit='ac526495f507d7708e45db385d9b7e0b7816e33e',
         inputs={p.as_posix(): sha(p) for p in paths}, code={p.as_posix(): sha(p) for p in sorted(code)},
         population_rows=75000, original_rows_per_arm=50000, allow_dictionary_only=True,
-        preceding_failed_attempt=dict(attempt='attempt-01', commit='62de972858d53dd61478eb5f710a2614bec440ce',
+        preceding_failed_attempts=[dict(attempt='attempt-01', commit='62de972858d53dd61478eb5f710a2614bec440ce',
             plan_sha256=sha(HERE/'plan-v1.json'), terminal_sha256=sha(failed_terminal),
             cause='Distinct documented origin enums were compared literally. All75000 original-row hashes and flags agree; the25000 annotation names require the exact original_ruby_annotation to original_ruby mapping.',
             trusted_recipe_published=False, policy_population_and_thresholds_unchanged=True),
-        selection='Keep unchanged source-annotation matches and explicitly weak dictionary-only rows. Exclude every contradictory/uncertain source decision; do not repair or resample. Join by complete source input hash, preserving numeric order, original components and all excluded history.',
+            dict(attempt='attempt-02', commit='fded441fc311c235d53e92440f4f839352d132eb', plan_sha256=sha(HERE/'plan-v2.json'),
+                terminal_sha256=sha(order_terminal), cause='Deriving arm order from numeric row order changed34158 dictionary positions. Original per-arm membership sets match; explicit original index order must be bound and preserved.',
+                trusted_recipe_published=False, policy_population_and_thresholds_unchanged=True)],
+        selection='Keep unchanged source-annotation matches and explicitly weak dictionary-only rows. Exclude every contradictory/uncertain source decision; do not repair or resample. Join by complete source input hash, preserve global numeric row order and separately pinned original per-arm presentation order, original components and all excluded history.',
+        original_arm_order_sha256=order_diagnosis['original_arm_order_sha256'],
         metrics=['all original/selected/excluded rows by arm, source tier and reason', 'baseline-source-match counts before/after/excluded, descriptive training statistics only', 'full identity, receipt and numeric tensor joins'],
         candidate_scope='The existing consumed cache was already selected for literal Top6 labels. It cannot estimate unfiltered source candidate coverage.',
         evaluation_condition='No unused KWDLC public-train reservation remains. A fresh isolated research reservation and separately committed fit binding are required; this artifact grants neither.',
@@ -122,6 +131,8 @@ def inputs(commit):
     require(pool['manifest'] == source['pool_manifest'], 'source_manifest')
     require(fit.TRAIN_CACHE.resolve() == CACHE.resolve(), 'numeric_reader_path')
     arrays, indices, cache = fit.load_training(read(OLD_FIT))
+    ordered_indices = {k: v.tolist() for k, v in indices.items()}
+    require(canonical_json_hash(ordered_indices) == plan['original_arm_order_sha256'], 'frozen_arm_order')
     proof = read(NUMERIC)
     require(proof['status'] == 'passed' and proof['cache_manifest_sha256'] == sha(CACHE/'manifest.json')
             and proof['row_chain_head'] == cache['row_chain_head'], 'numeric_proof')
@@ -135,7 +146,7 @@ def inputs(commit):
             require(len(cohort) < 75000 and len(line) <= 262144 and line.endswith(b'\n') and decoded <= 134217728, 'cohort_bound')
             cohort.append(json.loads(line))
     require(len(cohort) == 75000 and guard.blocked == 0, 'cohort_count_or_forbidden_read')
-    return plan, guard, pool, cohort, receipts, arrays, {k: v.tolist() for k, v in indices.items()}, cache
+    return plan, guard, pool, cohort, receipts, arrays, ordered_indices, cache
 
 
 if __name__ == '__main__':

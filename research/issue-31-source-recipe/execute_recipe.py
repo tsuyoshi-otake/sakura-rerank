@@ -11,17 +11,19 @@ from sakura_rerank.data.source_research_recipe import build_recipe, load_recipe
 from recipe_common import CACHE, PLAN, POOL, ROOT, inputs, read, require, save, sha
 
 
-def bindings(cache):
+def bindings(cache, indices):
     return dict(source_manifest_sha256=sha(POOL/'manifest.json'), numeric_manifest_sha256=sha(CACHE/'manifest.json'),
-                numeric_chain_head=cache['row_chain_head'], source_order_sha256=cache['source_order_sha256'])
+                numeric_chain_head=cache['row_chain_head'], source_order_sha256=cache['source_order_sha256'],
+                original_arm_order_sha256=canonical_json_hash(indices))
 
 
 def prepare(commit):
     started = time.monotonic()
     plan, guard, pool, cohort, receipts, arrays, indices, cache = inputs(commit)
-    bound = bindings(cache)
+    bound = bindings(cache, indices)
     recipe = build_recipe(cohort, pool, receipts, source_manifest_sha256=bound['source_manifest_sha256'],
-        numeric_manifest_sha256=bound['numeric_manifest_sha256'], numeric_manifest=cache, allow_dictionary_only=plan['allow_dictionary_only'])
+        numeric_manifest_sha256=bound['numeric_manifest_sha256'], numeric_manifest=cache, original_indices=indices,
+        allow_dictionary_only=plan['allow_dictionary_only'])
     require(recipe['original_indices'] == indices, 'original_membership_changed')
     baseline = {}
     for arm, old in indices.items():
@@ -48,9 +50,9 @@ def verify(commit):
     plan, guard, pool, cohort, receipts, arrays, indices, cache = inputs(commit)
     report = read(ROOT/'preparation.json')
     require(report['plan_commit'] == commit and report['plan_sha256'] == sha(PLAN), 'preparation_binding')
-    recipe = load_recipe(ROOT/'recipe.json', report['recipe_sha256'], expected_bindings=bindings(cache), purpose='fit_binding_preparation')
+    recipe = load_recipe(ROOT/'recipe.json', report['recipe_sha256'], expected_bindings=bindings(cache, indices), purpose='fit_binding_preparation')
     decision_by_input = {d['input_sha256']: d for d in pool['decisions']}
-    selected = {arm: [] for arm in indices}
+    allowed = set()
     status_counts, tier_counts, exclusions = Counter(), Counter(), Counter()
     for i, (row, receipt, actual) in enumerate(zip(cohort, receipts, recipe['rows'], strict=True)):
         item = row['encoder_input']; d = decision_by_input[canonical_json_hash(item)]
@@ -66,8 +68,8 @@ def verify(commit):
         require(actual == expected, 'independent_row_replay')
         status_counts[status] += 1; tier_counts[tier] += 1
         if status != 'eligible_for_fit_binding': exclusions[d['terminal']] += 1
-        else:
-            for arm in row['membership']: selected[arm].append(i)
+        else: allowed.add(i)
+    selected = {arm: [i for i in old if i in allowed] for arm, old in indices.items()}
     require(selected == recipe['selected_indices'] and indices == recipe['original_indices'], 'independent_selection')
     arms, baseline = {}, {}
     for arm, old in indices.items():
@@ -85,7 +87,8 @@ def verify(commit):
     proof = dict(status='passed', plan_commit=commit, preparation_sha256=sha(ROOT/'preparation.json'), recipe_sha256=sha(ROOT/'recipe.json'),
         rows_verified=75000, numeric_tensor_rows_reverified=75000, original_arm_indices_verified=100000,
         selected_arm_indices_verified=sum(map(len, selected.values())), independent_source_state_classification=True,
-        original_components_preserved=True, excluded_history_preserved=True, source_tier_census=summary,
+        original_components_preserved=True, excluded_history_preserved=True, original_arm_presentation_order_preserved=True,
+        source_tier_census=summary,
         forbidden_data_reads=guard.blocked, elapsed_seconds=round(time.monotonic()-started, 3),
         training_admission=False, gold_admission=False, final_test=False)
     save(ROOT/'verification.json', proof)

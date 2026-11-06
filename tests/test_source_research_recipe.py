@@ -45,10 +45,11 @@ def fixture():
 class RecipeTests(unittest.TestCase):
     def setUp(self):
         self.cohort, self.pool, self.receipts, self.cache = fixture()
+        self.indices = dict(dictionary=[0, 5, 1, 4, 2], annotation=[0, 3])
 
     def build(self, weak=True):
         return build_recipe(self.cohort, self.pool, self.receipts, source_manifest_sha256='1'*64,
-                            numeric_manifest_sha256='2'*64, numeric_manifest=self.cache, allow_dictionary_only=weak)
+                            numeric_manifest_sha256='2'*64, numeric_manifest=self.cache, original_indices=self.indices, allow_dictionary_only=weak)
 
     def reject(self):
         with self.assertRaises((ValueError, KeyError)):
@@ -56,8 +57,8 @@ class RecipeTests(unittest.TestCase):
 
     def test_hash_join_preserves_numeric_order_despite_reversed_source_pool(self):
         recipe = self.build()
-        self.assertEqual(recipe['selected_indices'], dict(dictionary=[0, 1, 5], annotation=[0, 3]))
-        self.assertEqual(recipe['original_indices'], dict(dictionary=[0, 1, 2, 4, 5], annotation=[0, 3]))
+        self.assertEqual(recipe['selected_indices'], dict(dictionary=[0, 5, 1], annotation=[0, 3]))
+        self.assertEqual(recipe['original_indices'], dict(dictionary=[0, 5, 1, 4, 2], annotation=[0, 3]))
         self.assertEqual(recipe['summary']['population_rows'], 6)
         self.assertFalse(recipe['training_eligible'])
         self.assertEqual([r['component_id'] for r in recipe['rows']], ['synthetic-component-'+str(i) for i in range(6)])
@@ -76,9 +77,9 @@ class RecipeTests(unittest.TestCase):
             self.build()
 
     def test_original_payloads_remain_unchanged(self):
-        before = deepcopy((self.cohort, self.pool, self.receipts, self.cache))
+        before = deepcopy((self.cohort, self.pool, self.receipts, self.cache, self.indices))
         self.build()
-        self.assertEqual(before, (self.cohort, self.pool, self.receipts, self.cache))
+        self.assertEqual(before, (self.cohort, self.pool, self.receipts, self.cache, self.indices))
 
     def test_missing_cohort_row_rejected(self):
         self.cohort.pop(); self.reject()
@@ -130,6 +131,12 @@ class RecipeTests(unittest.TestCase):
     def test_empty_population_rejected(self):
         self.cohort.clear(); self.receipts.clear(); self.reject()
 
+    def test_duplicate_original_arm_index_rejected(self):
+        self.indices['dictionary'][-1] = 0; self.reject()
+
+    def test_wrong_arm_member_cannot_replace_valid_original_index(self):
+        self.indices['dictionary'][-1] = 3; self.reject()
+
     def consume(self, recipe, *, purpose='fit_binding_preparation', digest_override=None, bindings=None):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)/'recipe.json'
@@ -152,6 +159,13 @@ class RecipeTests(unittest.TestCase):
     def test_resealed_pending_index_injection_rejected(self):
         recipe = self.build(); recipe['selected_indices']['dictionary'].append(2)
         with self.assertRaises(ValueError): self.consume(recipe)
+
+    def test_resealed_arm_reordering_cannot_change_training_presentation(self):
+        recipe = self.build()
+        recipe['original_indices']['dictionary'].sort()
+        recipe['selected_indices']['dictionary'].sort()
+        with self.assertRaisesRegex(ValueError, 'consumer_arm_order'):
+            self.consume(recipe)
 
     def test_resealed_permission_escalation_rejected(self):
         for key in ('training_eligible', 'independent_gold_eligible', 'independent_evaluation_eligible'):

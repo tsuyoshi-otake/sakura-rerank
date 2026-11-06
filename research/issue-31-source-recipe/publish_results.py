@@ -28,7 +28,7 @@ def publish():
     for model in models: require(sha(model['path']) == model['sha256'], 'old_checkpoint_changed')
     report = dict(kind='source_screened_research_recipe_report', version=1, issue=31, parent_issue=1, related_issues=[32,33,34,35],
         status='verified_recipe_preparation_not_fit_or_gold', plan_sha256=sha(PLAN), preparation=prep, verification=proof,
-        preceding_failed_attempt=plan['preceding_failed_attempt'],
+        preceding_failed_attempts=plan['preceding_failed_attempts'],
         tests=tests, targeted_tests=targeted, static_checks=static, original_integrity=integrity, old_checkpoints_unchanged=len(models),
         current_sakura_input_head=plan['current_sakura_input_head'],
         interpretation=['Source tier is independent of the old extraction arm. Original annotation agreement remains weak source reconstruction, not Japanese or IME-intent certification.',
