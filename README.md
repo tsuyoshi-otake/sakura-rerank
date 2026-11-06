@@ -10,6 +10,16 @@ candidate generator.
 
 ## Status
 
+The [external-source pilot](research/issue-35-source-pilot/README.md) reserved
+100 Tatoeba sentences before reading their text. Exact source/ruby alignment
+passed for 98; two had empty readings. Complete history isolation retained
+14 sentences / 44 provisional annotations. Twelve direct bounded-input matches
+propagated to 84 sentences through source/owner relations; text-only relations
+did not connect this pilot to history. Source ownership is not proven authorship,
+and ruby spans are not certified IME input units. All 701 tests passed; existing
+data and ten checkpoints remain unchanged. This advances source/evaluation design,
+with no new fits, Gold admission, calibration, final Test or production change.
+
 The latest [fixed loss-balance experiment](research/issue-33-loss-balance/README.md)
 improved the annotation recipe by a mean 1.349 percentage points on 593 previously
 unused research examples (paired component 95% CI 0.112 to 2.586). All three seeds

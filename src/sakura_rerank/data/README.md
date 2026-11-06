@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #35's [external-source pilot](../../../research/issue-35-source-pilot/README.md)
+adds `tatoeba_source.py` for bounded export decoding and exact whole-ruby alignment.
+Named editors are provider provenance, never imported A/B human judgments. Licensed
+sentence membership is checked before selecting transcription rows; every selected
+slot remains visible, including invalid markup. Source alignment, intended reading,
+IME input boundaries, historical relations and Gold admission stay separate.
+No source pilot output enters training, calibration or final Test. Contracts are
+`tests/test_tatoeba_source.py` and `tests/test_tatoeba_acquisition.py`.
+
 Issue #33's [fixed loss-balance experiment](../../../research/issue-33-loss-balance/README.md)
 reuses the same authenticated training rows and changes only train-derived
 per-example loss weights. Separate committed fit and evaluation permissions,
