@@ -11,11 +11,12 @@ import json
 import math
 import struct
 
-from .current_tiny import EVIDENCE_TAGS, HEAD, protected_choice, snapshot_policy, validate_policy_facts
+from .current_tiny import (EVIDENCE_TAGS, HEAD, MAX_NATIVE_CANDIDATES, MAX_NATIVE_TEXT_BYTES,
+                          protected_choice, snapshot_policy, validate_policy_facts)
 from .data.contracts import canonical_json_bytes
 
-MAX_CANDIDATES = 768
-MAX_TEXT_BYTES = 1536
+MAX_CANDIDATES = MAX_NATIVE_CANDIDATES
+MAX_TEXT_BYTES = MAX_NATIVE_TEXT_BYTES
 MAX_CAPTURE_BYTES = 8 * 1024 * 1024
 MAX_EVENTS = 1024
 OFFSET = 0xCBF29CE484222325
@@ -246,10 +247,71 @@ def bind_evaluator_input(snapshot,request,facts):
             'gold_certified':False,'final_evaluation_admitted':False}
 
 
-def evaluation_policy(provenance_sha256):
+def evaluation_policy(provenance_sha256, *, full_population=False):
     """New policy version; never silently reseal an old calibrated gate."""
-    return dict(snapshot_policy(provenance_sha256),version=2,
-                native_provenance='native_dispatch_capture_v1')
+    policy = dict(snapshot_policy(provenance_sha256),version=2,
+                  native_provenance='native_dispatch_capture_v1')
+    if full_population:
+        policy.update(version=3, candidate_contract='native_full_population_v1',
+                      max_candidates=MAX_CANDIDATES, max_text_bytes=MAX_TEXT_BYTES,
+                      candidate_features='observed_surface_cost_evidence_fingerprint')
+    return policy
+
+
+def validate_native_text(value):
+    """The pinned native UTF-8 capacity, not a character/token truncation."""
+    require(isinstance(value,str) and 1<=len(value)<=MAX_TEXT_BYTES, 'native text outside bound')
+    try:
+        require(len(value.encode('utf-8',errors='strict'))<=MAX_TEXT_BYTES, 'native text bytes outside bound')
+    except UnicodeError:
+        raise NativeSnapshotError('native text encoding invalid') from None
+    return value
+
+
+def validate_population_input(request):
+    """Native fields only; no segment/source-category/entry-index guesses."""
+    fields(request, {'reading','left_context','context_policy','candidates'})
+    validate_native_text(request['reading'])
+    require(request['left_context']=='' and request['context_policy']=='sakura_input_committed_same_session',
+            'native context was not captured')
+    candidates=request['candidates']
+    require(isinstance(candidates,list) and 1<=len(candidates)<=MAX_CANDIDATES,
+            'native candidate population outside bound')
+    normalized=[]
+    for rank,item in enumerate(candidates):
+        fields(item, {'rank','surface','local_cost','evidence_tag','native_fingerprint'})
+        require(type(item['rank']) is int and item['rank']==rank,'native candidate order differs')
+        text=validate_native_text(item['surface'])
+        cost=integer(item['local_cost'], -(1<<63), (1<<63)-1)
+        tag=integer(item['evidence_tag'],0,255)
+        require(tag in EVIDENCE_TAGS,'unknown native evidence')
+        fp=integer(item['native_fingerprint'])
+        require(fp==candidate_fingerprint(text,cost,tag),'native candidate fingerprint differs')
+        normalized.append(dict(item))
+    return normalized
+
+
+def population_input(snapshot):
+    """Project an inspected capture without losing its tail or duplicate surfaces."""
+    require(snapshot is not None,'no native conversion snapshot to bind')
+    return {'reading':snapshot['reading'], 'left_context':'',
+            'context_policy':'sakura_input_committed_same_session',
+            'candidates':[dict(c,rank=i) for i,c in enumerate(snapshot['candidates'])]}
+
+
+def bind_population_input(snapshot,request,facts):
+    require(snapshot is not None,'no native conversion snapshot to bind')
+    validate_population_input(request)
+    require(canonical_json_bytes(request)==canonical_json_bytes(population_input(snapshot)),
+            'native population projection differs')
+    require(canonical_json_bytes(validate_policy_facts(facts,len(snapshot['candidates'])))
+            ==canonical_json_bytes(snapshot['product_state']), 'native policy facts differ')
+    return {'input_sha256':hashlib.sha256(canonical_json_bytes(request)).hexdigest(),
+            'policy_facts_sha256':hashlib.sha256(canonical_json_bytes(facts)).hexdigest(),
+            'native_snapshot_sha256':hashlib.sha256(canonical_json_bytes(snapshot)).hexdigest(),
+            'purpose':'native_full_population_binding', 'candidate_count':len(snapshot['candidates']),
+            'candidate_contract':'native_full_population_v1', 'legacy_feature_provenance_verified':False,
+            'gold_certified':False,'final_evaluation_admitted':False}
 
 
 def validate_provenance(value,count):
@@ -269,12 +331,13 @@ def validate_provenance(value,count):
     return dict(mapping)
 
 
-def bind_evaluation_case(row,commitment):
+def bind_evaluation_case(row,commitment,*,full_population=False):
     """After Test consumption, before inference: bind native capture to its row."""
     require(hashlib.sha256(canonical_json_bytes(row['native_capture'])).hexdigest()==commitment,
             'native case capture differs from frozen provenance')
     checked=inspect_event(row['native_capture'])
     require(not checked['baseline_run'],'paired diagnostic control is not an independent evaluation input')
     snapshot=checked['snapshot']
-    receipt=bind_evaluator_input(snapshot,row['input'],row['product_state'])
+    binder=bind_population_input if full_population else bind_evaluator_input
+    receipt=binder(snapshot,row['input'],row['product_state'])
     return receipt,tuple(snapshot['identity'])

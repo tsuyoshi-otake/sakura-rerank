@@ -10,13 +10,21 @@ candidate generator.
 
 ## Status
 
+The [full native evaluation contract](research/issue-35-native-population/README.md)
+retains up to768 candidates and1536 UTF-8 bytes per reading/surface, with a separate
+six-candidate model prefix. Schema4 binds all48 prior snapshots/924 candidates,
+including both108-candidate cases. All1051 tests pass. Synthetic3000-row integration
+retains9874 candidates and tail local selections; long-text native tensors and120
+current-model scores match. Accuracy improvement is unproved; per-edge features,
+independent Gold/calibration/Test and production release Gates remain required.
+
 The [native state capture](research/issue-35-native-state/README.md) now drives
 the pinned engine dispatcher in a private research build.25 paired conditions
 produce50 executions and48 conversion snapshots; separate builds reproduce the
 same capture bytes. Schema3 binds those observations before model execution and
 refuses replay or unproven legacy features. All1,037 tests pass. Native snapshots
-can exceed the old32-row contract (108 observed), so full-population and per-edge
-feature migration remain necessary. Adoption stays90.72%, Gold remains uncertified,
+can exceed the old32-row contract (108 observed); schema4 now retains them,
+while per-edge feature migration remains necessary. Adoption stays90.72%, Gold remains uncertified,
 and safety0.25%/final Test/release requirements are unchanged.
 
 The earlier [current Tiny snapshot adapter](research/issue-35-current-tiny-parity/README.md)

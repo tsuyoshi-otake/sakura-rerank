@@ -210,9 +210,10 @@ def gru_factory(artifacts: Mapping[str, bytes], feature_width: int):
 
 
 def default_adapters() -> dict[str, Adapter]:
-    from .current_tiny import current_factory, validate_current
+    from .current_tiny import current_factory, native_current_factory, validate_current
     return {"tiny-gru-onnx-v1": Adapter(gru_factory, validate_gru),
-            "current-tiny-protocol-v1": Adapter(current_factory, validate_current)}
+            "current-tiny-protocol-v1": Adapter(current_factory, validate_current),
+            "current-tiny-native-population-v1": Adapter(native_current_factory, validate_current)}
 
 
 def _quiet_child() -> None:

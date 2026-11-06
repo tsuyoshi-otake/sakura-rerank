@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from .data.contracts import canonical_json_bytes
+from .current_tiny import MAX_NATIVE_CANDIDATES, MAX_NATIVE_TEXT_BYTES
 from .evaluation_statistics import (
     MAX_ROWS, clopper_pearson95, holm_adjust, mcnemar_exact,
     paired_component_bootstrap, wilson95,
@@ -56,7 +57,7 @@ def _ratio(numerator: int, denominator: int) -> dict[str, object]:
             "wilson_ci95_row_assumption": wilson95(numerator, denominator)}
 
 
-def _validate_cases(cases: Sequence[EvaluationCase]) -> list[EvaluationCase]:
+def _validate_cases(cases: Sequence[EvaluationCase], *, full_population=False) -> list[EvaluationCase]:
     if not isinstance(cases, Sequence) or not 1 <= len(cases) <= MAX_ROWS:
         raise EvaluationError("cohort must be nonempty and bounded")
     keys = set()
@@ -69,10 +70,18 @@ def _validate_cases(cases: Sequence[EvaluationCase]) -> list[EvaluationCase]:
         if case.case_key in keys:
             raise EvaluationError("duplicate case key")
         keys.add(case.case_key)
-        if (not isinstance(case.candidates, tuple) or not 1 <= len(case.candidates) <= 32
-                or any(not isinstance(text, str) or not 1 <= len(text) <= 256
+        if (not isinstance(case.candidates, tuple)
+                or not 1 <= len(case.candidates) <= (MAX_NATIVE_CANDIDATES if full_population else 32)
+                or any(not isinstance(text, str) or not 1 <= len(text) <= (MAX_NATIVE_TEXT_BYTES if full_population else 256)
                        for text in (*case.candidates, case.gold))):
             raise EvaluationError("candidate/Gold surfaces outside bound")
+        if full_population:
+            try:
+                if any(len(text.encode('utf-8',errors='strict'))>MAX_NATIVE_TEXT_BYTES
+                       for text in (*case.candidates,case.gold)):
+                    raise EvaluationError("native surface byte bound exceeded")
+            except UnicodeError:
+                raise EvaluationError("invalid native surface encoding") from None
         if (type(case.baseline_index) is not int or not 0 <= case.baseline_index < len(case.candidates)
                 or (case.production_count is not None and (type(case.production_count) is not int
                     or not 1 <= case.production_count <= min(6, len(case.candidates))))):
@@ -106,6 +115,7 @@ def evaluate_runs(
     cases: Sequence[EvaluationCase], runs: Mapping[str, EvaluationRun], *,
     comparisons: Sequence[tuple[str, str]], bootstrap_replicates: int = 10_000,
     bootstrap_seed: int = 20261104, reference_baseline: str = "local_selection",
+    candidate_contract: str = "legacy32",
 ) -> dict[str, object]:
     """Compare fixed observations; every model shares every supplied case.
 
@@ -114,7 +124,10 @@ def evaluate_runs(
     states fail rather than silently changing the evaluation population. Pair
     orientation is left-minus-right; the complete family is required up front.
     """
-    ordered = _validate_cases(cases)
+    if candidate_contract not in ("legacy32", "native_full_population_v1"):
+        raise EvaluationError("unknown candidate population contract")
+    full_population = candidate_contract == "native_full_population_v1"
+    ordered = _validate_cases(cases, full_population=full_population)
     if not isinstance(reference_baseline, str) or reference_baseline not in {"local_selection", "converter_top1"}:
         raise EvaluationError("unknown comparison baseline")
     if (not isinstance(runs, Mapping) or not 1 <= len(runs) <= 16
@@ -155,12 +168,26 @@ def evaluate_runs(
     for case in ordered:
         local = ({} if case.baseline_index == 0 and case.production_count is None else
                  {"baseline_index": case.baseline_index, "production_count": case.production_count})
+        if full_population:
+            local["candidate_contract"] = candidate_contract
         cohort_hash.update(canonical_json_bytes({
             "case_key": case.case_key, "component_key": case.component_key,
             "candidates": case.candidates, "gold": case.gold, **local,
         }) + b"\n")
     oracle = {str(k): _ratio(sum(case.gold in case.candidates[:k] for case in ordered), n)
               for k in (1, 5, 6, 10, 32)}
+    population = {}
+    if full_population:
+        present = sum(case.gold in case.candidates for case in ordered)
+        model_present = sum(case.gold in case.candidates[:case.production_count or min(6,len(case.candidates))]
+                            for case in ordered)
+        oracle["all"] = _ratio(present,n)
+        population = {"candidate_contract":candidate_contract,
+                      "candidate_population":{"total":sum(len(case.candidates) for case in ordered),
+                          "minimum":min(len(case.candidates) for case in ordered),
+                          "maximum":max(len(case.candidates) for case in ordered),
+                          "full_oracle_misses":n-present, "present_outside_model_prefix":present-model_present,
+                          "model_prefix_oracle":_ratio(model_present,n)}}
     rows = [[1, int(correct), int(not correct)] for correct in baseline]
     columns = {"baseline": 1}
     correct_by_model = {"baseline": baseline}
@@ -251,7 +278,7 @@ def evaluate_runs(
         replicates=bootstrap_replicates, seed=bootstrap_seed,
     )
     return {
-        "schema_version": 1, "kind": "fixed_cohort_surface_evaluation",
+        "schema_version": 2 if full_population else 1, "kind": "fixed_cohort_surface_evaluation", **population,
         "cohort_sha256": cohort_hash.hexdigest(), "record_count": n,
         "reference_baseline": reference_baseline,
         "baseline_correct": c, "baseline_errors": e, "baseline_accuracy": _ratio(c, n),

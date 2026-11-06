@@ -1,10 +1,16 @@
 # Data boundary tooling
 
+Issue #35's [full native population](../../../research/issue-35-native-population/README.md)
+adds evaluation schema4:1–768 candidates and1536 UTF-8 bytes per reading/surface,
+using observed native fields only. Full and model-prefix counts are sealed
+separately; tail fallback and full oracle enter metrics. Historical schemas and
+training remain32-bound; unproven per-edge features and Gold admission stay refused.
+
 Issue #35's [native capture binding](../../../research/issue-35-native-state/README.md)
 adds `native_snapshot.py` and evaluator schema3. The actual private native build
 produces candidates, local selection and request/response identities; hash-bound
 row verification precedes inference and rejects replay. Full native populations
-are retained in diagnostics. The legacy evaluator still rejects populations over32
+are retained in diagnostics. Schemas1–3 still reject populations over32
 and unproven per-edge research features, never silently truncates or guesses them.
 This evidence grants no Gold, real-session, training or final-Test admission.
 

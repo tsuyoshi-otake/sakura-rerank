@@ -131,6 +131,11 @@ Private captures, binaries and compiler/test logs are not committed.
 
 ## Remaining work and expected benefit
 
+The subsequent [schema4 population migration](../issue-35-native-population/README.md)
+now binds all48 captures/924 candidates, including the two108-candidate cases.
+The schema3 refusals below describe its historical contract. Exact per-edge
+features remain unverified; native tags are still not mapped into them.
+
 The next required task is an explicit current-candidate contract and provenance
 for the old models' per-edge features. It must represent the full native
 population and local fallback without deriving source categories from native

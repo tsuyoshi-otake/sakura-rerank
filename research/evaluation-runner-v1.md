@@ -5,6 +5,12 @@ gate. The existing empty Gold trust set remains authoritative. Real Test access
 stays refused until genuine evidence is available; synthetic fixtures are never
 registered as real certificates. No final experiment population is chosen here.
 
+The [schema4 full-population contract](issue-35-native-population/README.md)
+extends native capture binding to all1–768 candidates with1536 UTF-8 byte text
+bounds and explicit native-only fields. Model prefixes remain at most six; full
+oracle and tail fallback remain measurable. Schemas1–3 retain their32-candidate
+contract. Per-edge research features and real Gold remain unresolved.
+
 The [schema3 native capture binding](issue-35-native-state/README.md) adds per-case
 source capture commitments, native identity/replay checks and sealed projection
 bindings before scoring. It keeps prior schemas and both0.25% references. Missing

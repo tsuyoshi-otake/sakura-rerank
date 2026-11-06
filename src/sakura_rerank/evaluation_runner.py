@@ -77,9 +77,10 @@ def score_sealed_outputs(payload):
                                 for key, item in spec["observations"].items()}, spec["completed"])
             for name, spec in sealed["runs"].items()}
     comparisons = [tuple(pair) for pair in experiment["comparisons"]]
-    report = evaluate_runs(cases, runs, comparisons=comparisons)
+    contract = {"candidate_contract":"native_full_population_v1"} if experiment["version"]==4 else {}
+    report = evaluate_runs(cases, runs, comparisons=comparisons, **contract)
     dual_reference = experiment["version"] >= 2
-    converter_reference = evaluate_runs(cases, runs, comparisons=comparisons, reference_baseline="converter_top1") if dual_reference else None
+    converter_reference = evaluate_runs(cases, runs, comparisons=comparisons, reference_baseline="converter_top1", **contract) if dual_reference else None
     slices = {}
     for tag in experiment["slices"]:
         selected = [case for case, record in zip(cases, records) if tag in record["tags"]]
@@ -91,10 +92,10 @@ def score_sealed_outputs(payload):
         selected_keys = {case.case_key for case in selected}
         selected_runs = {name: EvaluationRun({key: value for key, value in run.observations.items() if key in selected_keys}, run.completed)
                          for name, run in runs.items()}
-        slices[tag] = {"record_count": len(selected), "metrics": evaluate_runs(selected, selected_runs, comparisons=comparisons)}
+        slices[tag] = {"record_count": len(selected), "metrics": evaluate_runs(selected, selected_runs, comparisons=comparisons, **contract)}
         if dual_reference:
             slices[tag]["converter_reference"] = evaluate_runs(selected, selected_runs, comparisons=comparisons,
-                                                                reference_baseline="converter_top1")
+                                                                reference_baseline="converter_top1", **contract)
     result = {"overall": report, "slices": slices}
     if dual_reference:
         result["converter_reference"] = converter_reference
@@ -171,8 +172,11 @@ def run_evaluation(*, artifact_root: Path, plan_path: Path, expected_plan_sha256
                   "model_proposals": proposals, "runs": runs, "models": model_reports}
         if experiment["version"] >= 2:
             sealed["product_policy_facts"] = [row["product_state"] for row in cases]
-        if experiment["version"] == 3:
+        if experiment["version"] >= 3:
             sealed["native_projection_bindings"] = [row["native_binding"] for row in cases]
+        if experiment["version"] == 4:
+            sealed.update(version=2, candidate_contract="native_full_population_v1",
+                          full_candidate_counts=[len(row["input"]["candidates"]) for row in cases])
         seal_hash = _seal(registry / ("observations-" + access.reservation_sha256 + ".json"), sealed)
         metric_rows = [{"case_key": row["case_key"], "component_key": row["component_key"],
                         "candidates": [c["surface"] for c in row["input"]["candidates"]], "gold": row["gold"], "tags": row["tags"]}
