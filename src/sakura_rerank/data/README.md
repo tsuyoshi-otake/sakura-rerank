@@ -1,5 +1,16 @@
 # Data boundary tooling
 
+Issue #35's [prospective source consumption](../../../research/issue-35-source-consumption/README.md)
+adds `tatoeba_consumption.py`: metadata-only reservation before decoding, exact
+continuous extents, empty observed-session context and explicit failed slots.
+`source_exposure.py` distinguishes semantically consumed neutral source records
+from unconsumed inventory. Explicit source-only exposure propagates existing
+relations and can only add exclusions, even when no valid reading/input exists.
+It cannot fabricate an input token, change old splits or admit Gold. Contracts:
+`test_tatoeba_consumption.py`, `test_source_consumption_metrics.py` and
+`test_source_exposure.py`. Preserve all consumed source IDs for future reservations,
+including source/annotation/native failures. Source presence is not IME correctness.
+
 Issue #35's [source-unit diagnostic](../../../research/issue-35-source-units/README.md)
 adds `tatoeba_input_units.py` for whole-source, literal-run and ruby-fragment
 hypotheses with exact original surfaces and an explicit kana input projection.

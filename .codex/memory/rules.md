@@ -1,5 +1,7 @@
 # Verified project learnings
 
+- [consumed source exposure] Neutral source coverage is not semantic consumption. Bind all actually consumed source-only IDs, including invalid readings, and propagate exposure through existing relations without inventing input hashes. Five synthetic contracts and the 991255-node forward/reverse audit found one additional real historical connection (#32/#35).
+
 - [source input extent] A whole ruby base can still be a word stem. Preserve literal kana and exact source positions in separately named whole-source/literal-run hypotheses; all-components presence is not a joint N-best rank or model accuracy. Verified by the fixed 100-sentence source-unit diagnostic and okurigana contracts (#31/#35).
 
 - [native terminal accounting] Process exit 0 can precede a snapshot-contract rejection. Keep the entire rejected snapshot unmeasured, preserve the original report, and continue only hash-bound unattempted requests. Verify requested/attempted/measured/rejected totals separately from runner completion; the 426-request source-unit audit preserved 18 segments and retried 0 inputs (#35).
