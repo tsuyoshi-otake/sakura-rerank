@@ -10,13 +10,13 @@ import unittest
 import numpy as np
 
 from sakura_rerank.data.consumed_numeric import MODEL_FIELDS, LABEL_FIELDS, validate_arrays, verify_chain, tensor_hash
-from sakura_rerank.data.contracts import canonical_json_bytes, canonical_json_hash
+from sakura_rerank.data.contracts import canonical_json_hash
 from sakura_rerank.research_tiny import character_ids
 from sakura_rerank.source_model_inputs import encode_snapshot
 
 from conflict_common import HERE, ROOT, BASE, CACHE, CPU, authenticate, freeze, read, require, rows, save, sha
 from conflict_metrics import CONTEXT_LENGTHS, census, mixture, notation_class
-from source_evidence import provenance, recover
+from source_evidence import provenance, recover, summarize
 
 
 def load_population():
@@ -150,10 +150,11 @@ def run(commit, *, verify=False):
     conflicts = {key: indices for key, indices in buckets.items() if len({labels[i] for i in indices}) > 1}
     positions = sorted(i for indices in conflicts.values() for i in indices)
     require(len(conflicts) == plan['expected_conflicting_groups'] and len(positions) == plan['expected_conflicting_rows'], 'conflict_population')
-    observations, opened, source_summary = recover(cohort, origins, positions, registry, selection)
+    observations, opened, full_source_summary = recover(cohort, origins, range(75000), registry, selection)
+    source_summary = summarize(observations, origins, positions)
     categories = defaultdict(lambda: dict(groups=0, rows=0, minimum_source_mismatches=0))
     group_records, row_records = [], []
-    reading_by_stratum = defaultdict(Counter)
+    reading_by_stratum, all_reading_by_stratum = defaultdict(Counter), defaultdict(Counter)
     for key, indices in sorted(conflicts.items()):
         category = notation_class(cohort[i]['encoder_input']['target'] for i in indices)
         counts = Counter(labels[i] for i in indices)
@@ -166,9 +167,13 @@ def run(commit, *, verify=False):
             notation_class=category, minimum_source_mismatches=loss,
             source_strata=dict(Counter(strata[i] for i in indices)),
             reading_evidence=dict(Counter(observations[i]['reading_evidence'] for i in indices))))
-    for i in positions:
-        reading_by_stratum[strata[i]][observations[i]['reading_evidence']] += 1
+    conflict_positions = set(positions)
+    for i in range(75000):
+        all_reading_by_stratum[strata[i]][observations[i]['reading_evidence']] += 1
+        if i in conflict_positions:
+            reading_by_stratum[strata[i]][observations[i]['reading_evidence']] += 1
         row_records.append(dict(observations[i], input_key=empty[i], raw_input_key=raw_keys[i], stratum=strata[i],
+            in_conflicting_input_group=i in conflict_positions,
             source_label_slot=labels[i], original_row_sha256=ledger[i]['origin']['original_row_sha256'],
             consumption_sha256=ledger[i]['origin']['consumption_sha256']))
     context = []
@@ -189,6 +194,8 @@ def run(commit, *, verify=False):
     summary = dict(kind='consumed_training_conflict_source_diagnosis', status='complete', rows=75000,
         conflicting_groups=2114, conflicting_rows=22080, encoding=encoding, notation_categories=dict(categories),
         source_evidence=source_summary, reading_by_stratum={k: dict(v) for k, v in reading_by_stratum.items()},
+        full_population_source_evidence=full_source_summary,
+        full_population_reading_by_stratum={k: dict(v) for k, v in all_reading_by_stratum.items()},
         context_information_bounds=context, source_mixture=mixing, source_metadata_joins=75000,
         classification_kind='deterministic_source_evidence_not_semantic_review',
         new_fits=0, model_inferences=0, labels_changed=0, accepted_sets_created=0, human_reviews=0, ai_linguistic_reviews=0,
@@ -202,7 +209,7 @@ def run(commit, *, verify=False):
                 and opened == read(ROOT/'opened-sources.json'), 'evidence_replay')
         for path, digest in audit['artifacts'].items(): require(sha(path) == digest, 'audit_artifact_hash')
         result = dict(status='passed', code_commit=commit, audit_sha256=sha(ROOT/'audit.json'),
-            verified_rows=75000, source_spans=22080, groups=2114, independent_context_censuses=16,
+            verified_rows=75000, source_spans=75000, conflict_source_spans=22080, groups=2114, independent_context_censuses=16,
             independent_mixture_censuses=4, source_joins_replayed=True, numeric_hash_algorithm='separate_explicit_bytes',
             limitation='Source parser and literal projection are reused; exact spans, hashes and source outputs replay. No independent linguistic review.',
             elapsed_seconds=round(time.monotonic()-started, 3), forbidden_data_reads=guard.blocked)
@@ -215,7 +222,7 @@ def run(commit, *, verify=False):
         artifacts={str(ROOT/name).replace('\\','/'): sha(ROOT/name) for name in ('groups.json','rows.json','opened-sources.json')},
         elapsed_seconds=round(time.monotonic()-started, 3))
     save(ROOT/'audit.json', result)
-    return dict(status='complete', rows=75000, groups=2114, source_spans=22080, elapsed_seconds=result['elapsed_seconds'])
+    return dict(status='complete', rows=75000, groups=2114, source_spans=75000, elapsed_seconds=result['elapsed_seconds'])
 
 
 def tests():

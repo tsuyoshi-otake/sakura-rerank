@@ -1,4 +1,4 @@
-"""Recover authenticated source facts only for the declared conflict population."""
+"""Recover authenticated source facts for the declared consumed population."""
 from collections import Counter, defaultdict
 import hashlib
 import zipfile
@@ -121,10 +121,16 @@ def recover(cohort, origins, positions, registry, selection):
             state, _ = ruby_state(paragraph, meta['target_start'], meta['target_end'], row['reading'])
             observe(i, paragraph['text'], state, paragraph['source_line_sha256'])
         opened.append(dict(work_key=canonical_json_hash(work), archive_sha256=receipt['archive_sha256'],
-                           decoded_sha256=receipt['decoded_sha256'], conflict_rows=len(by_work[work])))
+                           decoded_sha256=receipt['decoded_sha256'], source_rows=len(by_work[work])))
     require(set(observations) == set(positions), 'source_observation_denominator')
-    summary = dict(rows=len(observations), exact_source_spans=len(observations), wikipedia_paragraphs=len(found),
-                   aozora_works=len(opened), source_terminals=dict(Counter(o['reading_evidence'] for o in observations.values())),
-                   boundary_classes=dict(Counter('/'.join(o['classes'][k] for k in ('left', 'first', 'last', 'right')) for o in observations.values())),
-                   ime_input_units_unresolved=len(observations), semantic_reviews=0, human_reviews=0)
-    return observations, opened, summary
+    return observations, opened, summarize(observations, origins, positions)
+
+
+def summarize(observations, origins, positions):
+    chosen = [observations[i] for i in positions]
+    return dict(rows=len(chosen), exact_source_spans=len(chosen),
+        wikipedia_paragraphs=len({(origins[i]['source_id'],origins[i]['paragraph_index']) for i in positions if origins[i]['corpus']=='jawiki'}),
+        aozora_works=len({origins[i]['source_id'] for i in positions if origins[i]['corpus']=='aozora'}),
+        source_terminals=dict(Counter(o['reading_evidence'] for o in chosen)),
+        boundary_classes=dict(Counter('/'.join(o['classes'][k] for k in ('left','first','last','right')) for o in chosen)),
+        ime_input_units_unresolved=len(chosen), semantic_reviews=0, human_reviews=0)
