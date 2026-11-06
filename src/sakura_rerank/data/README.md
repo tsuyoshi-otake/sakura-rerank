@@ -1,5 +1,15 @@
 # Data boundary tooling
 
+Issue #35's [fixed KNBC format pilot](../../../research/issue-35-knbc-format-pilot/README.md)
+adds `knbc_source.py`: metadata-only reservations and bounded, source-preserving
+annotation parsing. Annotated surface, reading, lemma, grammar, structural lines,
+notes and alternatives stay distinct. ER can occur on structural lines; lemma
+ambiguity is not a reading/IME-label verdict. The complete 100-slot consumption
+ledger, 20 reserved articles and 19 conservative prefix families must enter any
+future history binding, including the failed empty-file slot. This producer grants
+no training/Gold/evaluation admission and does not establish original-surface,
+author, input-boundary or full-history independence. Contracts: `test_knbc_source.py`.
+
 Issue #31's [source-screened recipe](../../../research/issue-31-source-recipe/README.md)
 adds `source_research_recipe.py`. It joins authenticated source decisions to all
 original numeric identities, distinguishes annotation evidence from explicitly

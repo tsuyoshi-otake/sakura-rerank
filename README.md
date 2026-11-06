@@ -10,6 +10,16 @@ candidate generator.
 
 ## Status
 
+The [fixed KNBC format pilot](research/issue-35-knbc-format-pilot/README.md)
+consumed exactly 100 reserved file slots: 99 annotation units and one empty
+annotation file. It preserves 1,479 token field sets. Five correction markers
+occur on phrase/segment lines, while 47 units carry lemma-ambiguity markers;
+these are not measured IME-label errors. Conservative reserved-family exclusions
+leave at most 2,786 sentence candidates for a future one-sentence/one-example
+Test, before quality/history exclusions. All 972 tests pass. The next priority
+is sufficient independent Gold capacity and source/correction correspondence;
+adopted 90.72%, 0.25% safety, Gold and release gates remain unchanged.
+
 The [KNBC source qualification](research/issue-35-knbc-qualification/README.md)
 identifies an independently annotated blog source for a reserved research pilot.
 Its provider describes 249 articles by 81 commissioned writers. The package also
