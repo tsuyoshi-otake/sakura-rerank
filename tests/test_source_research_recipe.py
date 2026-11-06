@@ -20,7 +20,8 @@ def fixture():
         source_kind = 'original_ruby' if i == 3 else 'frozen_unique_dictionary'
         item = dict(stable_id='synthetic-'+str(i), component_id='synthetic-component-'+str(i), corpus=corpus,
                     left_context='synthetic-prefix', reading='かな', target='仮名', candidate_request_id='synthetic-request')
-        origin = dict(group=group, original_row_sha256=canonical_json_hash(['original', i]), reading_provenance=source_kind,
+        origin = dict(group=group, original_row_sha256=canonical_json_hash(['original', i]),
+                      reading_provenance='original_ruby_annotation' if i == 3 else 'frozen_unique_dictionary',
                       training_eligible=False, independent_gold_eligible=False, ime_quality='unresolved')
         row = dict(encoder_input=item, origin=origin,
                    membership=['dictionary', 'annotation'] if i == 0 else [group])
@@ -68,6 +69,11 @@ class RecipeTests(unittest.TestCase):
 
     def test_dictionary_origin_with_actual_annotation_keeps_annotation_tier(self):
         self.assertEqual(self.build()['rows'][1]['tier'], 'original_annotation')
+
+    def test_undocumented_cohort_origin_alias_is_rejected(self):
+        self.cohort[3]['origin']['reading_provenance'] = 'original_ruby'
+        with self.assertRaisesRegex(ValueError, 'source_origin'):
+            self.build()
 
     def test_original_payloads_remain_unchanged(self):
         before = deepcopy((self.cohort, self.pool, self.receipts, self.cache))

@@ -8,7 +8,7 @@ import unittest
 
 from sakura_rerank.data.contracts import canonical_json_hash
 from sakura_rerank.data.source_research_recipe import build_recipe, load_recipe
-from recipe_common import CACHE, HERE, POOL, ROOT, inputs, read, require, save, sha
+from recipe_common import CACHE, PLAN, POOL, ROOT, inputs, read, require, save, sha
 
 
 def bindings(cache):
@@ -34,7 +34,7 @@ def prepare(commit):
     require(guard.blocked == 0, 'forbidden_read')
     save(ROOT/'recipe.json', recipe)
     load_recipe(ROOT/'recipe.json', sha(ROOT/'recipe.json'), expected_bindings=bound, purpose='fit_binding_preparation')
-    result = dict(status='prepared_for_separate_fit_binding', plan_commit=commit, plan_sha256=sha(HERE/'plan-v1.json'),
+    result = dict(status='prepared_for_separate_fit_binding', plan_commit=commit, plan_sha256=sha(PLAN),
         recipe_sha256=sha(ROOT/'recipe.json'), bindings=bound, summary=recipe['summary'], excluded_source_reasons=dict(excluded),
         baseline_source_counts=baseline, numeric_rows_verified=len(receipts), source_rows_verified=len(cohort),
         candidate_scope=plan['candidate_scope'], elapsed_seconds=round(time.monotonic()-started, 3), forbidden_data_reads=guard.blocked,
@@ -47,7 +47,7 @@ def verify(commit):
     started = time.monotonic()
     plan, guard, pool, cohort, receipts, arrays, indices, cache = inputs(commit)
     report = read(ROOT/'preparation.json')
-    require(report['plan_commit'] == commit and report['plan_sha256'] == sha(HERE/'plan-v1.json'), 'preparation_binding')
+    require(report['plan_commit'] == commit and report['plan_sha256'] == sha(PLAN), 'preparation_binding')
     recipe = load_recipe(ROOT/'recipe.json', report['recipe_sha256'], expected_bindings=bindings(cache), purpose='fit_binding_preparation')
     decision_by_input = {d['input_sha256']: d for d in pool['decisions']}
     selected = {arm: [] for arm in indices}

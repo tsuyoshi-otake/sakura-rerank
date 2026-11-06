@@ -5,11 +5,11 @@ from pathlib import Path
 import subprocess
 import sys
 
-from recipe_common import HERE, ROOT, read, require, save, sha
+from recipe_common import HERE, PLAN, ROOT, read, require, save, sha
 
 
 def publish():
-    plan = read(HERE/'plan-v1.json'); prep = read(ROOT/'preparation.json'); proof = read(ROOT/'verification.json')
+    plan = read(PLAN); prep = read(ROOT/'preparation.json'); proof = read(ROOT/'verification.json')
     tests = read(ROOT/'full-tests.json'); targeted = read(ROOT/'targeted-tests.json')
     require(proof['status'] == 'passed' and proof['preparation_sha256'] == sha(ROOT/'preparation.json')
             and prep['recipe_sha256'] == proof['recipe_sha256'] == sha(ROOT/'recipe.json'), 'publication_proof')
@@ -27,7 +27,8 @@ def publish():
     models = read('research/issue-33-loss-balance/evaluation-binding-v1.json')['models']
     for model in models: require(sha(model['path']) == model['sha256'], 'old_checkpoint_changed')
     report = dict(kind='source_screened_research_recipe_report', version=1, issue=31, parent_issue=1, related_issues=[32,33,34,35],
-        status='verified_recipe_preparation_not_fit_or_gold', plan_sha256=sha(HERE/'plan-v1.json'), preparation=prep, verification=proof,
+        status='verified_recipe_preparation_not_fit_or_gold', plan_sha256=sha(PLAN), preparation=prep, verification=proof,
+        preceding_failed_attempt=plan['preceding_failed_attempt'],
         tests=tests, targeted_tests=targeted, static_checks=static, original_integrity=integrity, old_checkpoints_unchanged=len(models),
         current_sakura_input_head=plan['current_sakura_input_head'],
         interpretation=['Source tier is independent of the old extraction arm. Original annotation agreement remains weak source reconstruction, not Japanese or IME-intent certification.',

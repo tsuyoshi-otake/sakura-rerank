@@ -20,6 +20,7 @@ finally:
     sys.path.pop(0)
 
 HERE = Path('research/issue-31-source-recipe')
+PLAN = HERE / 'plan-v2.json'
 attempt = os.environ.get('SAKURA_RECIPE_ATTEMPT', 'attempt-01')
 if not re.fullmatch('attempt-0[1-8]', attempt):
     raise ValueError('recipe_run_attempt_bound')
@@ -64,6 +65,11 @@ def freeze():
     paths = [COHORT, NUMERIC, SOURCE_REPORT, OLD_FIT]
     paths += [POOL / name for name in ('manifest.json', 'decisions.jsonl.gz', 'prepared-rows.jsonl.gz')]
     paths += [CACHE / name for name in ('manifest.json', 'row-receipts.jsonl', 'arrays.npz', 'cohort-indices.json')]
+    failed_terminal = Path('data/generated/issue-31-source-recipe-v1/attempt-01/prepare-terminal.json')
+    paths += [HERE/'plan-v1.json', failed_terminal]
+    diagnosis = read('.codex/goal-loop/issue-31-source-recipe/origin-diagnosis.json')
+    require(diagnosis['status'] == 'root_cause_verified' and diagnosis['rows'] == 75000
+            and diagnosis['counts']['producer_contract_mapping_mismatch'] == 0, 'origin_mapping_diagnosis')
     source = read(SOURCE_REPORT)
     require(source['verification']['status'] == 'passed'
             and source['verification']['pool_manifest_sha256'] == sha(POOL/'manifest.json'), 'source_proof')
@@ -79,10 +85,14 @@ def freeze():
                 code.add(path.relative_to(workspace))
     head = subprocess.check_output(['git', '-C', '../sakura-input', 'rev-parse', 'HEAD'], text=True, timeout=30).strip()
     require(not subprocess.check_output(['git', '-C', '../sakura-input', 'status', '--porcelain'], timeout=30), 'dirty_sakura_input')
-    plan = dict(kind='source_screened_research_recipe_plan', version=1, issue=31, parent_issue=1,
+    plan = dict(kind='source_screened_research_recipe_plan', version=2, issue=31, parent_issue=1,
         created_at_utc=datetime.now(timezone.utc).isoformat(), parent_commit='ac526495f507d7708e45db385d9b7e0b7816e33e',
         inputs={p.as_posix(): sha(p) for p in paths}, code={p.as_posix(): sha(p) for p in sorted(code)},
         population_rows=75000, original_rows_per_arm=50000, allow_dictionary_only=True,
+        preceding_failed_attempt=dict(attempt='attempt-01', commit='62de972858d53dd61478eb5f710a2614bec440ce',
+            plan_sha256=sha(HERE/'plan-v1.json'), terminal_sha256=sha(failed_terminal),
+            cause='Distinct documented origin enums were compared literally. All75000 original-row hashes and flags agree; the25000 annotation names require the exact original_ruby_annotation to original_ruby mapping.',
+            trusted_recipe_published=False, policy_population_and_thresholds_unchanged=True),
         selection='Keep unchanged source-annotation matches and explicitly weak dictionary-only rows. Exclude every contradictory/uncertain source decision; do not repair or resample. Join by complete source input hash, preserving numeric order, original components and all excluded history.',
         metrics=['all original/selected/excluded rows by arm, source tier and reason', 'baseline-source-match counts before/after/excluded, descriptive training statistics only', 'full identity, receipt and numeric tensor joins'],
         candidate_scope='The existing consumed cache was already selected for literal Top6 labels. It cannot estimate unfiltered source candidate coverage.',
@@ -95,12 +105,12 @@ def freeze():
         new_fits=0, model_inferences=0, native_requests=0, original_labels_changed=0, training_admission=False,
         gold_admission=False, threshold_selection=False, calibration=False, final_test=False, production_change=False,
         safety_limit=.0025, gold_requirements=source['gold_requirements'])
-    save(HERE/'plan-v1.json', plan)
+    save(PLAN, plan)
     return dict(status='frozen', inputs=len(paths), code_files=len(code), rows=75000)
 
 
 def inputs(commit):
-    plan = json.loads(committed(HERE/'plan-v1.json', commit))
+    plan = json.loads(committed(PLAN, commit))
     guard = fit.TrainingReadGuard(Path.cwd(), plan['inputs'], ROOT)
     sys.addaudithook(guard)
     for path, digest in {**plan['inputs'], **plan['code']}.items(): require(sha(path) == digest, 'artifact_changed')

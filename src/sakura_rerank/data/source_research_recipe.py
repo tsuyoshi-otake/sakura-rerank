@@ -23,6 +23,8 @@ TIERS = {'ready_original_annotation': 'original_annotation',
          'pending_annotation_reading': 'pending'}
 GROUPS = {'jawiki_dictionary': ['dictionary', 'annotation'],
           'aozora_dictionary': ['dictionary'], 'aozora_annotation': ['annotation']}
+READING_ORIGINS = {'frozen_unique_dictionary': 'frozen_unique_dictionary',
+                   'original_ruby_annotation': 'original_ruby'}
 ROW_FIELDS = {'index', 'source_input_sha256', 'component_id', 'group', 'source_terminal',
               'tier', 'status', 'source_decision_sha256', 'numeric_receipt_sha256',
               'input_tensor_sha256', 'label_tensor_sha256'}
@@ -126,7 +128,7 @@ def build_recipe(cohort, source_pool, receipts, *, source_manifest_sha256,
                 and origin['ime_quality'] == 'unresolved', 'cohort_admission')
         require(decision['training_eligible'] is False and decision['independent_gold_eligible'] is False
                 and decision['source']['original_row_sha256'] == origin['original_row_sha256']
-                and decision['source']['origin_kind'] == origin['reading_provenance'], 'source_origin')
+                and decision['source']['origin_kind'] == READING_ORIGINS.get(origin['reading_provenance']), 'source_origin')
         group = item['corpus'] + '_' + origin['group']
         require(group in GROUPS and row['membership'] == GROUPS[group], 'cohort_membership')
         require(type(receipt['index']) is int and receipt['index'] == i
