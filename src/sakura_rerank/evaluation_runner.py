@@ -77,7 +77,7 @@ def score_sealed_outputs(payload):
                                 for key, item in spec["observations"].items()}, spec["completed"])
             for name, spec in sealed["runs"].items()}
     comparisons = [tuple(pair) for pair in experiment["comparisons"]]
-    contract = {"candidate_contract":"native_full_population_v1"} if experiment["version"]==4 else {}
+    contract = {"candidate_contract":"native_full_population_v1"} if experiment["version"]>=4 else {}
     report = evaluate_runs(cases, runs, comparisons=comparisons, **contract)
     dual_reference = experiment["version"] >= 2
     converter_reference = evaluate_runs(cases, runs, comparisons=comparisons, reference_baseline="converter_top1", **contract) if dual_reference else None
@@ -174,9 +174,12 @@ def run_evaluation(*, artifact_root: Path, plan_path: Path, expected_plan_sha256
             sealed["product_policy_facts"] = [row["product_state"] for row in cases]
         if experiment["version"] >= 3:
             sealed["native_projection_bindings"] = [row["native_binding"] for row in cases]
-        if experiment["version"] == 4:
+        if experiment["version"] >= 4:
             sealed.update(version=2, candidate_contract="native_full_population_v1",
                           full_candidate_counts=[len(row["input"]["candidates"]) for row in cases])
+        if experiment["version"] == 5:
+            from .native_paths import CONTRACT
+            sealed.update(version=3,path_contract=CONTRACT)
         seal_hash = _seal(registry / ("observations-" + access.reservation_sha256 + ".json"), sealed)
         metric_rows = [{"case_key": row["case_key"], "component_key": row["component_key"],
                         "candidates": [c["surface"] for c in row["input"]["candidates"]], "gold": row["gold"], "tags": row["tags"]}

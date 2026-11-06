@@ -132,7 +132,7 @@ def runtime_identity() -> dict:
     files = ("evaluation_worker.py", "evaluation_runner.py", "evaluation_payload.py",
              "evaluation_admission.py", "evaluation_metrics.py", "evaluation_statistics.py",
              "source_model_inputs.py", "research_tiny.py", "research_tiny_r2.py", "data/contracts.py", "current_tiny.py",
-             "native_snapshot.py")
+             "native_snapshot.py", "native_paths.py", "native_path_inputs.py")
     versions = {}
     for package in ("numpy", "onnxruntime"):
         try:
@@ -211,9 +211,11 @@ def gru_factory(artifacts: Mapping[str, bytes], feature_width: int):
 
 def default_adapters() -> dict[str, Adapter]:
     from .current_tiny import current_factory, native_current_factory, validate_current
+    from .native_path_inputs import native_gru_factory
     return {"tiny-gru-onnx-v1": Adapter(gru_factory, validate_gru),
             "current-tiny-protocol-v1": Adapter(current_factory, validate_current),
-            "current-tiny-native-population-v1": Adapter(native_current_factory, validate_current)}
+            "current-tiny-native-population-v1": Adapter(native_current_factory, validate_current),
+            "native-path-tiny-gru-v1": Adapter(native_gru_factory, validate_gru)}
 
 
 def _quiet_child() -> None:

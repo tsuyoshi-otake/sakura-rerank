@@ -9,7 +9,8 @@ from types import MappingProxyType
 from .data.contracts import canonical_json_bytes, validate_conversion_candidates
 from .current_tiny import HEAD, POLICY, current_factory, native_current_factory, snapshot_policy, validate_policy_facts
 from .evaluation_worker import gru_factory, runtime_identity
-from . import native_snapshot
+from . import native_snapshot, native_paths
+from .native_path_inputs import native_gru_factory
 
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 NAME = re.compile(r"[a-z][a-z0-9-]{0,47}\Z")
@@ -70,14 +71,16 @@ def prepare(snapshot, plan_bytes, adapters):
     plan = document(plan_bytes)
     data = plan["data"]
     experiment = typed_document(snapshot[data["experiment"]], "evaluation_execution_plan",
-                                 {"runtime", "models", "primary", "comparisons", "slices", "limits"}, versions=(1, 2, 3, 4))
+                                 {"runtime", "models", "primary", "comparisons", "slices", "limits"}, versions=(1, 2, 3, 4, 5))
     product = experiment["version"] >= 2
     captured = experiment["version"] >= 3
-    full_population = experiment["version"] == 4
+    full_population = experiment["version"] >= 4
+    path_features = experiment["version"] == 5
     if product:
         policy_factory = native_snapshot.evaluation_policy if captured else snapshot_policy
-        expected_policy = policy_factory(plan["artifacts"][data["provenance"]]["sha256"],
-                                         **({"full_population":True} if full_population else {}))
+        provenance_sha = plan["artifacts"][data["provenance"]]["sha256"]
+        expected_policy = (native_paths.evaluation_policy(provenance_sha) if path_features else
+                           policy_factory(provenance_sha, **({"full_population":True} if full_population else {})))
         require(canonical_json_bytes(document(snapshot[data["policy"]])) == canonical_json_bytes(expected_policy),
                 "native snapshot policy/provenance binding differs")
     require(experiment["runtime"] == runtime_identity(), "runtime differs from the frozen experiment")
@@ -125,7 +128,9 @@ def prepare(snapshot, plan_bytes, adapters):
         require(adapter.factory is not current_factory or not full_population,
                 "legacy current adapter cannot consume the full native text contract")
         require(adapter.factory is not native_current_factory or (full_population and name == "current_tiny"),
-                "native current adapter requires schema4")
+                "native current adapter requires full native population")
+        require(adapter.factory is not native_gru_factory or (path_features and name != "current_tiny"),
+                "native research adapter requires captured path features")
         require(adapter.factory not in (current_factory,native_current_factory) or limits["request_seconds"] <= .4,
                 "current protocol request deadline widened")
         require(adapter.identity() == spec["adapter_identity"], "adapter identity differs")
@@ -193,16 +198,17 @@ def read_cohort(raw, prepared):
                 and request["context_policy"] == "sakura_input_committed_same_session", "untrusted or unbounded context")
         try:
             context.encode("utf-8", errors="strict")
-            candidates = (native_snapshot.validate_population_input(request) if version==4
+            candidates = (native_paths.validate_input(request) if version==5 else
+                          native_snapshot.validate_population_input(request) if version==4
                           else validate_conversion_candidates(request["reading"], request["candidates"]))
         except Exception:
             raise RunnerError("native candidate or text contract invalid") from None
         gold = row["gold"]
-        require(isinstance(gold, str) and 1 <= len(gold) <= (native_snapshot.MAX_TEXT_BYTES if version==4 else 256),
+        require(isinstance(gold, str) and 1 <= len(gold) <= (native_snapshot.MAX_TEXT_BYTES if version>=4 else 256),
                 "Gold surface outside bound")
         try:
             gold.encode("utf-8", errors="strict")
-            if version==4:
+            if version>=4:
                 native_snapshot.validate_native_text(gold)
         except UnicodeError:
             raise RunnerError("invalid Gold text encoding") from None
@@ -216,8 +222,9 @@ def read_cohort(raw, prepared):
                          if version >= 2 else {})
         if version >= 3:
             require(row["case_key"] in prepared["native_commitments"], "native case commitment missing")
-            receipt, identity = native_snapshot.bind_evaluation_case(row, prepared["native_commitments"][row["case_key"]],
-                                                                    full_population=version==4)
+            commitment = prepared["native_commitments"][row["case_key"]]
+            receipt, identity = (native_paths.bind_evaluation_case(row,commitment) if version==5 else
+                                 native_snapshot.bind_evaluation_case(row,commitment,full_population=version==4))
             require(identity not in native_identities, "native session snapshot replayed")
             native_identities.add(identity)
             product_state["native_binding"] = receipt

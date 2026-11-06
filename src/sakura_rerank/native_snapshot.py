@@ -201,6 +201,15 @@ def verify_capture(plan_raw,result_raw,capture_raw,*,expected_plan_sha256,expect
     require(0<len(lines)<=MAX_EVENTS and len(lines)==result.get('fixture_count')==plan.get('expected_fixture_count'),
             'native event denominator differs')
     values=[inspect_event(_document(line)) for line in lines]
+    return verify_event_population(values,plan,result)
+
+
+def verify_event_population(values,plan,result):
+    """Shared ordered/paired population contract after artifact authentication."""
+    integer(plan.get('expected_fixture_count'),1,MAX_EVENTS)
+    for key in ('fixture_count','capture_count','applied'):integer(result.get(key),0,MAX_EVENTS)
+    require(0<len(values)<=MAX_EVENTS and len(values)==result['fixture_count']==plan['expected_fixture_count'],
+            'native event denominator differs')
     require([v['fixture'] for v in values]==list(range(len(values))), 'native event ordering or replay differs')
     require(sum(v['status']=='captured' for v in values)==result.get('capture_count')
             and sum(v.get('applied',False) for v in values)==result.get('applied'), 'native reported totals differ')

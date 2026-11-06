@@ -10,6 +10,14 @@ candidate generator.
 
 ## Status
 
+The [native path adapter](research/issue-35-native-paths/README.md) records real
+pre-fusion path edges for the unchanged v1/r2/#29 feature definitions. Schema5
+binds all path facts before inference.62 controlled native executions retain60
+snapshots/1178 candidates/2046 edges; the original50-event behavior is unchanged.
+All1064 tests pass. Three fixed models match30780 input scalars and540 scores
+across180 CPU requests. This establishes projection parity, not accuracy or release;
+independent Gold/calibration/Test and live native/session/resource Gates remain.
+
 The [full native evaluation contract](research/issue-35-native-population/README.md)
 retains up to768 candidates and1536 UTF-8 bytes per reading/surface, with a separate
 six-candidate model prefix. Schema4 binds all48 prior snapshots/924 candidates,

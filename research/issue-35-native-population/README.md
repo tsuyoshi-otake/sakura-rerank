@@ -106,6 +106,11 @@ recovery receipts, prove process exit, then remove owned TEMP roots.
 
 ## Remaining release work and IRV
 
+The subsequent [schema5 native-path work](../issue-35-native-paths/README.md)
+captures pre-fusion edge metadata and connects a separate fixed-model adapter.
+Its controlled input/score parity addresses the feature-provenance task below;
+unsupported post-path transformations and live-session coverage remain explicit.
+
 Benefit is a complete denominator and faithful tail fallback, not a predicted
 accuracy gain. Cost is one prior-capture replay, a small Rust projection build,
 40 synthetic-input model requests and contract tests. Adoption stays90.72%.

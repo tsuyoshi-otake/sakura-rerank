@@ -1,5 +1,12 @@
 # Data boundary tooling
 
+Issue #35's [native path features](../../../research/issue-35-native-paths/README.md)
+adds schema5 with exact pre-fusion raw edges. Native construction supplies source
+kinds/UTF-8 boundaries; display counts and evidence tags never substitute for them.
+`native_paths` validates whole input/path identity before inference;
+`native_path_inputs` preserves frozen historical model math. This grants no
+training/exporter identity, independent Gold or final-Test admission.
+
 Issue #35's [full native population](../../../research/issue-35-native-population/README.md)
 adds evaluation schema4:1–768 candidates and1536 UTF-8 bytes per reading/surface,
 using observed native fields only. Full and model-prefix counts are sealed
