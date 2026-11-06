@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #31's [original-reading reconstruction](../../../research/issue-31-reading-rebuild/README.md)
+adds `source_reading_rebuild.py`. Only an authenticated exact original-ruby
+contradiction can derive a new reading/identity; target, context, component and
+parent provenance remain. Out-of-bound readings stay pending. Children pass the
+strict source gate and remain research-only, without fitting/Gold permission.
+Candidate execution and numeric exposure are separately bound because changing
+reading changes both input equality and candidate availability. Contracts are
+`tests/test_source_reading_rebuild.py`; original rows and extractors are unchanged.
+
 Issue #31's [reading-consistency preparation](../../../research/issue-31-reading-consistency/README.md)
 adds `source_reading_gate.py`. New preparation recomputes exact original-span/ruby
 evidence; conflicts and uncertain annotations stay pending. Missing annotation is
