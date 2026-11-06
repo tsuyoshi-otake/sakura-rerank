@@ -10,6 +10,17 @@ candidate generator.
 
 ## Status
 
+The [fixed three-model source comparison](research/issue-35-source-models/README.md)
+finds no demonstrated improvement in adopted accuracy. On the same 1,228 observed
+source parts, ungated v1/r2/#29 gain 7/18/11 source matches and lose 14/19/14;
+published gates each gain one and lose zero. Original surfaces are available in
+Top-6 for 292 baseline mismatches, so substantial ranking headroom remains.
+All 1,000 sentence slots, including 43 with unmeasured parts or invalid source
+inputs, remain reported. All 769 tests pass; CPU scores and 152 conditional
+component intervals are directly reproduced. This is source reconstruction,
+not independent Japanese correctness. No retraining or new model adoption;
+90.72%, 0.25% safety, Gold requirements and final-Test restrictions are unchanged.
+
 The [prospective continuous-source cohort](research/issue-35-source-consumption/README.md)
 reserves 1,000 further Tatoeba sentences before decoding text. Continuous input
 ranges are available for 966; 34 remain explicit source failures. All 1,230 native

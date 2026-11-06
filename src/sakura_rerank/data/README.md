@@ -1,5 +1,15 @@
 # Data boundary tooling
 
+Issue #35's [fixed source-model comparison](../../../research/issue-35-source-models/README.md)
+projects authenticated candidates into eight label-free inputs with empty observed
+session context. `source_model_inputs.py` preserves the legacy 32-character prefix
+and masks one to six actual candidates; six is padded capacity, not required count.
+The research score adapter applies the published gates only after all fixed model
+outputs are sealed. Source targets stay in a separate evaluator sidecar. All source
+and native failures remain in the full denominator; this path admits no training,
+Gold, calibration or final Test. Contracts are `test_source_model_inputs.py` and
+`test_source_model_decisions.py`.
+
 Issue #35's [prospective source consumption](../../../research/issue-35-source-consumption/README.md)
 adds `tatoeba_consumption.py`: metadata-only reservation before decoding, exact
 continuous extents, empty observed-session context and explicit failed slots.
