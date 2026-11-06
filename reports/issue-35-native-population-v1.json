@@ -1,0 +1,238 @@
+{
+  "kind": "native_population_verification",
+  "version": 1,
+  "source_head": "bcf42d3ad931c6e081ae4b3fbd4d0e6cd9377d88",
+  "base_commit": "e73b86378077a4561ec2220fff31972bf4c54941",
+  "execution_schema_version": 4,
+  "candidate_contract": "native_full_population_v1",
+  "native_capacity": {
+    "candidates": 768,
+    "text_utf8_bytes": 1536,
+    "model_slots": 6
+  },
+  "safety_references": [
+    "converter_top1",
+    "native_local_selection"
+  ],
+  "safety_limit": 0.0025,
+  "adopted_accuracy": 0.9072,
+  "accuracy_improvement_demonstrated": false,
+  "independent_gold_certified": false,
+  "gold_trust_entries": 0,
+  "real_test_used": false,
+  "release_eligible": false,
+  "retraining": false,
+  "production_edits": false,
+  "native_capture_replay": {
+    "above_legacy32": 2,
+    "bindings_sha256": "2c79b3917e60554db4fbe9d6a6ef514dae5faf2b1e3beb2aeb904e5c009c028c",
+    "bound_snapshots": 48,
+    "candidate_records": 924,
+    "events": 50,
+    "maximum_candidates": 108,
+    "no_conversion_events": 2
+  },
+  "projection": {
+    "projection_cases": 23,
+    "rejected_candidate_counts": 3,
+    "tensor_scalar_elements": 6760,
+    "tensor_byte_equal": true,
+    "actual_model_requests": 40,
+    "output_scores_compared": 120,
+    "cpu_score_equal": true,
+    "model_sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+    "binary_sha256": "fd3c05ddc5a1ff4de7f9cb517da9c5800af3001e3dcc84a3432f9c667680c9aa",
+    "native_execution": "extracted_native_projection_with_test_backend; no live native ONNX worker"
+  },
+  "attempts": [
+    {
+      "label": "a",
+      "plan_sha256": "e63566a8cb44b3c8a6aa4e569a5e259419c939666b6ac0134d416748e95ded59",
+      "result_sha256": "717d82a7c40b06c4f6509136d0ad18d858f33c8310fe9e9f6ec7b0c6e709f5e1",
+      "status": "failed"
+    },
+    {
+      "label": "b",
+      "plan_sha256": "0779e14c1d7e212e01deb61dce99e54ed6b10628ba8b4a0ee14da28c14a69759",
+      "result_sha256": "f0019644af2079e54e735c67b11780e070e43d6a1a6f505ae6a5a669d0f42d68",
+      "status": "passed"
+    }
+  ],
+  "initial_failure": "Historical diagnostic reader limited text to1024 bytes; production capacity1536. Exact private reader replacement; original harness/source unchanged.",
+  "synthetic_integration": {
+    "cases": 3000,
+    "candidates": 9874,
+    "maximum_candidates": 768,
+    "adapters": 4,
+    "variants": 7,
+    "model_requests": 5992,
+    "sealed_bindings": 3000,
+    "full_oracle": 2999,
+    "prefix_oracle": 2997,
+    "not_accuracy_evidence": true
+  },
+  "verification": {
+    "tests": {
+      "tests": 1051,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true
+    },
+    "new_tests": 14,
+    "full_elapsed_seconds": 56.466,
+    "outer_timeout_seconds": 600,
+    "python_files": [
+      {
+        "path": "src/sakura_rerank/current_tiny.py",
+        "sha256": "aaa3f5a89869f07b8d2822760b9f1334f18d9ce96596d990b4fbc8f6084216e2",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_metrics.py",
+        "sha256": "fef22e0d0f3f40ad5af192e499b261ff93d0f1a3e172bd6c17510cbcc3879f6f",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_payload.py",
+        "sha256": "ac9ecf2ee4c5fa3bad65b8980a09b7f632ae092ef30f975f6ca4e80e785423ea",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_runner.py",
+        "sha256": "cf4cf01b917d22fec81ac954650c844506eb9a370edcce053ff6f12b11279ca0",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_worker.py",
+        "sha256": "b0c01aaefb69a9d0b57922cba950eb54079f8ae130e9878e8b31a85865be504e",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/native_snapshot.py",
+        "sha256": "db247806ae2ddd7b12019f1b5137e880c0ee566de231cc04795df97ff2937ef3",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_native_population.py",
+        "sha256": "e86af2c698d3bdabd78aa5fb656082bead3c4ba5643e502308a01701f236ecd6",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_native_population_evaluation.py",
+        "sha256": "12486bc4193f9454e6fe3481efe76fa6daad500634cfded08d2974c0d6f56db6",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-35-native-population/verify.py",
+        "sha256": "56f3416815b87da974d0bf91f1e9cf5ec0d49daa597482bc85faa7e590d312e2",
+        "syntax": true,
+        "unused_imports": []
+      }
+    ],
+    "formal_type_checker_run": false,
+    "working_agent_direct": true,
+    "external_review": false,
+    "original_artifacts_unchanged": 16,
+    "bound_fit_artifacts_unchanged": 25,
+    "checkpoints_unchanged": 10,
+    "prior_reports_unchanged": 5,
+    "recorded_processes_exited": 13,
+    "matching_processes_remaining": 0
+  },
+  "cleanup": {
+    "status": "passed",
+    "roots_absent": 3,
+    "files": 26,
+    "bytes": 3120305,
+    "elapsed_seconds": 0.008
+  },
+  "runtime": {
+    "packages": {
+      "numpy": "2.3.5",
+      "onnxruntime": "1.23.2"
+    },
+    "python": "3.13.13",
+    "sources": {
+      "current_tiny.py": "aaa3f5a89869f07b8d2822760b9f1334f18d9ce96596d990b4fbc8f6084216e2",
+      "data/contracts.py": "2fe8138c79bba22d6824109af3b1ec9b49438425f9aba3b3a32c0c8561e8d344",
+      "evaluation_admission.py": "0a7712fd3dde37f5fe632ac3f9730d76b8fae1996bf910fd93ffd367ad0bbd48",
+      "evaluation_metrics.py": "fef22e0d0f3f40ad5af192e499b261ff93d0f1a3e172bd6c17510cbcc3879f6f",
+      "evaluation_payload.py": "ac9ecf2ee4c5fa3bad65b8980a09b7f632ae092ef30f975f6ca4e80e785423ea",
+      "evaluation_runner.py": "cf4cf01b917d22fec81ac954650c844506eb9a370edcce053ff6f12b11279ca0",
+      "evaluation_statistics.py": "17dc12219e30af2baa565109b2009ab25e15b0e6e92d2a91b3d9e50819b4fe5f",
+      "evaluation_worker.py": "b0c01aaefb69a9d0b57922cba950eb54079f8ae130e9878e8b31a85865be504e",
+      "native_snapshot.py": "db247806ae2ddd7b12019f1b5137e880c0ee566de231cc04795df97ff2937ef3",
+      "research_tiny.py": "a7ca1007ad2981f3008fa9363723f3d5c232213208ee0a4a9f89e572af3b2035",
+      "research_tiny_r2.py": "c2ede3575722b0cda97e0da52a04f42c2402db9cf12aec077d63993f09a95f66",
+      "source_model_inputs.py": "2070cf2cadd1e92067af2241d9cb3d9e869309560e400cd22baf34ce56c5a687"
+    },
+    "system": "Windows"
+  },
+  "native_sources": {
+    "LICENSE": {
+      "bytes": 1082,
+      "sha256": "aeedc4ef393103e90ea3e28a82133406f5a97f267f7d5adc8e4484f662162d6d"
+    },
+    "crates/sakura-core/src/conversion/evidence.rs": {
+      "bytes": 10727,
+      "sha256": "d1c3ceebc62a52e110b3925644427412cb85c5bc194a8c4edbf7b10c84f6c37f"
+    },
+    "crates/sakura-core/src/input_repair.rs": {
+      "bytes": 40626,
+      "sha256": "3a87e6e89a0df4063f5a7519ce97b06b37c83ef9fef580b15ddacaf61c55176f"
+    },
+    "crates/sakura-engine/src/dispatch.rs": {
+      "bytes": 285861,
+      "sha256": "6f60c38bedd4b7040b79ddb39bbc87951e418e3b9a77bff818afcc79278c70ea"
+    },
+    "crates/sakura-engine/src/long_conversion.rs": {
+      "bytes": 27376,
+      "sha256": "2ed17e2cabf1fab0dd35cfdbc3186c84abafce514beacbc9dbc8551a963e2ef3"
+    },
+    "crates/sakura-neural-worker/src/protocol.rs": {
+      "bytes": 9066,
+      "sha256": "98e2646403387d734f2c51f150835b5b41fc6501f6bd11f92965b161a716583a"
+    },
+    "crates/sakura-neural-worker/src/sakura_runtime.rs": {
+      "bytes": 16185,
+      "sha256": "f479d67378476bc66c24f863dae6c936332fb66968bcce93225985558b806ccf"
+    },
+    "crates/sakura-neural-worker/src/sakura_scorer.rs": {
+      "bytes": 8285,
+      "sha256": "212c065bfbf73ac9663dbd7b80e5eacb2526685cc1a2119b62151597c4b9c9e3"
+    },
+    "models/sakura-rerank-tiny-v1/model.onnx": {
+      "bytes": 7466707,
+      "sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd"
+    },
+    "models/sakura-rerank-tiny-v1/research-manifest.json": {
+      "bytes": 2866,
+      "sha256": "07f1c54cbe361e117b547f47511de960977f1d0f754f051f44b9447a591d96b9"
+    }
+  },
+  "compiler": {
+    "toolchain": "1.96.0-x86_64-pc-windows-msvc",
+    "version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "rustc_sha256": "acb138286bbe20c6cf3ec39a7e0a68c3fab0cd949baa2912cf466514d0d531ab",
+    "linker_sha256": "359b5861060b8b8899a1ef87385a37b32d8ecb8a81d092866907e7249ab962be",
+    "libraries_sha256": "c945c430a51d805f1c9d2d0ef97138ad21150acec0a0e6a4c3b1173f596a27c8",
+    "stdlib_sha256": "fdc51454267e02ed2d1ab12d319b685ff92756da30b6ed8880c8d662c5e2596a"
+  },
+  "recovery_handle": ".codex/goal-loop/issue-35-native-population",
+  "remaining": [
+    "exact historical per-edge feature provenance and adapters",
+    "visible selection and commit normalization",
+    "live native worker/session/resource/deployment evidence",
+    "independent Gold and calibration",
+    "frozen single-use final Test and release Gates"
+  ]
+}

@@ -7,8 +7,10 @@ import re
 from types import MappingProxyType
 
 from .data.contracts import canonical_json_bytes, validate_conversion_candidates
-from .current_tiny import HEAD, POLICY, current_factory, snapshot_policy, validate_policy_facts
+from .current_tiny import HEAD, POLICY, current_factory, native_current_factory, snapshot_policy, validate_policy_facts
 from .evaluation_worker import gru_factory, runtime_identity
+from . import native_snapshot, native_paths
+from .native_path_inputs import native_gru_factory
 
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 NAME = re.compile(r"[a-z][a-z0-9-]{0,47}\Z")
@@ -69,10 +71,16 @@ def prepare(snapshot, plan_bytes, adapters):
     plan = document(plan_bytes)
     data = plan["data"]
     experiment = typed_document(snapshot[data["experiment"]], "evaluation_execution_plan",
-                                 {"runtime", "models", "primary", "comparisons", "slices", "limits"}, versions=(1, 2))
-    product = experiment["version"] == 2
+                                 {"runtime", "models", "primary", "comparisons", "slices", "limits"}, versions=(1, 2, 3, 4, 5))
+    product = experiment["version"] >= 2
+    captured = experiment["version"] >= 3
+    full_population = experiment["version"] >= 4
+    path_features = experiment["version"] == 5
     if product:
-        expected_policy = snapshot_policy(plan["artifacts"][data["provenance"]]["sha256"])
+        policy_factory = native_snapshot.evaluation_policy if captured else snapshot_policy
+        provenance_sha = plan["artifacts"][data["provenance"]]["sha256"]
+        expected_policy = (native_paths.evaluation_policy(provenance_sha) if path_features else
+                           policy_factory(provenance_sha, **({"full_population":True} if full_population else {})))
         require(canonical_json_bytes(document(snapshot[data["policy"]])) == canonical_json_bytes(expected_policy),
                 "native snapshot policy/provenance binding differs")
     require(experiment["runtime"] == runtime_identity(), "runtime differs from the frozen experiment")
@@ -96,6 +104,8 @@ def prepare(snapshot, plan_bytes, adapters):
     require(sampling["independent_unit"] in {"conversion_request", "source_component", "session", "source_author"}
             and isinstance(sampling["dependence_evidence_sha256"], str)
             and SHA.fullmatch(sampling["dependence_evidence_sha256"]), "sampling evidence declaration missing")
+    native_commitments = (native_snapshot.validate_provenance(document(snapshot[data["provenance"]]), sampling["test_count"])
+                          if captured else None)
     models = experiment["models"]
     require(isinstance(models, list) and len(models) == len(plan["models"]), "model family differs")
     names, run_names, resolved = set(), set(), []
@@ -111,9 +121,17 @@ def prepare(snapshot, plan_bytes, adapters):
         # Reject this known-incompatible factory regardless of registry alias.
         require(name != "current_tiny" or adapter.factory is not gru_factory,
                 "research score adapter does not implement current product policy")
+        require(not captured or adapter.factory is not gru_factory,
+                "native captures do not establish legacy GRU per-edge features")
         require(adapter.factory is not current_factory or (product and name == "current_tiny"),
                 "current product adapter requires the product-policy experiment")
-        require(adapter.factory is not current_factory or limits["request_seconds"] <= .4,
+        require(adapter.factory is not current_factory or not full_population,
+                "legacy current adapter cannot consume the full native text contract")
+        require(adapter.factory is not native_current_factory or (full_population and name == "current_tiny"),
+                "native current adapter requires full native population")
+        require(adapter.factory is not native_gru_factory or (path_features and name != "current_tiny"),
+                "native research adapter requires captured path features")
+        require(adapter.factory not in (current_factory,native_current_factory) or limits["request_seconds"] <= .4,
                 "current protocol request deadline widened")
         require(adapter.identity() == spec["adapter_identity"], "adapter identity differs")
         require(type(spec["feature_width"]) is int and 0 <= spec["feature_width"] <= 64, "invalid feature width")
@@ -157,7 +175,7 @@ def prepare(snapshot, plan_bytes, adapters):
             "baseline or current-Tiny comparison missing")
     require(3 + 2 * len(run_names) + len(pairs) <= 64, "comparison family exceeds bootstrap budget")
     return {"plan": plan, "experiment": experiment, "sampling": sampling,
-            "quality": quality, "models": resolved}
+            "quality": quality, "models": resolved, "native_commitments": native_commitments}
 
 
 def read_cohort(raw, prepared):
@@ -165,9 +183,10 @@ def read_cohort(raw, prepared):
     value = typed_document(raw, "evaluation_cohort", {"cases"}, versions=(version,))
     rows = value["cases"]
     require(isinstance(rows, list) and len(rows) == prepared["sampling"]["test_count"], "Test population count differs")
-    keys, components, normalized = set(), set(), []
+    keys, components, normalized, native_identities = set(), set(), [], set()
     for row in rows:
-        fields(row, {"case_key", "component_key", "input", "gold", "tags"} | ({"product_state"} if version == 2 else set()))
+        fields(row, {"case_key", "component_key", "input", "gold", "tags"}
+               | ({"product_state"} if version >= 2 else set()) | ({"native_capture"} if version >= 3 else set()))
         require(all(isinstance(row[key], str) and SHA.fullmatch(row[key]) for key in ("case_key", "component_key")),
                 "invalid case/component identity")
         require(row["case_key"] not in keys, "duplicate case identity")
@@ -179,13 +198,18 @@ def read_cohort(raw, prepared):
                 and request["context_policy"] == "sakura_input_committed_same_session", "untrusted or unbounded context")
         try:
             context.encode("utf-8", errors="strict")
-            candidates = validate_conversion_candidates(request["reading"], request["candidates"])
+            candidates = (native_paths.validate_input(request) if version==5 else
+                          native_snapshot.validate_population_input(request) if version==4
+                          else validate_conversion_candidates(request["reading"], request["candidates"]))
         except Exception:
             raise RunnerError("native candidate or text contract invalid") from None
         gold = row["gold"]
-        require(isinstance(gold, str) and 1 <= len(gold) <= 256, "Gold surface outside bound")
+        require(isinstance(gold, str) and 1 <= len(gold) <= (native_snapshot.MAX_TEXT_BYTES if version>=4 else 256),
+                "Gold surface outside bound")
         try:
             gold.encode("utf-8", errors="strict")
+            if version>=4:
+                native_snapshot.validate_native_text(gold)
         except UnicodeError:
             raise RunnerError("invalid Gold text encoding") from None
         tags = row["tags"]
@@ -195,7 +219,15 @@ def read_cohort(raw, prepared):
         context_tag = "context-empty" if not context else "context-64" if len(context) == 64 else "context-1-63"
         require(set(tags) & {"context-empty", "context-1-63", "context-64"} == {context_tag}, "context slice differs")
         product_state = ({"product_state": validate_policy_facts(row["product_state"], len(candidates))}
-                         if version == 2 else {})
+                         if version >= 2 else {})
+        if version >= 3:
+            require(row["case_key"] in prepared["native_commitments"], "native case commitment missing")
+            commitment = prepared["native_commitments"][row["case_key"]]
+            receipt, identity = (native_paths.bind_evaluation_case(row,commitment) if version==5 else
+                                 native_snapshot.bind_evaluation_case(row,commitment,full_population=version==4))
+            require(identity not in native_identities, "native session snapshot replayed")
+            native_identities.add(identity)
+            product_state["native_binding"] = receipt
         normalized.append({**row, "input": {**request, "candidates": candidates}, **product_state})
     require(len(components) == prepared["sampling"]["component_count"], "component count differs")
     oracle = sum(row["gold"] in [c["surface"] for c in row["input"]["candidates"][:6]] for row in normalized)

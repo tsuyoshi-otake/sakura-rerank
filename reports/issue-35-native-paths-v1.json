@@ -1,0 +1,245 @@
+{
+  "kind": "native_path_feature_verification",
+  "version": 1,
+  "base_commit": "a9a4bcceed33bde6fae18bd7d5d2a95848106f39",
+  "source_head": "bcf42d3ad931c6e081ae4b3fbd4d0e6cd9377d88",
+  "source_clean": true,
+  "evaluation_schema": 5,
+  "path_contract": "pre_fusion_converter_path_v1",
+  "native_capacity": {
+    "candidates": 768,
+    "text_utf8_bytes": 1536,
+    "path_edges": 64,
+    "model_slots": 6
+  },
+  "adopted_accuracy": 0.9072,
+  "accuracy_improvement_demonstrated": false,
+  "release_eligible": false,
+  "real_test_used": false,
+  "independent_gold": false,
+  "training": false,
+  "production_edits": false,
+  "safety_references": [
+    "converter_top1",
+    "native_local_selection"
+  ],
+  "safety_limit": 0.0025,
+  "gold_requirements": {
+    "point_precision": 0.995,
+    "wilson95_lower": 0.99,
+    "minimum_valid_holdout": 3000,
+    "trust_entries": 0
+  },
+  "native_capture": {
+    "events": 62,
+    "snapshots": 60,
+    "no_conversion_events": 2,
+    "candidates": 1178,
+    "raw_edges": 2046,
+    "fused_candidates": 216,
+    "system_path_nonexact_evidence": 434,
+    "original_control_events": 50,
+    "original_control_equal": true
+  },
+  "native_build": {
+    "source_files": 583,
+    "instrumented_files": 11,
+    "archive_sha256": "cd7f1988eea34791a2520de7875610c3ab1e8cf20c5347b7da60f65978df34c7",
+    "binary_sha256": "54622ba344a95820fb7f78ea3904d0dd504fe5f091fc58a83aa7c1f601be65ec",
+    "capture_sha256": "0c7ed42fdbc38f4ae8213b4151a977f294083815cf0ae2edd2e1106e80e66d56",
+    "build_seconds": 43.128,
+    "run_seconds": 0.399,
+    "synthetic_response_injection": true,
+    "native_model_worker": false
+  },
+  "parity": {
+    "projection_requests": 30,
+    "tensor_scalar_elements": 30780,
+    "tensor_bytes_equal": true,
+    "actual_model_requests": 180,
+    "elapsed_seconds": 2.618
+  },
+  "models": [
+    {
+      "exact_score_parity": true,
+      "feature_width": 6,
+      "name": "v1",
+      "requests_each": 30,
+      "score_sha256": "e20510ac814c52b3fb7d9e421f25a018091674a19e652119ceb60956e195ceb9",
+      "scores_compared": 180,
+      "sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd"
+    },
+    {
+      "exact_score_parity": true,
+      "feature_width": 7,
+      "name": "r2",
+      "requests_each": 30,
+      "score_sha256": "3baee176a9eca4466efb414544deacb059da9fb7e86aeb808d3563a0cd735bed",
+      "scores_compared": 180,
+      "sha256": "96d7694cc3759465a95841aa8d4cd62757f302fc13388ca9c38751c2a9ae5c64"
+    },
+    {
+      "exact_score_parity": true,
+      "feature_width": 7,
+      "name": "issue29",
+      "requests_each": 30,
+      "score_sha256": "c462dc538457a66cfb225f8ebb7a2d7bc8b7553e6300eab407ef111f3454018b",
+      "scores_compared": 180,
+      "sha256": "a58ebea1257cdc2507b02acb8b7e958181f05577fb629d7928eb1f02fe078686"
+    }
+  ],
+  "bindings": {
+    "native-a": {
+      "plan.json": "b06aa91e78dc4702cbf8be94fbd77a54c868eeb9ad20388c23af781bc12de5ee",
+      "result.json": "16c152031ada945219cafad195b3a864d0ab7776a6f758f1477d37ab95991e4d"
+    },
+    "parity-a": {
+      "plan.json": "d5d7ec870a369715941d25fec12eb3e44e3d4f55fc3a793484915bd99fa5288d",
+      "result.json": "26b0af03e26b140d4a818b4fa4eb827b2e4ade9a91e249adee4dc175126d4e69"
+    }
+  },
+  "synthetic_integration": {
+    "cases": 3000,
+    "candidates": 9874,
+    "model_requests": 5992,
+    "variants": 7,
+    "sealed_path_bindings": 3000,
+    "not_gold": true
+  },
+  "verification": {
+    "tests": {
+      "tests": 1064,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true
+    },
+    "new_tests": 13,
+    "full_seconds": 72.936,
+    "outer_timeout_seconds": 600,
+    "python_files": [
+      {
+        "path": "src/sakura_rerank/evaluation_payload.py",
+        "sha256": "1074bacf85de8f02fd1d0ba72f842179383673e5fa6093d48710e273208c202b",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_runner.py",
+        "sha256": "7393028fd06bff31727255cdd1d43c3eb3eed406c531d98e1883e51155fdbb98",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_worker.py",
+        "sha256": "8889c43492e3669b8d0df47525c51bf68f3886b8a082cc5a65bd8ba0c5e47106",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/native_snapshot.py",
+        "sha256": "a395425956a25eafe5cb473749ad6d1ba9b961efc194494a0ccd8ce54c3c49d9",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/native_paths.py",
+        "sha256": "4e522be33b19a44bfc801578ff8f6f25011ba393b0d7b1c0a87d5153610006e8",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/native_path_inputs.py",
+        "sha256": "d900308d604396c78ce9f7648c0ad5e36a9c48cdc2f7e1f032ea038a3f77c4d4",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_native_paths.py",
+        "sha256": "d74f20e8042540a32333de74a2ad306692de244ba6f624996d49fed6828cca28",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_native_paths_evaluation.py",
+        "sha256": "90d9033ed98ded1ef19cc0ba774939c6c6bd9287a4631f427df45eefa80b6573",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-35-native-paths/probe.py",
+        "sha256": "df60777ad93f54ff015380a70f26f064b4a38552f7379bb137e42ed691a15738",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-35-native-paths/verify.py",
+        "sha256": "da8ef50c66e1108e352f5a9ba247663a37e242f093e8321622e5be8fb13dd783",
+        "syntax": true,
+        "unused_imports": []
+      }
+    ],
+    "formal_type_checker_run": false,
+    "frozen_encoder_modules_unchanged": 3,
+    "original_artifacts_unchanged": 16,
+    "bound_fit_artifacts_unchanged": 25,
+    "checkpoints_unchanged": 10,
+    "prior_reports_unchanged": 6,
+    "recorded_processes_exited": 14,
+    "matching_processes_remaining": 0,
+    "working_agent_direct": true,
+    "external_review": false
+  },
+  "cleanup": {
+    "status": "passed",
+    "roots_absent": 3,
+    "files": 1073,
+    "bytes": 286658956,
+    "elapsed_seconds": 0.149
+  },
+  "runtime": {
+    "packages": {
+      "numpy": "2.3.5",
+      "onnxruntime": "1.23.2"
+    },
+    "python": "3.13.13",
+    "sources": {
+      "current_tiny.py": "aaa3f5a89869f07b8d2822760b9f1334f18d9ce96596d990b4fbc8f6084216e2",
+      "data/contracts.py": "2fe8138c79bba22d6824109af3b1ec9b49438425f9aba3b3a32c0c8561e8d344",
+      "evaluation_admission.py": "0a7712fd3dde37f5fe632ac3f9730d76b8fae1996bf910fd93ffd367ad0bbd48",
+      "evaluation_metrics.py": "fef22e0d0f3f40ad5af192e499b261ff93d0f1a3e172bd6c17510cbcc3879f6f",
+      "evaluation_payload.py": "1074bacf85de8f02fd1d0ba72f842179383673e5fa6093d48710e273208c202b",
+      "evaluation_runner.py": "7393028fd06bff31727255cdd1d43c3eb3eed406c531d98e1883e51155fdbb98",
+      "evaluation_statistics.py": "17dc12219e30af2baa565109b2009ab25e15b0e6e92d2a91b3d9e50819b4fe5f",
+      "evaluation_worker.py": "8889c43492e3669b8d0df47525c51bf68f3886b8a082cc5a65bd8ba0c5e47106",
+      "native_path_inputs.py": "d900308d604396c78ce9f7648c0ad5e36a9c48cdc2f7e1f032ea038a3f77c4d4",
+      "native_paths.py": "4e522be33b19a44bfc801578ff8f6f25011ba393b0d7b1c0a87d5153610006e8",
+      "native_snapshot.py": "a395425956a25eafe5cb473749ad6d1ba9b961efc194494a0ccd8ce54c3c49d9",
+      "research_tiny.py": "a7ca1007ad2981f3008fa9363723f3d5c232213208ee0a4a9f89e572af3b2035",
+      "research_tiny_r2.py": "c2ede3575722b0cda97e0da52a04f42c2402db9cf12aec077d63993f09a95f66",
+      "source_model_inputs.py": "2070cf2cadd1e92067af2241d9cb3d9e869309560e400cd22baf34ce56c5a687"
+    },
+    "system": "Windows"
+  },
+  "compiler": {
+    "toolchain": "1.96.0-x86_64-pc-windows-msvc",
+    "version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "rustc_sha256": "acb138286bbe20c6cf3ec39a7e0a68c3fab0cd949baa2912cf466514d0d531ab",
+    "linker_sha256": "359b5861060b8b8899a1ef87385a37b32d8ecb8a81d092866907e7249ab962be",
+    "libraries_sha256": "c945c430a51d805f1c9d2d0ef97138ad21150acec0a0e6a4c3b1173f596a27c8",
+    "stdlib_sha256": "fdc51454267e02ed2d1ab12d319b685ff92756da30b6ed8880c8d662c5e2596a"
+  },
+  "recovery_handle": ".codex/goal-loop/issue-35-native-paths",
+  "limits": [
+    "Controlled fixtures only; private allocation/layout differs from production",
+    "Raw repair or post-path remapping must satisfy exact final reading/surface binding; no inferred correspondence",
+    "No native ONNX worker, live-host/session timing or production benchmark",
+    "Native paths and frozen model parity do not certify Gold or intended IME boundaries"
+  ],
+  "next_required": [
+    "visible selection/commit normalization",
+    "actual native worker/session stale-result and resource evidence",
+    "independent Gold/calibration",
+    "frozen one-use Test and release Gates"
+  ]
+}

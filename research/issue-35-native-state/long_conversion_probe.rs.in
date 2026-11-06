@@ -1,0 +1,80 @@
+// Research-only test instrumentation, appended to the pinned native module.
+// No worker thread, IPC, model inference or external dictionary is started.
+#[cfg(test)]
+pub(crate) mod research_state {
+    use super::*;
+    use std::cell::Cell;
+
+    thread_local! { static CALLS: Cell<usize> = const { Cell::new(0) }; }
+    pub(crate) fn note_call() { CALLS.with(|value| value.set(value.get() + 1)); }
+    pub(crate) fn reset_calls() { CALLS.with(|value| value.set(0)); }
+    pub(crate) fn calls() -> usize { CALLS.with(Cell::get) }
+
+    pub(crate) fn service(conversion: Arc<ConversionService>) -> Arc<LongConversionService> {
+        Arc::new(LongConversionService { shared: Arc::new(Shared {
+            conversion, worker_path: PathBuf::new(), model_directory: PathBuf::new(),
+            pending: Mutex::new(None), ready: Condvar::new(), result: Mutex::new(None),
+            shutdown: AtomicBool::new(false), next_owner: AtomicU64::new(1),
+            next_request: AtomicU64::new(1),
+        }) })
+    }
+
+    pub(crate) fn fingerprint(candidate: &ConversionCandidate) -> u64 { candidate_fingerprint(candidate) }
+    pub(crate) fn set_fingerprint(candidates: &[ConversionCandidate]) -> u64 { candidate_set_fingerprint(candidates) }
+
+    pub(crate) fn complete(service: &LongConversionService, mutation: &str) -> String {
+        let Some(work) = lock(&service.shared.pending).take() else {
+            return "{\"scheduled\":false,\"built\":false}".to_owned();
+        };
+        let Some(candidates) = build_candidates(&service.shared.conversion, &work) else {
+            publish_terminal(&service.shared, &work.key, RerankState::LocalFallback);
+            return "{\"scheduled\":true,\"built\":false}".to_owned();
+        };
+        let model_set = model_candidate_set_fingerprint(&candidates);
+        let mut result = WorkResult {
+            key: work.key.clone(), candidate_set: model_set,
+            scores: candidates.iter().enumerate().map(|(i, candidate)| CandidateScore {
+                fingerprint: candidate.fingerprint,
+                log_probability: if i == 2 { 10.0 } else { -(i as f32) },
+            }).collect(), state: RerankState::Ready,
+        };
+        match mutation {
+            "owner" => result.key.owner += 1,
+            "session" => result.key.session += 1,
+            "generation" => result.key.generation += 1,
+            "reading_hash" => result.key.reading_hash ^= 1,
+            "reading_bytes" => result.key.reading_bytes += 1,
+            "candidate_set" => result.candidate_set ^= 1,
+            "score_fingerprint" => result.scores[0].fingerprint ^= 1,
+            "score_count" => { result.scores.pop(); },
+            "nonfinite" => result.scores[0].log_probability = f32::NAN,
+            "not_ready" => result.state = RerankState::TimedOut,
+            "none" | "missing" => {},
+            _ => panic!("unknown research mutation"),
+        }
+        let key = &work.key;
+        let delivered = &result.key;
+        let models = candidates.iter().map(|c| format!(
+            "{{\"fingerprint\":{},\"cost\":{},\"surface_hex\":\"{}\"}}",
+            c.fingerprint, c.local_cost, hex(c.text.as_bytes()))).collect::<Vec<_>>().join(",");
+        let observation = format!(concat!(
+            "{{\"scheduled\":true,\"built\":true,\"owner\":{},\"session\":{},\"generation\":{},",
+            "\"reading_hash\":{},\"reading_bytes\":{},\"candidate_set\":{},\"model_candidates\":[{}],",
+            "\"response_key\":[{},{},{},{},{}],\"response_candidate_set\":{},\"response_count\":{},",
+            "\"response_fingerprints\":{:?},\"response_score_bits\":{:?},\"response_finite\":{},\"response_ready\":{},\"response_present\":{}}}"),
+            key.owner,key.session,key.generation,key.reading_hash,key.reading_bytes,model_set,models,
+            delivered.owner,delivered.session,delivered.generation,delivered.reading_hash,delivered.reading_bytes,
+            result.candidate_set,result.scores.len(),result.scores.iter().map(|s| s.fingerprint).collect::<Vec<_>>(),
+            result.scores.iter().map(|s| s.log_probability.to_bits()).collect::<Vec<_>>(),
+            result.scores.iter().all(|s| s.log_probability.is_finite()),result.state==RerankState::Ready,mutation!="missing");
+        if mutation != "missing" { *lock(&service.shared.result) = Some(result); }
+        observation
+    }
+
+    pub(crate) fn result_state(service: &LongConversionService) -> String {
+        lock(&service.shared.result).as_ref().map_or("None".to_owned(), |r| format!("{:?}", r.state))
+    }
+    pub(crate) fn hex(bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{b:02x}")).collect()
+    }
+}

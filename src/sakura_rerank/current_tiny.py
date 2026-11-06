@@ -21,6 +21,8 @@ FEATURES = {"kind": "current_tiny_protocol_v1", "version": 1, "width": 6,
             "selection_source_sha256": "d1c3ceebc62a52e110b3925644427412cb85c5bc194a8c4edbf7b10c84f6c37f",
             "runtime_source_sha256": "f479d67378476bc66c24f863dae6c936332fb66968bcce93225985558b806ccf"}
 EVIDENCE_TAGS = frozenset({1, 2, 3, 4, 10, 11, 12, 13, 14, 20, 30, 31})
+MAX_NATIVE_CANDIDATES = 768
+MAX_NATIVE_TEXT_BYTES = 1536
 
 
 def snapshot_policy(provenance_sha256):
@@ -54,19 +56,21 @@ def validate_current(artifacts, feature_width):
              "current model bytes differ")
 
 
-def protocol_feed(candidates):
+def protocol_feed(candidates, *, full_population=False):
     """Match pinned sakura_scorer::prepare_inputs after engine int32 clipping."""
     import numpy as np
     _require(isinstance(candidates, list) and 2 <= len(candidates) <= 6, "current candidate count outside bound")
     for item in candidates:
         _require(isinstance(item, dict) and type(item.get("local_cost")) is int
                  and -(2**63) <= item["local_cost"] < 2**63
-                 and isinstance(item.get("surface"), str) and 1 <= len(item["surface"]) <= 256,
+                 and isinstance(item.get("surface"), str)
+                 and 1 <= len(item["surface"]) <= (MAX_NATIVE_TEXT_BYTES if full_population else 256),
                  "current candidate fields outside bound")
         try:
-            item["surface"].encode("utf-8", errors="strict")
+            raw = item["surface"].encode("utf-8", errors="strict")
         except UnicodeError:
             raise ProductContractError("invalid candidate encoding") from None
+        _require(not full_population or len(raw) <= MAX_NATIVE_TEXT_BYTES, "native candidate bytes outside bound")
     costs = [max(-(2**31), min(2**31-1, item["local_cost"])) for item in candidates]
     low, high = min(costs), max(costs)
     span = float(max(1, high-low))
@@ -87,13 +91,22 @@ def protocol_feed(candidates):
 
 
 def current_factory(artifacts, feature_width):
+    return _current_scorer(artifacts, feature_width, full_population=False)
+
+
+def native_current_factory(artifacts, feature_width):
+    """Schema4 adapter: full native text extent, unchanged shipped model feed."""
+    return _current_scorer(artifacts, feature_width, full_population=True)
+
+
+def _current_scorer(artifacts, feature_width, *, full_population):
     from .evaluation_worker import cpu_session, cpu_scores
     validate_current(artifacts, feature_width)
     session = cpu_session(artifacts["weights"], 6)
 
     class Scorer:
         def score(self, request):
-            return cpu_scores(session, protocol_feed(request["candidates"]))
+            return cpu_scores(session, protocol_feed(request["candidates"], full_population=full_population))
 
         def close(self):
             pass  # The contained process owns the native ORT session.

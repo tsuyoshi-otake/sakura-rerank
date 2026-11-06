@@ -10,8 +10,33 @@ candidate generator.
 
 ## Status
 
-The [current Tiny snapshot adapter](research/issue-35-current-tiny-parity/README.md)
-now matches the pinned native scorer's input tensors and protected candidate
+The [native path adapter](research/issue-35-native-paths/README.md) records real
+pre-fusion path edges for the unchanged v1/r2/#29 feature definitions. Schema5
+binds all path facts before inference.62 controlled native executions retain60
+snapshots/1178 candidates/2046 edges; the original50-event behavior is unchanged.
+All1064 tests pass. Three fixed models match30780 input scalars and540 scores
+across180 CPU requests. This establishes projection parity, not accuracy or release;
+independent Gold/calibration/Test and live native/session/resource Gates remain.
+
+The [full native evaluation contract](research/issue-35-native-population/README.md)
+retains up to768 candidates and1536 UTF-8 bytes per reading/surface, with a separate
+six-candidate model prefix. Schema4 binds all48 prior snapshots/924 candidates,
+including both108-candidate cases. All1051 tests pass. Synthetic3000-row integration
+retains9874 candidates and tail local selections; long-text native tensors and120
+current-model scores match. Accuracy improvement is unproved; per-edge features,
+independent Gold/calibration/Test and production release Gates remain required.
+
+The [native state capture](research/issue-35-native-state/README.md) now drives
+the pinned engine dispatcher in a private research build.25 paired conditions
+produce50 executions and48 conversion snapshots; separate builds reproduce the
+same capture bytes. Schema3 binds those observations before model execution and
+refuses replay or unproven legacy features. All1,037 tests pass. Native snapshots
+can exceed the old32-row contract (108 observed); schema4 now retains them,
+while per-edge feature migration remains necessary. Adoption stays90.72%, Gold remains uncertified,
+and safety0.25%/final Test/release requirements are unchanged.
+
+The earlier [current Tiny snapshot adapter](research/issue-35-current-tiny-parity/README.md)
+matched the pinned native scorer's input tensors and protected candidate
 choice:67 synthetic projection conditions,21,632 scalar values,1,756 choices
 and384 output scores agree. Each frozen parity run executes128 actual-model CPU
 requests; three recorded runs retain the policy/safety-binding changes. All1,017

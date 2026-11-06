@@ -4,6 +4,8 @@
 *.py text eol=lf
 *.rs text eol=lf
 research/issue-35-current-tiny-parity/native_harness.rs.in text eol=lf
+research/issue-35-native-state/*.rs.in text eol=lf
+research/issue-35-native-paths/*.rs.in text eol=lf
 *.toml text eol=lf
 *.lock text eol=lf
 *.yml text eol=lf

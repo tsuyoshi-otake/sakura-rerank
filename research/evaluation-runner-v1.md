@@ -5,6 +5,26 @@ gate. The existing empty Gold trust set remains authoritative. Real Test access
 stays refused until genuine evidence is available; synthetic fixtures are never
 registered as real certificates. No final experiment population is chosen here.
 
+The [schema5 path contract](issue-35-native-paths/README.md) now binds actual
+pre-fusion edge sources/boundaries and provides a dedicated native-path GRU
+adapter for v1/r2/#29 math. Current Tiny stays separate. Generic GRU factories
+remain refused; missing paths or transformed reading/surface identities cannot
+be inferred. Controlled projection/score parity does not supply independent Gold
+or live native worker/session evidence.
+
+The [schema4 full-population contract](issue-35-native-population/README.md)
+extends native capture binding to all1–768 candidates with1536 UTF-8 byte text
+bounds and explicit native-only fields. Model prefixes remain at most six; full
+oracle and tail fallback remain measurable. Schemas1–3 retain their32-candidate
+contract. Per-edge research features and real Gold remain unresolved.
+
+The [schema3 native capture binding](issue-35-native-state/README.md) adds per-case
+source capture commitments, native identity/replay checks and sealed projection
+bindings before scoring. It keeps prior schemas and both0.25% references. Missing
+legacy per-edge provenance and native populations above32 remain explicit whole-
+evaluation refusals; the diagnostic does not supply independent Gold or a full
+current-product evaluation population.
+
 ## Ownership and scope
 
 Admission authenticates bytes, owns the shared consumption registry/anchor and

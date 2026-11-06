@@ -1,5 +1,26 @@
 # Data boundary tooling
 
+Issue #35's [native path features](../../../research/issue-35-native-paths/README.md)
+adds schema5 with exact pre-fusion raw edges. Native construction supplies source
+kinds/UTF-8 boundaries; display counts and evidence tags never substitute for them.
+`native_paths` validates whole input/path identity before inference;
+`native_path_inputs` preserves frozen historical model math. This grants no
+training/exporter identity, independent Gold or final-Test admission.
+
+Issue #35's [full native population](../../../research/issue-35-native-population/README.md)
+adds evaluation schema4:1–768 candidates and1536 UTF-8 bytes per reading/surface,
+using observed native fields only. Full and model-prefix counts are sealed
+separately; tail fallback and full oracle enter metrics. Historical schemas and
+training remain32-bound; unproven per-edge features and Gold admission stay refused.
+
+Issue #35's [native capture binding](../../../research/issue-35-native-state/README.md)
+adds `native_snapshot.py` and evaluator schema3. The actual private native build
+produces candidates, local selection and request/response identities; hash-bound
+row verification precedes inference and rejects replay. Full native populations
+are retained in diagnostics. Schemas1–3 still reject populations over32
+and unproven per-edge research features, never silently truncates or guesses them.
+This evidence grants no Gold, real-session, training or final-Test admission.
+
 Issue #35's [current Tiny snapshot contract](../../../research/issue-35-current-tiny-parity/README.md)
 requires explicit native local-selection index, direct-prefix count, evidence
 tags and schedule/selection facts for version2 evaluation. Missing facts fail;
