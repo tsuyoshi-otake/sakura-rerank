@@ -10,6 +10,28 @@ candidate generator.
 
 ## Status
 
+The [prospective continuous-source cohort](research/issue-35-source-consumption/README.md)
+reserves 1,000 further Tatoeba sentences before decoding text. Continuous input
+ranges are available for 966; 34 remain explicit source failures. All 1,230 native
+requests were attempted once: 1,221 validated and nine contract rejections.
+Every source part occurs in Top-1/6/32 for 556/816/873 sentences respectively;
+these are source-presence counts, not model accuracy. An explicit exposure overlay
+also catches consumed source-only records with invalid readings, adding one real
+historical connection. Final relation counts are 483 connected, 483 provisionally
+unconnected and 34 without inputs. All 755 tests pass; adopted 90.72%, Gold,
+calibration, final Test, safety and production gates remain unchanged.
+
+The [source-unit diagnostic](research/issue-35-source-units/README.md) preserves
+all 100 exposed pilot sentences. Punctuation-delimited runs contain every
+source-exact part in Top-32 for 89 sentences versus 38 for individual ruby
+fragments (52 paired gains, one reverse case); these are component-presence
+counts, not model accuracy. All 426 native requests have one terminal result:
+401 validated, six rejected by the unchanged 18-segment contract, and 19 by
+the converter's candidate-count check. Omitting only Tatoeba administrative-owner
+relations reduces historical connections from 84 to 12 sentences while retaining
+all 528,894 legacy author edges. No original exclusions are restored. All 732
+tests pass; no model, Gold/calibration, final Test or production changes are made.
+
 The [external-source pilot](research/issue-35-source-pilot/README.md) reserved
 100 Tatoeba sentences before reading their text. Exact source/ruby alignment
 passed for 98; two had empty readings. Complete history isolation retained

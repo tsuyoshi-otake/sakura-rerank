@@ -1,5 +1,11 @@
 # Verified project learnings
 
+- [consumed source exposure] Neutral source coverage is not semantic consumption. Bind all actually consumed source-only IDs, including invalid readings, and propagate exposure through existing relations without inventing input hashes. Five synthetic contracts and the 991255-node forward/reverse audit found one additional real historical connection (#32/#35).
+
+- [source input extent] A whole ruby base can still be a word stem. Preserve literal kana and exact source positions in separately named whole-source/literal-run hypotheses; all-components presence is not a joint N-best rank or model accuracy. Verified by the fixed 100-sentence source-unit diagnostic and okurigana contracts (#31/#35).
+
+- [native terminal accounting] Process exit 0 can precede a snapshot-contract rejection. Keep the entire rejected snapshot unmeasured, preserve the original report, and continue only hash-bound unattempted requests. Verify requested/attempted/measured/rejected totals separately from runner completion; the 426-request source-unit audit preserved 18 segments and retried 0 inputs (#35).
+
 - Tatoeba source evidence: join transcription IDs to the licensed sentence export before selection; its SQL lacks the sentence-license filter. A named editor, exact ruby alignment and whole ruby base do not certify contextual reading or an IME input boundary. Source owner is management provenance, not proven authorship; report direct input matches separately from propagated component exclusions. Verified by the #35 external-source pilot and 25 synthetic contracts.
 
 - Frozen research entrypoints can collide through generic sibling module names (`cohort`, `acquire_sources`), even when their parent was loaded by explicit path. Use unique new module names or the existing contract API; preserve executed historical code hashes. The #33 loss-balance preparation failures and successful direct-API candidate/numeric verification establish this boundary.

@@ -1,5 +1,27 @@
 # Data boundary tooling
 
+Issue #35's [prospective source consumption](../../../research/issue-35-source-consumption/README.md)
+adds `tatoeba_consumption.py`: metadata-only reservation before decoding, exact
+continuous extents, empty observed-session context and explicit failed slots.
+`source_exposure.py` distinguishes semantically consumed neutral source records
+from unconsumed inventory. Explicit source-only exposure propagates existing
+relations and can only add exclusions, even when no valid reading/input exists.
+It cannot fabricate an input token, change old splits or admit Gold. Contracts:
+`test_tatoeba_consumption.py`, `test_source_consumption_metrics.py` and
+`test_source_exposure.py`. Preserve all consumed source IDs for future reservations,
+including source/annotation/native failures. Source presence is not IME correctness.
+
+Issue #35's [source-unit diagnostic](../../../research/issue-35-source-units/README.md)
+adds `tatoeba_input_units.py` for whole-source, literal-run and ruby-fragment
+hypotheses with exact original surfaces and an explicit kana input projection.
+`source_owner_diagnostic.py` omits only authenticated administrative-owner groups
+in diagnostic views; it cannot write splits or restore exclusions. Native output
+rejected by the unchanged 18-segment snapshot bound stays unmeasured, and only
+previously unattempted requests may continue under a new binding. The report
+separates component presence from whole-input rank and independent accuracy.
+Contracts are `test_tatoeba_input_units.py`, `test_source_owner_diagnostic.py`,
+`test_source_unit_metrics.py`, and `test_source_unit_continuation.py` under `tests/`.
+
 Issue #35's [external-source pilot](../../../research/issue-35-source-pilot/README.md)
 adds `tatoeba_source.py` for bounded export decoding and exact whole-ruby alignment.
 Named editors are provider provenance, never imported A/B human judgments. Licensed
