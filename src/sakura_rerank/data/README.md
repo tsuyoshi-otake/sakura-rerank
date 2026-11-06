@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #31's [source-extent diagnostic](../../../research/issue-31-source-extents/README.md)
+adds `source_reading_units.py`: original ruby, following literal kana and maximal
+supported runs, derived only from complete original annotations and literal kana.
+Unknown readings/annotations form barriers; no guessed pronunciation, partial
+annotation, normalization or clipping. Native diagnostic and preparation bounds
+remain distinct; all variants retain parent/component lineage and deny training,
+Gold and independent evaluation. Tests: `test_source_reading_units.py`. These are
+input hypotheses, not certified words or a replacement for the source-reading gate.
+
 Issue #31's [original-reading reconstruction](../../../research/issue-31-reading-rebuild/README.md)
 adds `source_reading_rebuild.py`. Only an authenticated exact original-ruby
 contradiction can derive a new reading/identity; target, context, component and

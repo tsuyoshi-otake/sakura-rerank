@@ -10,6 +10,15 @@ candidate generator.
 
 ## Status
 
+The [source-extent comparison](research/issue-31-source-extents/README.md) keeps all
+335 parents under three fixed hypotheses. Exact source presence in Top-6 is7 for
+the original ruby,31 with following literal kana, and23 for maximal supported runs;
+Top-32 is13/39/26. Following kana recovers source presence in23 of the305 previous
+Top-32 misses, leaving282: these extent rules do not explain most missing targets.
+All830 requests validate (264 reused/566 new), all1005 view slots remain, and890
+tests pass. Different inputs/targets are not an adopted accuracy gain or certified
+IME units. Original data/models,90.72%,0.25% safety and release gates are unchanged.
+
 The [original-reading reconstruction](research/issue-31-reading-rebuild/README.md)
 preserves all335 contradictory parents and derives318 separately identified
 source inputs;17 one-character readings remain pending. All264 native requests
