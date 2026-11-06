@@ -18,7 +18,7 @@ def h(value):
 
 
 def run():
-    authenticate('1226b2dbc1e6bdbd59ec629619a8011736403f67')
+    plan=authenticate('1226b2dbc1e6bdbd59ec629619a8011736403f67')
     _,_,identity=bound_inputs('0fe29e14f3025267c499d8b6164b427d23676320')
     continuation=json.loads(committed(HERE/'native-continuation-v1.json','6a773ebed465f296f4be7de20b0249e7d21e9fd8'))
     for path,digest in continuation['previous_artifacts'].items():
@@ -153,18 +153,28 @@ def run():
     for tree in trees.values():
         for node in ast.walk(tree):
             if isinstance(node,ast.ImportFrom):exports[node.module].update(a.name for a in node.names)
+    frozen_unused=[]
     for path,tree in trees.items():
         compile(tree,str(path),'exec');used={n.id for n in ast.walk(tree) if isinstance(n,ast.Name)}|exports[path.stem]
         for node in ast.walk(tree):
             if isinstance(node,(ast.Import,ast.ImportFrom)) and getattr(node,'module',None)!='__future__':
-                for alias in node.names:assert (alias.asname or alias.name.split('.')[0]) in used,('unused_import',path.as_posix(),alias.name)
+                for alias in node.names:
+                    if (alias.asname or alias.name.split('.')[0]) in used:continue
+                    # This planner was executed and hash-bound before corpus use.
+                    # Preserve that provenance artifact; do not silently edit it
+                    # merely to erase the finding from the historical code check.
+                    if path.as_posix()=='research/issue-35-source-units/reserve_unit_plan.py' and alias.name=='ROOT':
+                        assert sha(path)==plan['code'][path.as_posix()]
+                        frozen_unused.append(dict(path=path.as_posix(),name=alias.name,reason='executed_hash_bound_planner_preserved'))
+                    else:raise AssertionError(('unused_import',path.as_posix(),alias.name))
     result=dict(kind='source_units_direct_verification',status='passed',source_slots=100,source_ruby_positions=312,
         unique_requests=426,terminal_counts=dict(terminal_counts),native_requests_retried=0,
         scalar_metric_groups=len(counts),paired_literal_runs_vs_ruby_fragments=dict(paired),
         rejected_request_roles={k:dict(v) for k,v in failure_roles.items()},rejected_candidate_segment_counts=dict(segment_counts),
         output_bytes=output_bytes,selected_owner_edges_recounted=320,legacy_author_edges_retained=528894,
         old_integrity=integrity,unchanged_checkpoints=len(model_binding['models']),python_files_compiled=len(code),
-        unused_imports=0,report_sha256=sha(ROOT/'native-report-v2.json'),owner_report_sha256=sha(ROOT/'owner-diagnostic.json'),
+        unbound_unused_imports=0,frozen_unused_imports=frozen_unused,
+        report_sha256=sha(ROOT/'native-report-v2.json'),owner_report_sha256=sha(ROOT/'owner-diagnostic.json'),
         gold_certified=False,final_test_used=False,models_run=0)
     save(ROOT/'verification.json',result)
     print(json.dumps(result))
