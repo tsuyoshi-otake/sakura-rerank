@@ -1,0 +1,605 @@
+{
+  "kind": "native_dispatch_state_verification",
+  "version": 1,
+  "date": "2026-11-06",
+  "issue": 35,
+  "parent_issue": 1,
+  "status": "controlled_native_capture_and_schema3_binding_verified_real_evaluation_pending",
+  "implementation_commit": "08f20259a02df1c9e24365b0f90a9bb25641c01c",
+  "source_head": "bcf42d3ad931c6e081ae4b3fbd4d0e6cd9377d88",
+  "source_tree": "77a1531f28eff358f60972473ec231deb7dcae55",
+  "source_checkout_clean": true,
+  "native_build": {
+    "source_files": 583,
+    "source_archive_sha256": "cd7f1988eea34791a2520de7875610c3ab1e8cf20c5347b7da60f65978df34c7",
+    "cargo_lock_sha256": "c5f7d8600d6ce57d802231aeb0bdb928763042b846cb9522f65f6f8fa4b9568c",
+    "compiler": {
+      "cargo_sha256": "122f18d28a63fa358f3db266abee1ff1d8aabf0ab7f2dd9ac38a38da99977ae5",
+      "libraries_sha256": "c945c430a51d805f1c9d2d0ef97138ad21150acec0a0e6a4c3b1173f596a27c8",
+      "linker_sha256": "359b5861060b8b8899a1ef87385a37b32d8ecb8a81d092866907e7249ab962be",
+      "rustc_sha256": "acb138286bbe20c6cf3ec39a7e0a68c3fab0cd949baa2912cf466514d0d531ab",
+      "stdlib_sha256": "fdc51454267e02ed2d1ab12d319b685ff92756da30b6ed8880c8d662c5e2596a",
+      "toolchain": "1.96.0-x86_64-pc-windows-msvc",
+      "version": "rustc 1.96.0 (ac68faa20 2026-05-25)"
+    },
+    "build_jobs": 1,
+    "offline": true,
+    "locked": true,
+    "worktrees_created": 0,
+    "production_edits": 0,
+    "model_inferences": 0
+  },
+  "native_source_contracts": {
+    "crates/sakura-engine/src/dispatch.rs": "6f60c38bedd4b7040b79ddb39bbc87951e418e3b9a77bff818afcc79278c70ea",
+    "crates/sakura-engine/src/session.rs": "2de883f6513051c33a7d8c16932345250e2daca7182c4b32d5f3dc1ef11b981b",
+    "crates/sakura-engine/src/long_conversion.rs": "2ed17e2cabf1fab0dd35cfdbc3186c84abafce514beacbc9dbc8551a963e2ef3",
+    "crates/sakura-core/src/conversion/evidence.rs": "d1c3ceebc62a52e110b3925644427412cb85c5bc194a8c4edbf7b10c84f6c37f",
+    "crates/sakura-core/src/conversion/candidates/assembly.rs": "b876b6d5ffbc9c48c6208c8a9dfe25d7a148a9457936d628bef619a7d4adf37e",
+    "crates/sakura-values/src/capacity.rs": "f6b38d12f8e97f586701e5b6235df602c8e48f19dcd818a5586f681bca191eec"
+  },
+  "native_attempts": [
+    {
+      "version": 1,
+      "status": "passed",
+      "plan_sha256": "8bcaf90587a8310a666709ba5d89d34e1245ab82931e2ab3037676a0e4a74703",
+      "binary_sha256": "12276b48b1a7f4d6518f1b82254ea4043403803b7598d5693728cf87ee938d16",
+      "capture_sha256": "c5112d9fda608c26ba2aff27732e9dd5b4255d4e819fcfeaba7221a4c66ec333",
+      "fixture_count": 23,
+      "capture_count": 22,
+      "applied": 4,
+      "attempt": "a",
+      "implementation_commit": "93354b2d1d9516649f625fc2be07c8eea6bca9f7",
+      "result_sha256": "849436c3cd45fc2960b4ef55a2fa8bb901cfb4005b67ded965dd3ac6ee6d12e7",
+      "prepared_at_utc": "2026-11-06T13:00:47.717203+00:00",
+      "result_at_utc": "2026-11-06T13:01:37.663088+00:00",
+      "command_times_seconds": [
+        40.074,
+        0.254
+      ],
+      "job_active_remaining": [
+        0,
+        0
+      ],
+      "final_paired_contract_audited": false
+    },
+    {
+      "version": 2,
+      "status": "passed",
+      "plan_sha256": "383e552df5e0a22bb35875d9d776f7e8ced3c9e3d65a8bd5a4c2eb3452e4b8dd",
+      "binary_sha256": "80347eeb517c3336e9cf6500840096d0024c8281adbd383df7dcdb2458444b1b",
+      "capture_sha256": "fecde9f3ecd05dca47bcf2f0139074ce31e25dccbb2717a002b55f2a6d5d9cb4",
+      "fixture_count": 50,
+      "capture_count": 48,
+      "applied": 5,
+      "attempt": "b",
+      "implementation_commit": "9f910c576425200fa670c71bf24fed848193fe66",
+      "result_sha256": "f50187a70423d2a17240ce047f6a2e81075e105fe5921083b321852911b485c1",
+      "prepared_at_utc": "2026-11-06T13:12:44.870366+00:00",
+      "result_at_utc": "2026-11-06T13:13:29.765514+00:00",
+      "command_times_seconds": [
+        36.623,
+        0.331
+      ],
+      "job_active_remaining": [
+        0,
+        0
+      ],
+      "final_paired_contract_audited": true
+    },
+    {
+      "version": 2,
+      "status": "passed",
+      "plan_sha256": "f67b35f9ad7686e4e01ec39cb65a18846b9106e772136f163ce242d0fe9c4985",
+      "binary_sha256": "4394ead17312a4cff972886623ce3e264c592644115617faad0d4e4f3033a770",
+      "capture_sha256": "fecde9f3ecd05dca47bcf2f0139074ce31e25dccbb2717a002b55f2a6d5d9cb4",
+      "fixture_count": 50,
+      "capture_count": 48,
+      "applied": 5,
+      "attempt": "c",
+      "implementation_commit": "d27ff041a31e2cf416012375654ffcd278c7a395",
+      "result_sha256": "360085bf976e09f6c344654bc2fcc3c9aea82f9fbf5866589c56937f7e51d479",
+      "prepared_at_utc": "2026-11-06T13:19:14.345910+00:00",
+      "result_at_utc": "2026-11-06T13:23:09.252630+00:00",
+      "command_times_seconds": [
+        36.153,
+        0.441
+      ],
+      "job_active_remaining": [
+        0,
+        0
+      ],
+      "final_paired_contract_audited": true
+    }
+  ],
+  "final_capture_bytes_equal": true,
+  "final_native_audit": {
+    "accuracy_claim": false,
+    "artifact_sha256": {
+      "capture.jsonl": "fecde9f3ecd05dca47bcf2f0139074ce31e25dccbb2717a002b55f2a6d5d9cb4",
+      "plan.json": "f67b35f9ad7686e4e01ec39cb65a18846b9106e772136f163ce242d0fe9c4985",
+      "result.json": "360085bf976e09f6c344654bc2fcc3c9aea82f9fbf5866589c56937f7e51d479"
+    },
+    "binding_sequence_sha256": "66b47ae9d2b32dfba30fa07325f055222c895f973f51fde0dbed7ec1e7f07f75",
+    "counts": {
+      "applied": 5,
+      "captured": 48,
+      "events": 50,
+      "legacy_bound": 46,
+      "legacy_unrepresentable": 2,
+      "local_selection_outside_model_prefix": 2,
+      "native_candidates": 924,
+      "no_conversion": 2,
+      "request_identity_mismatch": 2,
+      "scheduling_without_application_permission": 8
+    },
+    "final_evaluation_admitted": false,
+    "gold_certified": false,
+    "kind": "native_state_capture_audit",
+    "legacy_feature_provenance_verified": false,
+    "live_host_or_worker_timing_verified": false,
+    "max_native_candidate_count": 108,
+    "paired_controls_verified": 25,
+    "status": "passed",
+    "synthetic_scenarios": {
+      "cached": {
+        "applied": false,
+        "baseline_index": 1,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 1,
+        "selection_allowed": false
+      },
+      "cached_tail": {
+        "applied": false,
+        "baseline_index": 13,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 13,
+        "selection_allowed": false
+      },
+      "candidate_set": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "cursor": {
+        "applied": true,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 2,
+        "selection_allowed": true
+      },
+      "explicit": {
+        "applied": false,
+        "baseline_index": 1,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 1,
+        "selection_allowed": false
+      },
+      "generation": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "learned": {
+        "applied": false,
+        "baseline_index": 1,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 1,
+        "selection_allowed": false
+      },
+      "learned_tail": {
+        "applied": true,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 2,
+        "selection_allowed": true
+      },
+      "long_multi": {
+        "applied": true,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 108,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 2,
+        "selection_allowed": true
+      },
+      "long_short": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": false,
+        "native_candidate_count": 16,
+        "request_identity_matches": false,
+        "response_identity_matches": false,
+        "scheduled": false,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "missing": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "nonfinite": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "normal": {
+        "applied": true,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 2,
+        "selection_allowed": true
+      },
+      "not_ready": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "owner": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "pending_romaji": {
+        "applied": false,
+        "baseline_index": 1,
+        "built": true,
+        "native_candidate_count": 2,
+        "request_identity_matches": false,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 1,
+        "selection_allowed": true
+      },
+      "reading_bytes": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "reading_hash": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "renderer": {
+        "applied": true,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": true,
+        "scheduled": true,
+        "selected_index": 2,
+        "selection_allowed": true
+      },
+      "scope_off": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": false,
+        "native_candidate_count": 16,
+        "request_identity_matches": false,
+        "response_identity_matches": false,
+        "scheduled": false,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "score_count": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "score_fingerprint": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "session": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": true,
+        "native_candidate_count": 16,
+        "request_identity_matches": true,
+        "response_identity_matches": false,
+        "scheduled": true,
+        "selected_index": 0,
+        "selection_allowed": true
+      },
+      "unclassified": {
+        "applied": false,
+        "baseline_index": 0,
+        "built": false,
+        "native_candidate_count": 16,
+        "request_identity_matches": false,
+        "response_identity_matches": false,
+        "scheduled": false,
+        "selected_index": 0,
+        "selection_allowed": true
+      }
+    },
+    "version": 1
+  },
+  "hypotheses": [
+    {
+      "hypothesis": "Current state cannot be reconstructed from legacy source categories and current eligibility booleans alone",
+      "change": "Capture native queued and conversion-time state, then bind their identities",
+      "result": "Paired pending-Romaji inputs changed after scheduling; both retained local fallback"
+    },
+    {
+      "hypothesis": "Legacy32 candidate bound and six model slots describe different populations from the current engine",
+      "change": "Retain all native candidates and reject unsupported evaluator projection",
+      "result": "108 native candidates observed;768 transport capacity; cached native index13 preserved"
+    },
+    {
+      "hypothesis": "Scheduling implies neither application permission nor model benefit",
+      "change": "Use a no-response local control for every scenario",
+      "result": "Eight built requests had protected local selection; five synthetic applications are not correctness labels"
+    }
+  ],
+  "schema3": {
+    "native_capture_commitment_before_inference": true,
+    "snapshot_replay_rejected": true,
+    "projection_bindings_sealed": true,
+    "legacy_gru_factory_rejected": true,
+    "legacy_candidate_bound": 32,
+    "diagnostic_native_bound": 768,
+    "diagnostic_text_bytes": 1536,
+    "legacy_feature_provenance_verified": false,
+    "both_safety_references_required": true,
+    "safety_limit": 0.0025,
+    "original_worker_arrival_timing_reproduced": false
+  },
+  "synthetic_integration": {
+    "rows": 3000,
+    "adapters": 4,
+    "variants": 7,
+    "model_requests": 6000,
+    "sealed_projection_bindings": 3000,
+    "actual_accuracy_evidence": false
+  },
+  "validation": {
+    "final_tests": {
+      "tests": 1037,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true
+    },
+    "test_outer_timeout_seconds": 600,
+    "full_test_seconds": 49.283,
+    "new_contract_tests": 20,
+    "test_attempts": [
+      {
+        "status": "passed",
+        "tests": {
+          "tests": 14,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "successful": true
+        },
+        "elapsed_seconds": 0.265
+      },
+      {
+        "status": "failed",
+        "tests": {
+          "tests": 19,
+          "failures": 0,
+          "errors": 1,
+          "skipped": 0,
+          "successful": false
+        },
+        "elapsed_seconds": 16.544
+      },
+      {
+        "status": "passed",
+        "tests": {
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "successful": true
+        },
+        "elapsed_seconds": 5.693
+      },
+      {
+        "status": "passed",
+        "tests": {
+          "tests": 1037,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "successful": true
+        },
+        "elapsed_seconds": 49.283
+      }
+    ],
+    "temporary_runner_failure": "Missing __main__ guard re-entered the suite during Windows spawn; direct metrics passed, guarded runner passed without metric changes",
+    "static_files": [
+      {
+        "path": "src/sakura_rerank/native_snapshot.py",
+        "sha256": "9300ac697e77da3591291a56530f07777decc6e601bb7cdf9201f0599f77d849",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_payload.py",
+        "sha256": "56c39640e7afb87efbde45cff0d1cf67840ad8a0e3ae5ba6a31888151f364d77",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_runner.py",
+        "sha256": "571cd16da91c7745c0f7efa4ab24d3ea6be2db053678d01063332b694459f03f",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_worker.py",
+        "sha256": "d35617604ebef172ed9ddc18f286d450714c12366da05b4c4843783c610467ec",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_native_snapshot.py",
+        "sha256": "39b48fffdfa6d1e85902d4d5e6fd6bafbc294756296e26031ac979c7f54746d3",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_native_snapshot_evaluation.py",
+        "sha256": "beb5236c53114991046136cb57119aba34453eb077aa8b33efbb43e2b9cfbf0d",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-35-native-state/probe.py",
+        "sha256": "728bdef7fb09656334679fa1e8afe44b704bb73a1036819a51856f0111325c64",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-35-native-state/audit.py",
+        "sha256": "f4b6cd1da686266ca31206368cfa53a252e3c4f20bf6ee6f770d79ae216af59c",
+        "syntax_valid": true,
+        "unused_imports": []
+      }
+    ],
+    "formal_type_checkers_available": {
+      "mypy": false,
+      "pyright": false,
+      "ruff": false
+    },
+    "direct_working_agent_verification": true,
+    "recorded_processes_checked": 17,
+    "owned_processes_remaining": 0
+  },
+  "history": {
+    "status": "passed",
+    "static_files": 8,
+    "old_checkpoints_unchanged": 10,
+    "old_reports_unchanged": {
+      "reports/issue-35-current-tiny-parity-v1.json": "7475c49d52caab47b8930f2381774e18c5420e7f2a9b5297d3bf7ba3a946cb25",
+      "reports/issue-35-evaluation-feasibility-v1.json": "33e65da8f9c05ad40a62902df732114a48cba10a2ee7a94e382db5ce95103221",
+      "reports/issue-35-evaluation-runner-v1.json": "80867792147c8cbb971e4e05c5365d80cb2d614f43435dbd67ea76f1f6411628",
+      "reports/issue-35-knbc-format-pilot-v1.json": "596909b6289469f29835ecb4ea47b23caa86875c46b55a69590c9b150da6b16c"
+    },
+    "original_artifacts_unchanged": 16,
+    "bound_fit_artifacts_unchanged": 25,
+    "integrity_report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab"
+  },
+  "cleanup": {
+    "roots_removed": 4,
+    "files_removed": 3204,
+    "bytes_reclaimed": 857403500
+  },
+  "limits": [
+    "Private native test build with injected synthetic worker responses; no native ONNX or real host execution",
+    "Pre-display snapshots only; visible selection normalization and all session transitions remain unverified",
+    "Provenance hashes bind bytes, not independently trustworthy authorship or Gold quality",
+    "Full native populations above32 and legacy per-edge feature provenance still require an explicit evaluator migration",
+    "No real Test, independent calibration, retraining, external corpus acquisition or production release"
+  ],
+  "preserved": {
+    "adopted_accuracy_percent": 90.72,
+    "accuracy_improvement_demonstrated": false,
+    "safety_limit": 0.0025,
+    "gold_point_minimum": 0.995,
+    "gold_wilson95_lower_minimum": 0.99,
+    "gold_valid_test_minimum": 3000,
+    "gold_trust_entries": 0,
+    "real_test_accesses": 0,
+    "research_training_runs": 0,
+    "production_edits": 0,
+    "release_eligible": false
+  }
+}
