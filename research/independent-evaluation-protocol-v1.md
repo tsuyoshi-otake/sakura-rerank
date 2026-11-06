@@ -165,8 +165,14 @@ Hash chains detect edits and externally pinned heads detect truncation. They do
 not prevent an operator from deleting all evidence, lying about supplied history,
 reading Test outside the evaluator or creating another registry. Filesystem
 permissions, off-machine commitments and the final evaluator integration remain
-required operational controls. The current library has no model runner or Gold
-admission entry point and therefore cannot execute an actual evaluation.
+required operational controls. The registry itself runs no models and certifies
+no Gold. The artifact access boundary is now implemented in
+`evaluation_admission.py`, and supplied-observation metrics/statistics are in
+`evaluation_metrics.py` and `evaluation_statistics.py`. Their presence does not
+establish a final model runner: no non-test caller connects `access_test` to model
+execution. The Gold trust set remains empty. See the
+[unit and sample-size reconciliation](issue-35-knbc-format-pilot/README.md#evaluation-feasibility)
+for the implementation status checked on 2026-11-06.
 
 ## Verify / Expect and remaining work
 
@@ -183,7 +189,9 @@ admission entry point and therefore cannot execute an actual evaluation.
 
 Remaining before final evaluation: independently supportable Gold evidence;
 complete historical inventory; representative new corpus and frozen partitions;
-artifact-authenticating admission plus model runner; metric/statistic computation;
-calibration; preregistered power/dependence design; sealed experiment manifest.
+final model runner integrated with the existing artifact-authenticating admission
+and metric/statistic computation; calibration; preregistered power/dependence
+design; sealed experiment manifest. The access and metric libraries have synthetic
+contracts and historical research replays, not a completed independent evaluation.
 Then run Test once. Gate C CPU measurements and Gate D integration/rollout remain
 separate release requirements. Default enablement still needs separate approval.
