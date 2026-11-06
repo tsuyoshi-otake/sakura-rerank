@@ -10,6 +10,15 @@ candidate generator.
 
 ## Status
 
+The [KNBC source qualification](research/issue-35-knbc-qualification/README.md)
+identifies an independently annotated blog source for a reserved research pilot.
+Its provider describes 249 articles by 81 commissioned writers. The package also
+preserves source errors alongside correction annotations, so original spelling
+cannot be adopted blindly as the label. Metadata contains 4,187 sentence-candidate
+files versus the provider's 4,186-sentence claim; the discrepancy remains explicit.
+Documentation and archive structure are verified, with 954 tests passing. No corpus
+body was decoded, and no new Gold, model accuracy or release claim is made.
+
 The [source-screened recipe](research/issue-31-source-recipe/README.md) connects
 source evidence to unchanged numeric-cache rows and original per-arm presentation
 order. It retains 49,085/50,000 dictionary-arm rows, excluding 335 reading conflicts
