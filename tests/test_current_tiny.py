@@ -164,6 +164,21 @@ class LocalBaselineMetricTests(unittest.TestCase):
         with self.assertRaises(EvaluationError):
             self.evaluate([base], {base.case_key: Observation("not_eligible", attempted=True)})
 
+    def test_converter_reference_preserves_actual_fallback_output(self):
+        rows = [EvaluationCase(key(1), key(3), ("a", "b"), "a", 1, 2),
+                EvaluationCase(key(2), key(3), ("a", "b"), "b", 1, 2)]
+        runs = {"model": EvaluationRun({r.case_key: Observation("not_eligible", attempted=False) for r in rows}, True)}
+        local = evaluate_runs(rows, runs, comparisons=[("model", "baseline")], bootstrap_replicates=100)
+        original = evaluate_runs(rows, runs, comparisons=[("model", "baseline")], bootstrap_replicates=100,
+                                 reference_baseline="converter_top1")
+        a, b = local["models"]["model"], original["models"]["model"]
+        self.assertEqual(a["baseline_correct_destroyed"], 0)
+        self.assertEqual((b["baseline_correct_destroyed"], b["correction_success"]), (1, 1))
+        self.assertEqual(a["prediction_sha256"], b["prediction_sha256"])
+        self.assertEqual(a["accuracy"], b["accuracy"])
+        self.assertEqual(a["inference_attempts"], 0)
+        self.assertEqual(local["cohort_sha256"], original["cohort_sha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

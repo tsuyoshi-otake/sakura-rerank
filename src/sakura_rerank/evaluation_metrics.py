@@ -105,7 +105,7 @@ def _order(observation: Observation, size: int, baseline_index: int = 0) -> tupl
 def evaluate_runs(
     cases: Sequence[EvaluationCase], runs: Mapping[str, EvaluationRun], *,
     comparisons: Sequence[tuple[str, str]], bootstrap_replicates: int = 10_000,
-    bootstrap_seed: int = 20261104,
+    bootstrap_seed: int = 20261104, reference_baseline: str = "local_selection",
 ) -> dict[str, object]:
     """Compare fixed observations; every model shares every supplied case.
 
@@ -115,6 +115,8 @@ def evaluate_runs(
     orientation is left-minus-right; the complete family is required up front.
     """
     ordered = _validate_cases(cases)
+    if not isinstance(reference_baseline, str) or reference_baseline not in {"local_selection", "converter_top1"}:
+        raise EvaluationError("unknown comparison baseline")
     if (not isinstance(runs, Mapping) or not 1 <= len(runs) <= 16
             or any(not isinstance(name, str) or _NAME.fullmatch(name) is None
                    or name == "baseline" for name in runs)):
@@ -145,7 +147,8 @@ def evaluate_runs(
     if 3 + 2 * len(names) + len(family) > 64:
         raise EvaluationError("comparison family exceeds the fixed bootstrap column budget")
     n = len(ordered)
-    baseline = [case.candidates[case.baseline_index] == case.gold for case in ordered]
+    reference_indices = [case.baseline_index if reference_baseline == "local_selection" else 0 for case in ordered]
+    baseline = [case.candidates[index] == case.gold for case, index in zip(ordered, reference_indices)]
     c = sum(baseline)
     e = n-c
     cohort_hash = hashlib.sha256()
@@ -182,7 +185,7 @@ def evaluate_runs(
             unknown_attempts += int(observation.attempted is None)
             surface = case.candidates[order[0]]
             correct = surface == case.gold
-            override = surface != case.candidates[case.baseline_index]
+            override = surface != case.candidates[reference_indices[i]]
             rescue = not baseline[i] and correct
             harm = baseline[i] and not correct
             wrong_change = not baseline[i] and not correct and override
@@ -250,6 +253,7 @@ def evaluate_runs(
     return {
         "schema_version": 1, "kind": "fixed_cohort_surface_evaluation",
         "cohort_sha256": cohort_hash.hexdigest(), "record_count": n,
+        "reference_baseline": reference_baseline,
         "baseline_correct": c, "baseline_errors": e, "baseline_accuracy": _ratio(c, n),
         "observed_candidate_oracle": oracle, "models": reports,
         "paired_comparisons": paired, "paired_component_intervals": intervals,

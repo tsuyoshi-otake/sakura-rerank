@@ -63,6 +63,13 @@ class ProductEvaluationTests(unittest.TestCase):
         self.assertEqual([gated[k] for k in ("correction_success", "baseline_correct_destroyed", "wrong_to_different_wrong")], [750, 0, 0])
         self.assertEqual(shipped["terminal_counts"]["not_eligible"], 1500)
         self.assertEqual(shipped["inference_attempts"], 1500)
+        converter = result["metrics"]["converter_reference"]
+        self.assertEqual(converter["baseline_correct"], 1499)
+        self.assertEqual(converter["models"]["current-tiny"]["prediction_sha256"], shipped["prediction_sha256"])
+        self.assertEqual(converter["models"]["current-tiny"]["correction_success"], 1500)
+        self.assertEqual(converter["models"]["current-tiny"]["baseline_correct_destroyed"], 750)
+        self.assertEqual(result["safety_references"], ["converter_top1", "native_local_selection"])
+        self.assertTrue(result["require_all_safety_references"])
         sealed = json.loads(next(self.registry.glob("observations-*.json")).read_bytes())
         self.assertEqual(len(sealed["product_policy_facts"]), 3000)
         self.assertEqual(len(sealed["candidate_counts"]), 3000)

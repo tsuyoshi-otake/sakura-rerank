@@ -20,6 +20,20 @@ budget remains 64 columns: `3 + 2 * run_count + comparison_count <= 64`.
 Up to36 comparisons are accepted only within that budget; an oversized family
 fails before allocating bootstrap work. Statistical definitions are unchanged.
 
+The [version2 snapshot contract](issue-35-current-tiny-parity/README.md) adds
+optional `baseline_index` and `production_count` to `EvaluationCase`. Defaults
+preserve this original contract. Explicit values enter the cohort hash, retain
+candidate order, and determine the local fallback/model prefix. `not_eligible`
+has no inference attempt and retains that fallback. The selected-first ranking
+is an evaluation representation, not a change to the displayed IME candidate list.
+
+`reference_baseline` selects `local_selection` (default) or `converter_top1`.
+Changing this reference changes only comparison counts/denominators, never actual
+fallback outputs. Version2 runner reports both references for the full cohort and
+fixed slices, with identical predictions and resamples. Both must satisfy0.25%;
+raw converter gains can include existing local preference and are not all neural
+rescues. Candidate-oracle prefixes always retain original converter order.
+
 The component membership must come from the frozen full source population via
 `data.splitter.evaluation_component_keys`, which shares exactly the source/input
 closure used by `audit_evaluation_partitions`. A dev-only component calculation

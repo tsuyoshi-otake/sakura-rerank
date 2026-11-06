@@ -1,0 +1,329 @@
+{
+  "kind": "current_tiny_snapshot_parity_verification",
+  "version": 1,
+  "date": "2026-11-06",
+  "issue": 35,
+  "parent_issue": 1,
+  "status": "native_projection_and_choice_verified_real_evaluation_pending",
+  "source_head": "bcf42d3ad931c6e081ae4b3fbd4d0e6cd9377d88",
+  "source_checkout_clean": true,
+  "source_artifacts": {
+    "LICENSE": {
+      "bytes": 1082,
+      "sha256": "aeedc4ef393103e90ea3e28a82133406f5a97f267f7d5adc8e4484f662162d6d"
+    },
+    "crates/sakura-core/src/conversion/evidence.rs": {
+      "bytes": 10727,
+      "sha256": "d1c3ceebc62a52e110b3925644427412cb85c5bc194a8c4edbf7b10c84f6c37f"
+    },
+    "crates/sakura-core/src/input_repair.rs": {
+      "bytes": 40626,
+      "sha256": "3a87e6e89a0df4063f5a7519ce97b06b37c83ef9fef580b15ddacaf61c55176f"
+    },
+    "crates/sakura-engine/src/dispatch.rs": {
+      "bytes": 285861,
+      "sha256": "6f60c38bedd4b7040b79ddb39bbc87951e418e3b9a77bff818afcc79278c70ea"
+    },
+    "crates/sakura-engine/src/long_conversion.rs": {
+      "bytes": 27376,
+      "sha256": "2ed17e2cabf1fab0dd35cfdbc3186c84abafce514beacbc9dbc8551a963e2ef3"
+    },
+    "crates/sakura-neural-worker/src/protocol.rs": {
+      "bytes": 9066,
+      "sha256": "98e2646403387d734f2c51f150835b5b41fc6501f6bd11f92965b161a716583a"
+    },
+    "crates/sakura-neural-worker/src/sakura_runtime.rs": {
+      "bytes": 16185,
+      "sha256": "f479d67378476bc66c24f863dae6c936332fb66968bcce93225985558b806ccf"
+    },
+    "crates/sakura-neural-worker/src/sakura_scorer.rs": {
+      "bytes": 8285,
+      "sha256": "212c065bfbf73ac9663dbd7b80e5eacb2526685cc1a2119b62151597c4b9c9e3"
+    },
+    "models/sakura-rerank-tiny-v1/model.onnx": {
+      "bytes": 7466707,
+      "sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd"
+    },
+    "models/sakura-rerank-tiny-v1/research-manifest.json": {
+      "bytes": 2866,
+      "sha256": "07f1c54cbe361e117b547f47511de960977f1d0f754f051f44b9447a591d96b9"
+    }
+  },
+  "runtime": {
+    "packages": {
+      "numpy": "2.3.5",
+      "onnxruntime": "1.23.2"
+    },
+    "python": "3.13.13",
+    "sources": {
+      "current_tiny.py": "c94d68839c318f13c93a743e4e536ef9f8e1e0fb9c00dd5c90bbbeae3bdf08af",
+      "data/contracts.py": "2fe8138c79bba22d6824109af3b1ec9b49438425f9aba3b3a32c0c8561e8d344",
+      "evaluation_admission.py": "0a7712fd3dde37f5fe632ac3f9730d76b8fae1996bf910fd93ffd367ad0bbd48",
+      "evaluation_metrics.py": "4cd94a2c1786422a4b04f1e5232721d9f8633de382b800228f1f53821920a270",
+      "evaluation_payload.py": "9d81760d31ab375b17350b0f9b4f3373bc764379cbf9b8cc39cecbd0c8592324",
+      "evaluation_runner.py": "f9848f82fd184bb97c100c1eb2fbe77aec893386635100cc1fb4ca1e53a0c0c3",
+      "evaluation_statistics.py": "17dc12219e30af2baa565109b2009ab25e15b0e6e92d2a91b3d9e50819b4fe5f",
+      "evaluation_worker.py": "1eae7e859c0544d4586bf74641305212ab641dc7931d922750aecde500f0ae12",
+      "research_tiny.py": "a7ca1007ad2981f3008fa9363723f3d5c232213208ee0a4a9f89e572af3b2035",
+      "research_tiny_r2.py": "c2ede3575722b0cda97e0da52a04f42c2402db9cf12aec077d63993f09a95f66",
+      "source_model_inputs.py": "2070cf2cadd1e92067af2241d9cb3d9e869309560e400cd22baf34ce56c5a687"
+    },
+    "system": "Windows"
+  },
+  "diagnostic_implementation": {
+    "current_tiny_reference_adapter.py": "30d7f945bc99b9fc399f30d06be28d051899fc6331f8d2ab3151919e25f5acab",
+    "native_harness.rs.in": "ce5244e805335fe746bec3a8f044719cc47f34431f43888138160516fbc021dd",
+    "parity.py": "529651e7dfb292e30e0efe93a15b4f856e0748893d070b6a3fd24b87660fe263"
+  },
+  "compiler": {
+    "libraries_sha256": "c945c430a51d805f1c9d2d0ef97138ad21150acec0a0e6a4c3b1173f596a27c8",
+    "linker_sha256": "359b5861060b8b8899a1ef87385a37b32d8ecb8a81d092866907e7249ab962be",
+    "rustc_sha256": "acb138286bbe20c6cf3ec39a7e0a68c3fab0cd949baa2912cf466514d0d531ab",
+    "stdlib_sha256": "fdc51454267e02ed2d1ab12d319b685ff92756da30b6ed8880c8d662c5e2596a",
+    "toolchain": "1.96.0-x86_64-pc-windows-msvc",
+    "version": "rustc 1.96.0 (ac68faa20 2026-05-25)"
+  },
+  "hypotheses": [
+    {
+      "hypothesis": "Same model family/signature does not establish product input/selection parity",
+      "change": "Separate pinned protocol-v1 adapter and native protected choice",
+      "measurement": "Compiled native tensor/choice parity, then fixed CPU model outputs",
+      "result": "All 21632 input scalar values byte-equal,1756 choices equal,384 output scores numerically equal per run"
+    },
+    {
+      "hypothesis": "Local preferred selection can differ from converter rank0 and misattribute existing local behavior to the model",
+      "change": "Keep original candidate order, explicit native-local index and both safety references",
+      "measurement": "Same sealed synthetic outputs and complete denominator against both references",
+      "result": "Synthetic shipped output has0 gain over native local selection while raw-converter comparison shows750 additional correct cases; both0.25% safety references remain required"
+    }
+  ],
+  "diagnostic_runs": [
+    {
+      "accuracy_claim": false,
+      "actual_model_requests": 128,
+      "binary_sha256": "bea117371bf261b804fcb363df794a31f616da7747007a5923fb0e3bc96e11a2",
+      "cpu_score_equal": true,
+      "final_test": false,
+      "model_sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+      "native_choice_equal": true,
+      "native_ort_execution": false,
+      "output_scores_compared": 384,
+      "plan_sha256": "77beb4713e20c2e78a09fccb0a5ded5df9bf6857face376af4ffc6d808037dc0",
+      "production_benchmark": false,
+      "projection_cases": 67,
+      "protected_choices": 1756,
+      "rejected_candidate_counts": 3,
+      "release_eligible": false,
+      "session_capture_verified": false,
+      "status": "passed",
+      "tensor_byte_equal": true,
+      "tensor_scalar_elements": 21632,
+      "attempt": 1,
+      "implementation_commit": "81a0e0adaf1b03f37547546e16f71080eb538b4d",
+      "processes_exited": 5,
+      "remaining_processes": 0,
+      "result_sha256": "b4a530b60cbf466cd307c730f8e66a99068af7244f66cafdb7841bdbb5c98185"
+    },
+    {
+      "accuracy_claim": false,
+      "actual_model_requests": 128,
+      "binary_sha256": "6224dc4183687714dad9c8eb57735412ce09f0403e22df562899ff060aee58d8",
+      "cpu_score_equal": true,
+      "final_test": false,
+      "model_sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+      "native_choice_equal": true,
+      "native_ort_execution": false,
+      "output_scores_compared": 384,
+      "plan_sha256": "b3e3b4680dac7275ec2bbdd86c4dfead0a7de4c43266734630592dc4cc4042ea",
+      "production_benchmark": false,
+      "projection_cases": 67,
+      "protected_choices": 1756,
+      "rejected_candidate_counts": 3,
+      "release_eligible": false,
+      "session_capture_verified": false,
+      "status": "passed",
+      "tensor_byte_equal": true,
+      "tensor_scalar_elements": 21632,
+      "attempt": 2,
+      "implementation_commit": "00f69d4ecbfd6590c93458bdf9189d7f5e7d9a16",
+      "processes_exited": 5,
+      "remaining_processes": 0,
+      "result_sha256": "ddf390791011c3be0359fd153f1b9042f7b17960931809519f5a5a2c9501c60b"
+    },
+    {
+      "accuracy_claim": false,
+      "actual_model_requests": 128,
+      "binary_sha256": "ff0d81f921a44116ad8e05f3c2f59d52b0055b2ce806b9986dba2931c1342bde",
+      "cpu_score_equal": true,
+      "final_test": false,
+      "model_sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+      "native_choice_equal": true,
+      "native_ort_execution": false,
+      "output_scores_compared": 384,
+      "plan_sha256": "2e74acb2df69bc2a3d274286a69079f617ee96490e445bf11cbc460cfbb42a1d",
+      "production_benchmark": false,
+      "projection_cases": 67,
+      "protected_choices": 1756,
+      "rejected_candidate_counts": 3,
+      "release_eligible": false,
+      "session_capture_verified": false,
+      "status": "passed",
+      "tensor_byte_equal": true,
+      "tensor_scalar_elements": 21632,
+      "attempt": 3,
+      "implementation_commit": null,
+      "processes_exited": 5,
+      "remaining_processes": 0,
+      "result_sha256": "0865c33c4d6fedee02956bac85d76cdc85ce18f69db8444aa9a6bd4d0ee1f5ea"
+    }
+  ],
+  "distinct_synthetic_projection_conditions": 67,
+  "distinct_synthetic_choice_conditions": 1756,
+  "actual_current_model_requests_total": 384,
+  "same_synthetic_inputs_reused": true,
+  "evaluation_contract": {
+    "version": 2,
+    "model_wire_protocol": 1,
+    "population": "pre_display_native_candidate_snapshot",
+    "current_model_variants": [
+      "shipped"
+    ],
+    "required_native_facts": [
+      "source_head",
+      "baseline_index",
+      "direct_count",
+      "evidence_tags",
+      "schedule_eligible",
+      "selection_allowed"
+    ],
+    "native_fact_producer_verified": false,
+    "legacy_candidate_fingerprint_is_engine_handshake_evidence": false,
+    "safety_references": [
+      "converter_top1",
+      "native_local_selection"
+    ],
+    "all_safety_references_required": true,
+    "safety_limit": 0.0025,
+    "attempt_counts_are_product_background_telemetry": false
+  },
+  "synthetic_integration": {
+    "cases": 3000,
+    "models": 4,
+    "variants": 7,
+    "model_requests": 6000,
+    "ineligible_per_model": 1500,
+    "local_baseline_correct": 2249,
+    "converter_baseline_correct": 1499,
+    "shipped_correct": 2249,
+    "shipped_rescues_vs_local": 750,
+    "shipped_harms_vs_local": 750,
+    "shipped_rescues_vs_converter": 1500,
+    "shipped_harms_vs_converter": 750,
+    "actual_model_accuracy_evidence": false
+  },
+  "validation": {
+    "tests": {
+      "tests": 1017,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true
+    },
+    "test_outer_timeout_seconds": 600,
+    "test_elapsed_seconds": 41.801,
+    "new_contract_tests": 20,
+    "static_checks": [
+      {
+        "path": "src/sakura_rerank/current_tiny.py",
+        "sha256": "c94d68839c318f13c93a743e4e536ef9f8e1e0fb9c00dd5c90bbbeae3bdf08af",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_worker.py",
+        "sha256": "1eae7e859c0544d4586bf74641305212ab641dc7931d922750aecde500f0ae12",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_runner.py",
+        "sha256": "f9848f82fd184bb97c100c1eb2fbe77aec893386635100cc1fb4ca1e53a0c0c3",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_payload.py",
+        "sha256": "9d81760d31ab375b17350b0f9b4f3373bc764379cbf9b8cc39cecbd0c8592324",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_metrics.py",
+        "sha256": "4cd94a2c1786422a4b04f1e5232721d9f8633de382b800228f1f53821920a270",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_current_tiny.py",
+        "sha256": "444ed4ee722033b4a6dbf92d5f75b13c1f9dff10162c597dee617196a38fe42c",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_current_tiny_evaluation.py",
+        "sha256": "a7d8fb98986c3a3810b36356e865e6f6b8364018deb7effce7277cce8895f716",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-35-current-tiny-parity/current_tiny_reference_adapter.py",
+        "sha256": "30d7f945bc99b9fc399f30d06be28d051899fc6331f8d2ab3151919e25f5acab",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-35-current-tiny-parity/parity.py",
+        "sha256": "529651e7dfb292e30e0efe93a15b4f856e0748893d070b6a3fd24b87660fe263",
+        "syntax_valid": true,
+        "unused_imports": []
+      }
+    ],
+    "formal_type_checkers_available": {
+      "mypy": false,
+      "pyright": false,
+      "ruff": false
+    },
+    "direct_working_agent_verification": true,
+    "recorded_owned_processes_checked": 26,
+    "owned_processes_remaining": 0
+  },
+  "history": {
+    "original_artifacts_unchanged": 16,
+    "bound_fit_artifacts_unchanged": 25,
+    "old_checkpoints_unchanged": 10,
+    "old_reports_unchanged": 3,
+    "integrity_report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab"
+  },
+  "limitations": [
+    "Native scorer uses a capture backend in the diagnostic; native ORT deployment is not executed",
+    "Subsequent actual model comparison uses the same pinned Python CPU ORT runtime for both independently produced feeds",
+    "Native scope/learning/cache/session facts must come from a verified producer; this adapter validates declarations, not their truth",
+    "Native session/fingerprint/display timing and representative real data are not validated",
+    "No real Test, calibration, Gold certification, new corpus reading, retraining, production changes or release"
+  ],
+  "preserved": {
+    "adopted_accuracy_percent": 90.72,
+    "new_accuracy_improvement_demonstrated": false,
+    "safety_limit": 0.0025,
+    "gold_point_minimum": 0.995,
+    "gold_wilson95_lower_minimum": 0.99,
+    "gold_valid_test_minimum": 3000,
+    "gold_trust_entries": 0,
+    "real_test_accesses": 0,
+    "new_corpus_reads": 0,
+    "research_training_runs": 0,
+    "production_edits": 0,
+    "native_ort_inferences": 0,
+    "release_eligible": false
+  }
+}

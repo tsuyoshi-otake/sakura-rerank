@@ -28,7 +28,8 @@ def snapshot_policy(provenance_sha256):
     return {"kind": "current_product_evaluation_policy", "version": 1, "source_head": HEAD,
             "population": "pre_display_native_candidate_snapshot", "baseline": "authenticated_native_local_selection",
             "scope_and_priorities": "native_snapshot_facts", "selection": "strongest_native_evidence_group",
-            "tail_order": "unchanged_local_indices", "provenance_sha256": provenance_sha256}
+            "tail_order": "unchanged_local_indices", "provenance_sha256": provenance_sha256,
+            "safety_references": ["converter_top1", "native_local_selection"]}
 
 
 class ProductContractError(ValueError):

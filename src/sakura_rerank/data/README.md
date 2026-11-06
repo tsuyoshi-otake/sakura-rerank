@@ -1,5 +1,15 @@
 # Data boundary tooling
 
+Issue #35's [current Tiny snapshot contract](../../../research/issue-35-current-tiny-parity/README.md)
+requires explicit native local-selection index, direct-prefix count, evidence
+tags and schedule/selection facts for version2 evaluation. Missing facts fail;
+legacy source categories do not establish them. The provenance artifact must
+bind the actual producer and immutable snapshot. Existing candidate fingerprint
+checks validate the legacy descriptor format, not the current engine's full
+session/candidate-set handshake. No real native-state producer or Gold admission
+is supplied by the synthetic parity tests. Both converter-Top1 and native-local
+safety references retain the unchanged0.25% requirement.
+
 Issue #35's [evaluation runner](../../../research/evaluation-runner-v1.md) uses
 `contracts.validate_conversion_candidates(reading, candidates)` to check native
 candidate structure without asserting label validity. It reuses full UTF-8 segment,

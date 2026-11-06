@@ -78,17 +78,27 @@ def score_sealed_outputs(payload):
             for name, spec in sealed["runs"].items()}
     comparisons = [tuple(pair) for pair in experiment["comparisons"]]
     report = evaluate_runs(cases, runs, comparisons=comparisons)
+    dual_reference = experiment["version"] == 2
+    converter_reference = evaluate_runs(cases, runs, comparisons=comparisons, reference_baseline="converter_top1") if dual_reference else None
     slices = {}
     for tag in experiment["slices"]:
         selected = [case for case, record in zip(cases, records) if tag in record["tags"]]
         if not selected:
             slices[tag] = {"record_count": 0, "metrics": None}
+            if dual_reference:
+                slices[tag]["converter_reference"] = None
             continue
         selected_keys = {case.case_key for case in selected}
         selected_runs = {name: EvaluationRun({key: value for key, value in run.observations.items() if key in selected_keys}, run.completed)
                          for name, run in runs.items()}
         slices[tag] = {"record_count": len(selected), "metrics": evaluate_runs(selected, selected_runs, comparisons=comparisons)}
-    return {"overall": report, "slices": slices}
+        if dual_reference:
+            slices[tag]["converter_reference"] = evaluate_runs(selected, selected_runs, comparisons=comparisons,
+                                                                reference_baseline="converter_top1")
+    result = {"overall": report, "slices": slices}
+    if dual_reference:
+        result["converter_reference"] = converter_reference
+    return result
 
 
 def _seal(path: Path, payload: dict) -> str:
@@ -180,6 +190,8 @@ def run_evaluation(*, artifact_root: Path, plan_path: Path, expected_plan_sha256
                   "raw_text": False, "raw_case_keys": False, "production_benchmark": False}
         result["execution_schema_version"] = experiment["version"]
         result["baseline_contract"] = "authenticated_local_selection" if experiment["version"] == 2 else "converter_top1"
+        result["safety_references"] = ["converter_top1", "native_local_selection"] if experiment["version"] == 2 else ["converter_top1"]
+        result["require_all_safety_references"] = True
         access.complete(canonical_json_bytes(result))
     return result
 
