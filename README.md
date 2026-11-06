@@ -10,6 +10,16 @@ candidate generator.
 
 ## Status
 
+The [lexical coverage diagnosis](research/issue-31-lexical-coverage/README.md)
+separates exact indexed composition from observed candidates. Of 335 selected
+original-ruby contradictions, 320 have no full index cover; 15 can be composed,
+of which 13 appear in Top-32 and two do not. Following-kana/maximal-run views have
+45/41 covers and 39/26 Top-32 matches. All 1,340 source/control pairs and 2,680
+graph conditions were replayed; all 911 tests pass. This conditional diagnosis
+does not certify Japanese correctness or general dictionary coverage. Adopted
+accuracy remains 90.72%; no labels, models, safety thresholds or release gates
+changed. A fixed source-data admission recipe precedes another fit.
+
 The [source-extent comparison](research/issue-31-source-extents/README.md) keeps all
 335 parents under three fixed hypotheses. Exact source presence in Top-6 is7 for
 the original ruby,31 with following literal kana, and23 for maximal supported runs;

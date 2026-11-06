@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #31's [lexical coverage diagnostic](../../../research/issue-31-lexical-coverage/README.md)
+adds `lexical_cover.py`. It checks complete exact target/reading composition from
+authenticated dictionary pairs, with optional literal-kana copying as a separate
+condition. Bounded graph witnesses use character offsets; they do not imply native
+segment counts, POS connectivity, candidate reachability or Japanese correctness.
+Limits return explicit `work_bound`, never absence. All source/control rows retain
+lineage and deny training/Gold admission. Contracts: `tests/test_lexical_cover.py`.
+
 Issue #31's [source-extent diagnostic](../../../research/issue-31-source-extents/README.md)
 adds `source_reading_units.py`: original ruby, following literal kana and maximal
 supported runs, derived only from complete original annotations and literal kana.
