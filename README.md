@@ -8,6 +8,17 @@ The project reranks bounded N-best full-path candidates produced by Sakura
 Input. It does **not** replace the dictionary, lattice, Viterbi search, or
 candidate generator.
 
+The [bounded KNBC preparation](research/issue-33-knbc-screening/README.md)
+stopped the proposed 915-row screening comparison before any fitting. Of 2,786
+fixed slots, 1,158 produced complete-unit input hypotheses; current isolation
+retained only eight slots in one component, below the frozen 500/20 rule.
+Direct matches to consumed reading/context inputs account for 167 slots; another
+983 lie in connected components. They are not all duplicate or mislabeled
+sentences. No exclusions were restored and no substitute source was selected.
+All 1,077 tests pass. Adopted 90.72% and safety 0.25% remain unchanged; independent
+Gold and release remain incomplete. The next decision concerns the evaluation
+contract, rather than another automatic fit or infrastructure expansion.
+
 ## Status
 
 The [native path adapter](research/issue-35-native-paths/README.md) records real

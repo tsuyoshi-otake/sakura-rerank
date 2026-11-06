@@ -5,6 +5,52 @@ This prepares one research comparison of the original dictionary training arm
 model, certify Gold, change a gate, or demonstrate an accuracy improvement.
 Adopted accuracy remains 90.72%. The full release objective remains open.
 
+## Result: stop this comparison before fitting
+
+The single preparation is complete and fails its frozen readiness rule:
+**eight retained slots in one recorded component**, below 500 slots and 20
+components. No fit, model prediction, threshold selection or final Test followed.
+This is not a measured rejection of the 915-row filtering hypothesis; the
+available evaluation frame cannot test it under the current isolation contract.
+
+| Complete fixed population | Slots |
+| --- | ---: |
+| Reserved and consumed | 2,786 |
+| Structurally parsed source coverage | 2,771 |
+| Full-unit input hypotheses before history | 1,158 |
+| Direct matches to consumed reading/context inputs | 167 |
+| Other inputs in components touched by those matches | 983 |
+| Retained for candidate preparation | 8 |
+
+The last three rows partition the 1,158 hypotheses, not all 2,786 slots. The
+five new-input component sizes are 1,103 / 28 / 13 / 8 / 6. Four touch known input
+aliases. The large component also reaches historical/consumed source evidence;
+the other three excluded components contain 47 inputs. **1,150 exclusions do
+not mean 1,150 duplicate sentences, mislabeled examples or direct fit leaks.**
+They result from the unchanged complete-component policy, including article,
+prefix-family, input, exact-text and near-text relations. Actual authorship and
+statistical independence have not been certified.
+
+The 1,628 preparation exclusions are non-kana readings 984, no Kanji target 543,
+document correction markers 74, unsupported morpheme columns 15, style markers
+six and already-exposed documentation matches six. No substitute units or source
+members were selected. These selected-slot counts are not corpus error rates.
+
+All 2,786 source/ledger slots replay, including 1,158 literal reading/surface
+pairs checked directly from raw token columns. The full forward/reverse history
+comparison covers 995,283 nodes, 2,407,061 representative edges, 96,748 known input
+aliases and 6,260 explicitly consumed source nodes. It took 203.963 seconds;
+source preparation took 7.340 seconds. Counts are diagnostic work, not independent
+evaluation samples or accuracy observations.
+
+The existing model-data screening experiment is stopped with **fits=0**. Do not
+relax the isolation rule, restore exclusions, switch units or add sources merely
+to pass this readiness check. The next decision concerns the evaluation design:
+which direct-input and source relations the independence requirement must cover,
+and whether an eligible population can exist under that contract. Any changed
+contract needs explicit justification before a separately reserved experiment;
+this consumed frame cannot become a fresh final Test.
+
 ## Fixed question and stopping rule
 
 The later experiment asks whether removing the 915 conflicting/uncertain source
@@ -71,9 +117,18 @@ python -B research/issue-33-knbc-screening/owner.py prepare --commit <plan-commi
 python -B research/issue-33-knbc-screening/owner.py history --commit <plan-commit>
 python -B research/issue-33-knbc-screening/owner.py verify --commit <plan-commit>
 python -B research/issue-33-knbc-screening/owner.py tests
+python -B research/issue-33-knbc-screening/diagnose.py --commit a0d740e3dd6d7f2091bd496d06d49826e31d46e3
 ```
 
 Outputs are write-once; these commands do not overwrite an existing attempt.
+All 1,077 unit tests pass (13 new, zero failures/errors/skips). Six authored Python
+files pass syntax/import checks. The 16 original artifacts, 25 fit bindings, ten
+checkpoints and four prior reports retain their bytes. All 17 recorded owner or
+child PIDs, descendants and matching task commands are absent. No task-specific
+TEMP root or worktree was created; 40 private recovery files (13,099,655 bytes)
+remain intentionally retained. The aggregate evidence is
+[reports/issue-33-knbc-screening-v1.json](../../reports/issue-33-knbc-screening-v1.json).
+
 Each owner has a finite timeout, no retry, a terminal receipt and parent/child
 cleanup. The working agent verifies directly; no outside reviewer is used.
 Safety remains 0.25% on both references. Gold point 99.5%, Wilson 95% lower bound
@@ -93,3 +148,11 @@ No production API, original data, model weights or legacy admission rule changes
 Future comparison work can consume this explicit frame and its terminal census
 without re-deriving source boundaries. It must still validate candidate/numeric
 history, freeze evaluation/fit bindings and respect the unproven Gold boundary.
+
+The exact preparation was frozen at
+`a0d740e3dd6d7f2091bd496d06d49826e31d46e3` before new source access.
+The later `diagnose.py` only reproduces the direct/transitive aggregate from the
+sealed results; it changes no selection, artifact or relation. Private attempts
+and consumed-source evidence remain in
+`data/generated/issue-33-knbc-screening-v1/`; operational evidence is in
+`.codex/goal-loop/issue-33-knbc-screening/`. Neither is a trusted Gold artifact.

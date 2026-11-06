@@ -1,5 +1,15 @@
 # Data boundary tooling
 
+Issue #33's [single KNBC research frame](../../../research/issue-33-knbc-screening/README.md)
+adds `knbc_research.py`: preserve previously consumed families, choose a complete
+provider bunsetsu before validity checks, and retain every pending slot. Source
+reading/surface evidence is not IME intent. Historical input aliases and explicit
+source consumption can only exclude complete components of the existing graph.
+Direct input matches and propagated exclusions are reported separately. The
+2,786-slot application retained eight slots/one component and therefore stopped
+before candidate binding or fitting; the original isolation/admission rules are
+unchanged. Contracts: `tests/test_knbc_research.py`.
+
 Issue #35's [native path features](../../../research/issue-35-native-paths/README.md)
 adds schema5 with exact pre-fusion raw edges. Native construction supplies source
 kinds/UTF-8 boundaries; display counts and evidence tags never substitute for them.
