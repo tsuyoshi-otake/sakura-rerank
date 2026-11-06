@@ -6,8 +6,8 @@ import math
 import re
 from types import MappingProxyType
 
-from .data.contracts import validate_conversion_candidates
-from .current_tiny import HEAD, POLICY, current_factory, validate_policy_facts
+from .data.contracts import canonical_json_bytes, validate_conversion_candidates
+from .current_tiny import HEAD, POLICY, current_factory, snapshot_policy, validate_policy_facts
 from .evaluation_worker import gru_factory, runtime_identity
 
 SHA = re.compile(r"[0-9a-f]{64}\Z")
@@ -71,6 +71,10 @@ def prepare(snapshot, plan_bytes, adapters):
     experiment = typed_document(snapshot[data["experiment"]], "evaluation_execution_plan",
                                  {"runtime", "models", "primary", "comparisons", "slices", "limits"}, versions=(1, 2))
     product = experiment["version"] == 2
+    if product:
+        expected_policy = snapshot_policy(plan["artifacts"][data["provenance"]]["sha256"])
+        require(canonical_json_bytes(document(snapshot[data["policy"]])) == canonical_json_bytes(expected_policy),
+                "native snapshot policy/provenance binding differs")
     require(experiment["runtime"] == runtime_identity(), "runtime differs from the frozen experiment")
     require(experiment["runtime"]["system"] == "Windows", "bounded execution requires Windows")
     require(experiment["runtime"]["packages"]["numpy"] is not None, "metric runtime is unavailable")

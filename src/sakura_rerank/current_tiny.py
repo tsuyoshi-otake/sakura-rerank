@@ -23,6 +23,14 @@ FEATURES = {"kind": "current_tiny_protocol_v1", "version": 1, "width": 6,
 EVIDENCE_TAGS = frozenset({1, 2, 3, 4, 10, 11, 12, 13, 14, 20, 30, 31})
 
 
+def snapshot_policy(provenance_sha256):
+    """Distinct policy binding prevents silent reuse of legacy gate metadata."""
+    return {"kind": "current_product_evaluation_policy", "version": 1, "source_head": HEAD,
+            "population": "pre_display_native_candidate_snapshot", "baseline": "authenticated_native_local_selection",
+            "scope_and_priorities": "native_snapshot_facts", "selection": "strongest_native_evidence_group",
+            "tail_order": "unchanged_local_indices", "provenance_sha256": provenance_sha256}
+
+
 class ProductContractError(ValueError):
     """Sanitized product contract error, without record fragments."""
 

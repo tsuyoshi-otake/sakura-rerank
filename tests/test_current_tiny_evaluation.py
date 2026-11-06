@@ -35,7 +35,10 @@ class ProductEvaluationTests(unittest.TestCase):
         model["runs"] = {"shipped": "current-tiny"}
         self.experiment["comparisons"] = [[name, "baseline"] for m in self.experiment["models"] for name in m["runs"].values()]
         self.experiment["comparisons"].append(["r2-gated", "current-tiny"])
+        self.put("policy", "policy", canonical_json_bytes(current.snapshot_policy(self.plan["artifacts"]["provenance"]["sha256"])))
         gate = json.loads((self.root / "gate.bin").read_bytes())
+        gate["bindings"]["policy"] = self.plan["artifacts"]["policy"]["sha256"]
+        self.put("gate", "gate", canonical_json_bytes(gate))
         gate["configuration"] = {"kind": current.POLICY, "source_head": current.HEAD}
         self.put("current-gate", "gate", canonical_json_bytes(gate))
         self.plan["models"]["current_tiny"]["gate"] = "current-gate"
@@ -123,6 +126,17 @@ class ProductEvaluationTests(unittest.TestCase):
         model = next(m for m in self.experiment["models"] if m["model"] == "current_tiny")
         model.update(adapter="current", adapter_identity=adapter.identity(), feature_width=6)
         self.experiment["limits"]["request_seconds"] = .4
+        self.seal_execution()
+        with self.trusted_fixture(), self.assertRaises(RunnerError):
+            self.run_job()
+        self.assertEqual(self.ledger(), [])
+
+    def test_legacy_policy_cannot_be_rebound_into_product_snapshot_evaluation(self):
+        self.put("policy", "policy", canonical_json_bytes({"legacy_policy": True}))
+        for name in ("gate", "current-gate"):
+            gate = json.loads((self.root/(name+".bin")).read_bytes())
+            gate["bindings"]["policy"] = self.plan["artifacts"]["policy"]["sha256"]
+            self.put(name, "gate", canonical_json_bytes(gate))
         self.seal_execution()
         with self.trusted_fixture(), self.assertRaises(RunnerError):
             self.run_job()
