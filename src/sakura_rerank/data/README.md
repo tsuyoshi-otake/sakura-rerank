@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #31's [reading-consistency preparation](../../../research/issue-31-reading-consistency/README.md)
+adds `source_reading_gate.py`. New preparation recomputes exact original-span/ruby
+evidence; conflicts and uncertain annotations stay pending. Missing annotation is
+pending by default, with separately explicit dictionary-only weak preparation.
+The complete decision chain is preserved; the authenticated candidate/numeric-only
+reader cannot return pending rows or authorize training/Gold. Staging is validated
+before transactional publication. Existing extractors and labels are unchanged.
+Contracts and corruption/failure checks: `tests/test_source_reading_gate.py`.
+
 Issue #31's [source-conflict diagnosis](../../../research/issue-31-conflict-source/README.md)
 keeps dictionary uniqueness, original ruby agreement, source substring presence
 and intended IME correctness separate. All75,000 consumed source spans replay;
