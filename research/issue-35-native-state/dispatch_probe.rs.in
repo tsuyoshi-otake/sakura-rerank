@@ -28,14 +28,17 @@ pub(crate) fn capture(owner: u64, session_id: SessionId, session: &Session,
 fn research_native_snapshot_probe() {
     let output = std::env::var_os("SAKURA_RESEARCH_NATIVE_OUTPUT").expect("bounded output required");
     let mut file=std::fs::OpenOptions::new().write(true).create_new(true).open(output).expect("fresh output");
-    let scenarios = ["normal", "learned", "cached", "explicit", "scope_off", "long_short",
+    let scenarios = ["normal", "learned", "cached", "learned_tail", "cached_tail", "explicit", "scope_off", "long_short",
         "long_multi", "unclassified", "password", "renderer", "cursor", "pending_romaji",
         "owner", "session", "generation", "reading_hash", "reading_bytes", "candidate_set",
         "score_fingerprint", "score_count", "nonfinite", "not_ready", "missing"];
     for (index, scenario) in scenarios.iter().enumerate() {
+      for baseline_run in [true, false] {
+        let index=index*2+usize::from(!baseline_run);
         let conversion=conversion_fixture();
         let learning=Arc::new(LearningService::memory());
         if *scenario=="learned" { learning.learn("かな", "加奈", 0, 0); }
+        if *scenario=="learned_tail" { learning.learn("かな", "候補14", 0, 0); }
         let scope=match *scenario { "scope_off"=>NeuralRerankerScope::Off,
             "long_short" | "long_multi"=>NeuralRerankerScope::LongTextOnly,
             _=>NeuralRerankerScope::AllNormalConversions };
@@ -55,14 +58,14 @@ fn research_native_snapshot_probe() {
         type_word(&mut dispatcher,session,if *scenario=="long_multi" {"kanakanakana"}
             else if *scenario=="pending_romaji" {"kanan"} else {"kana"},&mut out);
         if *scenario=="cursor" { dispatcher.dispatch(&Request::SendKey {session,key:named_key(KeyCode::Left)},&mut out); }
-        if *scenario=="cached" {
+        if *scenario=="cached" || *scenario=="cached_tail" {
             let state=dispatcher.sessions.get_mut(session).expect("session");
-            state.record_current_commit("加奈",0,0,1);
+            state.record_current_commit(if *scenario=="cached_tail" {"候補14"} else {"加奈"},0,0,1);
         }
         let mutation=match *scenario { "owner"|"session"|"generation"|"reading_hash"|"reading_bytes"|
             "candidate_set"|"score_fingerprint"|"score_count"|"nonfinite"|"not_ready"|"missing"=>*scenario,
             _=>"none" };
-        let work=native::complete(&service,mutation);
+        let work=native::complete(&service,if baseline_run {"missing"} else {mutation});
         native::reset_calls();
         CAPTURES.with(|values| values.borrow_mut().clear());
         if *scenario=="explicit" {
@@ -75,7 +78,8 @@ fn research_native_snapshot_probe() {
             dispatcher.dispatch(&Request::SendKey {session,key:named_key(KeyCode::Space)},&mut out);
         }
         let captures=CAPTURES.with(|values| values.borrow().join(","));
-        writeln!(file,"{{\"fixture\":{index},\"scenario\":\"{scenario}\",\"work\":{work},\"captures\":[{captures}],\"terminal\":\"{}\"}}",native::result_state(&service)).expect("bounded receipt");
+        writeln!(file,"{{\"fixture\":{index},\"scenario\":\"{scenario}\",\"baseline_run\":{baseline_run},\"work\":{work},\"captures\":[{captures}],\"terminal\":\"{}\"}}",native::result_state(&service)).expect("bounded receipt");
+      }
     }
     file.sync_all().expect("durable receipt");
 }

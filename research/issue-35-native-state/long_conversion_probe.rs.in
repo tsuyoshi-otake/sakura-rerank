@@ -35,7 +35,7 @@ pub(crate) mod research_state {
             key: work.key.clone(), candidate_set: model_set,
             scores: candidates.iter().enumerate().map(|(i, candidate)| CandidateScore {
                 fingerprint: candidate.fingerprint,
-                log_probability: if i == 1 { 10.0 } else { -(i as f32) },
+                log_probability: if i == 2 { 10.0 } else { -(i as f32) },
             }).collect(), state: RerankState::Ready,
         };
         match mutation {
@@ -61,10 +61,11 @@ pub(crate) mod research_state {
             "{{\"scheduled\":true,\"built\":true,\"owner\":{},\"session\":{},\"generation\":{},",
             "\"reading_hash\":{},\"reading_bytes\":{},\"candidate_set\":{},\"model_candidates\":[{}],",
             "\"response_key\":[{},{},{},{},{}],\"response_candidate_set\":{},\"response_count\":{},",
-            "\"response_fingerprints\":{:?},\"response_finite\":{},\"response_ready\":{},\"response_present\":{}}}"),
+            "\"response_fingerprints\":{:?},\"response_score_bits\":{:?},\"response_finite\":{},\"response_ready\":{},\"response_present\":{}}}"),
             key.owner,key.session,key.generation,key.reading_hash,key.reading_bytes,model_set,models,
             delivered.owner,delivered.session,delivered.generation,delivered.reading_hash,delivered.reading_bytes,
             result.candidate_set,result.scores.len(),result.scores.iter().map(|s| s.fingerprint).collect::<Vec<_>>(),
+            result.scores.iter().map(|s| s.log_probability.to_bits()).collect::<Vec<_>>(),
             result.scores.iter().all(|s| s.log_probability.is_finite()),result.state==RerankState::Ready,mutation!="missing");
         if mutation != "missing" { *lock(&service.shared.result) = Some(result); }
         observation

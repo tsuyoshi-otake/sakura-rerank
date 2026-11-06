@@ -110,11 +110,11 @@ def prepare(source, work):
         stream.extractall(workspace,filter='data')
     original={p.relative_to(workspace).as_posix():sha(p) for p in workspace.rglob('*') if p.is_file()}
     changed=instrument(workspace)
-    plan={'kind':'native_state_probe_plan','version':1,'source_head':HEAD,
+    plan={'kind':'native_state_probe_plan','version':2,'source_head':HEAD,
         'source_tree':command('git','-C',str(source),'rev-parse','HEAD^{tree}'),
         'source_archive_sha256':sha(packed),'original_source_files':original,'instrumented_files':changed,
         'implementation':{name:sha(HERE/name) for name in FILES},'compiler':build,
-        'lock_sha256':sha(workspace/'Cargo.lock'),'test':TEST,'build_jobs':1,
+        'lock_sha256':sha(workspace/'Cargo.lock'),'test':TEST,'build_jobs':1,'expected_fixture_count':50,
         'build_timeout_seconds':600,'run_timeout_seconds':120,'synthetic_response_injection':True,
         'real_test':False,'model_inference':False,'gold_evidence':False,'production_edits':False}
     save(work/'plan.json',plan)
@@ -163,7 +163,7 @@ def run(work, plan_sha):
     if actual!=expected:
         raise ValueError('private instrumented source differs')
     save(work/'started.json',{'owner_pid':os.getpid(),'plan_sha256':plan_sha})
-    result={'kind':'native_state_probe_result','version':1,'plan_sha256':plan_sha,'status':'failed','processes':[]}
+    result={'kind':'native_state_probe_result','version':2,'plan_sha256':plan_sha,'status':'failed','processes':[]}
     try:
         (work/'temp').mkdir()
         c=plan['compiler']
@@ -188,7 +188,7 @@ def run(work, plan_sha):
         if len(raw)>2*1024*1024:
             raise ValueError('native capture exceeds bound')
         rows=[json.loads(line) for line in raw.splitlines()]
-        if not rows or [v['fixture'] for v in rows]!=list(range(len(rows))):
+        if len(rows)!=plan['expected_fixture_count'] or [v['fixture'] for v in rows]!=list(range(len(rows))):
             raise ValueError('native capture coverage differs')
         result.update(status='passed',capture_sha256=hashlib.sha256(raw).hexdigest(),fixture_count=len(rows),
             capture_count=sum(len(v['captures']) for v in rows),applied=sum(v['terminal']=='Applied' for v in rows),
