@@ -1,6 +1,7 @@
 """Explain a consumed frame's relations; diagnostic views never admit rows."""
 import argparse
 from collections import Counter, defaultdict
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -11,10 +12,9 @@ import time
 from sakura_rerank.data.contracts import canonical_json_hash
 from sakura_rerank.data.reconstruction_graph import build_source_graph
 from sakura_rerank.data.relation_witnesses import KINDS, component_labels, trace_paths
-from history import historical_aliases, historical_records
 from prepare import HERE, REPO, ROOT, authenticate, read, require, save, sha
 
-PLAN = HERE/'trace-plan-v1.json'
+PLAN = HERE/'trace-plan-v2.json'
 PREPARATION_COMMIT = 'a0d740e3dd6d7f2091bd496d06d49826e31d46e3'
 VIEWS = {
     'input_only': ['input'],
@@ -105,7 +105,12 @@ def trace(commit, output):
     authenticate(commit)
     for path, digest in {**plan['inputs'], **plan['code']}.items():
         require(sha(REPO/path) == digest, 'trace_bound_bytes_changed')
-    previous = historical_records()
+    # Prior research also imports a module named history. Do not occupy that
+    # global import name with this frame's adapter.
+    spec = importlib.util.spec_from_file_location('knbc_trace_history', HERE/'history.py')
+    history = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(history)
+    previous = history.historical_records()
     exposed = {r['stable_id'] for r in previous if r['population'] == 'source_coverage'
                and source_kind(r) != 'other_history'}
     rows = read(ROOT/'source-slots.private.json')['rows']
@@ -115,7 +120,7 @@ def trace(commit, output):
             new.append(row['source_coverage'])
         if row['input'] is not None:
             new.append({k:row['input'][k] for k in ('stable_id', 'population', 'source', 'input_hash')})
-    aliases = historical_aliases()
+    aliases = history.historical_aliases()
     print(json.dumps(dict(stage='building_bound_graph', nodes=len(previous)+len(new))), flush=True)
     graph = build_source_graph(previous+new)
     del previous, new, rows
