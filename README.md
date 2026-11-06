@@ -10,6 +10,17 @@ candidate generator.
 
 ## Status
 
+The [source-conflict diagnosis](research/issue-31-conflict-source/README.md)
+verifies all 75,000 original source spans and finds335 dictionary-derived Aozora
+readings that contradict the exact original ruby (1.34% of that25,000-row cohort).
+Separate hash-only repair proposals preserve every original label. The2,114
+empty-input conflicts are not explained by encoding aliases/truncation; only27
+groups collapse under mechanical notation folds, which do not authorize label
+equivalence. Source context reduces census contradictions but mostly distinguishes
+individual examples, so it proves no held-out gain. All821 tests pass. Adopted
+accuracy90.72%, safety0.25%, Gold, calibration, final-Test and release gates remain
+unchanged; no new fit or source-label correction has been applied.
+
 The [fixed CPU proposal census](research/issue-34-cpu-proposals/README.md)
 reproduces all 150,000 #29 scores exactly. Removing context creates 2,114 identical
 input groups with incompatible source targets: at least 5,658/75,000 mismatches
