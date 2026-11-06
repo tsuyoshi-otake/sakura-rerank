@@ -10,6 +10,16 @@ candidate generator.
 
 ## Status
 
+The [original-reading reconstruction](research/issue-31-reading-rebuild/README.md)
+preserves all335 contradictory parents and derives318 separately identified
+source inputs;17 one-character readings remain pending. All264 native requests
+validate, but only7 rows meet the existing Top-6 candidate contract,6 more have
+the original surface only in Top-32, and305 measured rows lack it. Reading repair
+alone does not yield335 usable training examples. Direct input exposure is retained:
+5 current matches with source prefix,161 with empty context, including1 historical
+train match. All867 tests pass; original data/models remain unchanged. Adopted
+accuracy90.72%, safety0.25%, independent Gold and release gates are unchanged.
+
 The [original-reading preparation guard](research/issue-31-reading-consistency/README.md)
 now prevents source-reading contradictions and uncertain annotations from reaching
 new candidate/numeric preparation. On all75,000 consumed rows,335 known reading
