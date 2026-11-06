@@ -23,8 +23,11 @@ baseline. However, its protocol-v1 worker zeros reading/context and features
 2/4/5, and its engine preserves candidate-evidence priorities. Research scores
 with unrestricted ranking do not reproduce that policy. The known incompatible
 research factory is rejected for `current_tiny`, including registry aliases.
-No verified product-policy adapter is supplied in this change, so the default
-CLI cannot yet execute the complete required real comparison family.
+The [version2 snapshot adapter](issue-35-current-tiny-parity/README.md) now supplies
+the pinned current-model projection and protected choice. It requires a distinct
+native policy/provenance binding, explicit local selection and native evidence
+facts; version1 does not silently adopt it. A real native-state producer, Gold
+admission and native deployment/session evidence remain unresolved.
 
 This finding is bound to clean Sakura Input HEAD
 `bcf42d3ad931c6e081ae4b3fbd4d0e6cd9377d88`, recorded before source inspection.
@@ -120,7 +123,7 @@ Run targeted admission/runner/worker/metric contracts and the full unit suite in
 a task-owned temporary directory with an outer timeout. Verify real process
 termination and shared-memory cleanup as well as result values. Use synthetic
 ONNX graphs for the built-in CPU adapter, never existing evaluation payloads.
-Independent label evidence, actual current-Tiny product parity, independent calibration,
+Independent label evidence, current-Tiny native-state provenance/deployment parity, independent calibration,
 final population/experiment registration and Gates A/B/C/D remain separate work.
 
 Primary API references: [Python shared memory lifecycle](https://docs.python.org/3.13/library/multiprocessing.shared_memory.html)

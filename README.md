@@ -10,13 +10,26 @@ candidate generator.
 
 ## Status
 
+The [current Tiny snapshot adapter](research/issue-35-current-tiny-parity/README.md)
+now matches the pinned native scorer's input tensors and protected candidate
+choice:67 synthetic projection conditions,21,632 scalar values,1,756 choices
+and384 output scores agree. Each frozen parity run executes128 actual-model CPU
+requests; three recorded runs retain the policy/safety-binding changes. All1,017
+tests pass. Version2 preserves native-local fallback and also reports the original
+converter-Top1 safety reference; both keep the0.25% requirement. Real native-state
+provenance, independent Gold/calibration/Test and production deployment evidence
+remain incomplete. No corpus, label, model or production setting changed; adopted
+accuracy90.72% has not improved on verified independent evidence.
+
 The [bounded evaluation runner](research/evaluation-runner-v1.md) now connects
 authenticated one-use access, model execution, sealed predictions and metrics.
 All997 tests pass, including real spawned-process failures, native descendant
 cleanup and synthetic CPU ONNX execution. The current clean Sakura Input baseline
 is a six-feature GRU, but its protocol-v1 input projection and protected candidate
-selection differ from the research adapter. That adapter is therefore refused
-for the unchanged product baseline; product-policy parity remains required.
+selection differ from the research adapter. That research adapter is therefore
+refused for the unchanged product baseline; the separate snapshot adapter above
+now covers tensor/choice parity, while native-state provenance and deployment
+remain required.
 The Gold trust set stays empty. No real Test, model fit or production inference
 was run; adopted90.72%, safety0.25% and release gates remain unchanged.
 
