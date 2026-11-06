@@ -50,6 +50,16 @@ class SourceModelInputTests(unittest.TestCase):
         _,profile=encode_snapshot(snapshot(surfaces=['橋']*6))
         self.assertEqual(profile['encoded_surface_collision_pairs'],0)
 
+    def test_fewer_than_six_candidates_keep_real_count_and_zero_padding(self):
+        for count in (1,2,3,5):
+            value=snapshot()
+            for snap in value['candidate_snapshots'].values():snap['candidates']=snap['candidates'][:count]
+            arrays,profile=encode_snapshot(value)
+            self.assertEqual(profile['candidate_count'],count)
+            np.testing.assert_array_equal(arrays['candidate_mask'][0],np.arange(6)<count)
+            for name in ('candidate_ids','candidate_lengths','features'):
+                self.assertFalse(arrays[name][0,count:].any())
+
     def test_invalid_candidate_prefix_or_bounds_fail_without_partial_feed(self):
         for kind in ('different_prefix','long_reading','nan','too_many_segments'):
             value=snapshot()

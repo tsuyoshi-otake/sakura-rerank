@@ -13,7 +13,7 @@ from sakura_rerank.source_model_inputs import INPUT_NAMES,encode_snapshot
 from model35_common import HERE,PLAN,ROOT,SOURCE,authenticate,read,save,sha
 
 
-def plan():
+def plan(revision):
     v1=read('manifests/sakura-rerank-tiny-v1-research-prototype.json')
     r2=read('manifests/sakura-rerank-tiny-v1-research-r2.json')
     student_report=read('reports/issue-29-distill-gate.json')
@@ -42,7 +42,7 @@ def plan():
     code=list(HERE.glob('*.py'))+['src/sakura_rerank/source_model_inputs.py','src/sakura_rerank/research_tiny.py',
         'src/sakura_rerank/research_tiny_r2.py','src/sakura_rerank/evaluation_metrics.py','src/sakura_rerank/evaluation_statistics.py',
         'tests/test_source_model_inputs.py']
-    spec=dict(kind='fixed_source_model_comparison_plan_v1',issues=[35,33,32],parent_issue=1,
+    spec=dict(kind='fixed_source_model_comparison_plan',revision=revision,issues=[35,33,32],parent_issue=1,
         source_commit='4a50a2c2326f7ab6b8a68415f9d687af277b4b05',source_slots=1000,native_requests=1230,
         label_task='Original source reconstruction; not independent IME correctness or Gold.',
         primary_population='All native-measurable source parts; all1000 slots remain in the report with unmeasured statuses.',
@@ -66,8 +66,14 @@ def plan():
         unchanged=read('research/issue-35-source-consumption/plan-v1.json')['unchanged'],
         environment=dict(python=sys.version,platform=platform.platform(),packages={p:importlib.metadata.version(p) for p in ('numpy','onnxruntime','onnx')},new_dependencies=0),
         inputs={str(p).replace('\\','/'):sha(p) for p in paths},code={str(p).replace('\\','/'):sha(p) for p in code})
-    save(PLAN,spec)
-    return dict(stage='planned',model_artifacts=len(models),plan_sha256=sha(PLAN),model_calls=0)
+    target=PLAN if revision==1 else HERE/'plan-v2.json'
+    if revision==2:
+        spec['preserved_first_attempt']=dict(commit='9eb5be41b930c174a8359a70ef5b3ed506d2f6f2',
+            plan_sha256=sha(PLAN),failed_runner_sha256=sha(ROOT/'preparation-runner.json'),
+            failed_log_sha256=sha(ROOT/'preparation.log'),reason='Three validated snapshots have fewer than six candidates; retain and pad/mask using existing model contract.',
+            source_population_changed=False,model_predictions_before_repair=0)
+    save(target,spec)
+    return dict(stage='planned',revision=revision,model_artifacts=len(models),plan_sha256=sha(target),model_calls=0)
 
 
 def authenticated_snapshots():
@@ -91,9 +97,9 @@ def authenticated_snapshots():
         sys.path.pop(0)
 
 
-def prepare(commit):
-    spec=authenticate(commit)
-    save(ROOT/'preparation-reservation.json',dict(plan_commit=commit,source_slots=1000,model_calls=0))
+def prepare(commit,revision):
+    plan_file=f'plan-v{revision}.json';spec=authenticate(commit,plan_file)
+    save(ROOT/f'preparation-reservation-v{revision}.json',dict(plan_commit=commit,plan_file=plan_file,source_slots=1000,model_calls=0))
     snapshots=authenticated_snapshots();identities=sorted(snapshots);arrays={};profiles={}
     for index,key in enumerate(identities):
         values,profile=encode_snapshot(snapshots[key]);profiles[key]=profile
@@ -118,10 +124,11 @@ def prepare(commit):
                 prefix_truncated=profiles[item['request_id']]['any_truncation']))
     # Only the evaluator opens this sidecar after every model output is sealed.
     save(ROOT/'source-cases.json',dict(cases=cases,slots=slots,source_slots=1000,slot_statuses=dict(slot_counts)))
-    report=dict(kind='fixed_source_model_preparation',status='prepared_not_inferred',plan_commit=commit,
+    report=dict(kind='fixed_source_model_preparation',status='prepared_not_inferred',plan_commit=commit,plan_file=plan_file,
         source_slots=1000,slot_statuses=dict(slot_counts),source_part_cases=len(cases),unique_numeric_inputs=len(identities),
         historical_part_cases=sum(c['historically_related'] for c in cases),
-        profiles=dict(requests_with_reading_truncation=sum(p['reading_truncated'] for p in profiles.values()),
+        profiles=dict(candidate_counts=dict(Counter(str(p['candidate_count']) for p in profiles.values())),
+            requests_with_reading_truncation=sum(p['reading_truncated'] for p in profiles.values()),
             requests_with_any_truncation=sum(p['any_truncation'] for p in profiles.values()),
             truncated_candidate_surfaces=sum(p['surface_truncations'] for p in profiles.values()),
             encoded_surface_collision_pairs=sum(p['encoded_surface_collision_pairs'] for p in profiles.values()),
@@ -135,4 +142,5 @@ def prepare(commit):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('stage',choices=('plan','prepare'));parser.add_argument('--commit')
-    args=parser.parse_args();print(json.dumps(plan() if args.stage=='plan' else prepare(args.commit)))
+    parser.add_argument('--revision',type=int,choices=(1,2),default=2)
+    args=parser.parse_args();print(json.dumps(plan(args.revision) if args.stage=='plan' else prepare(args.commit,args.revision)))

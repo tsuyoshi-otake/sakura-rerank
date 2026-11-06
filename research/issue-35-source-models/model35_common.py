@@ -29,8 +29,9 @@ def committed(path,commit):
     return raw
 
 
-def authenticate(commit):
-    plan=json.loads(committed(PLAN,commit))
+def authenticate(commit,plan_file='plan-v1.json'):
+    if plan_file not in ('plan-v1.json','plan-v2.json'):raise ValueError('source_models_plan_version')
+    plan=json.loads(committed(HERE/plan_file,commit))
     for path,digest in {**plan['inputs'],**plan['code']}.items():
         if sha(path)!=digest:raise ValueError('source_models_bound_artifact_changed')
     for model in plan['models']:
