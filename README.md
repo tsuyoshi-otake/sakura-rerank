@@ -19,6 +19,14 @@ All 1,077 tests pass. Adopted 90.72% and safety 0.25% remain unchanged; independ
 Gold and release remain incomplete. The next decision concerns the evaluation
 contract, rather than another automatic fit or infrastructure expansion.
 
+The [exclusion trace](research/issue-33-knbc-screening/README.md#exclusion-trace-2026-11-07)
+now establishes that input equality plus prefix grouping alone reproduces all
+1,150 exclusions: sentence/paragraph similarity adds none in this frame. Removing
+prefix grouping alone still leaves only 150 inputs. The next prerequisite is an
+explicit contract for source grouping versus actual consumed-input exclusion;
+no old row is restored by these diagnostic views. All 1,082 tests pass; this is
+an explanation of failed evaluation readiness, not an accuracy improvement.
+
 ## Status
 
 The [native path adapter](research/issue-35-native-paths/README.md) records real

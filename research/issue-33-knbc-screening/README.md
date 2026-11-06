@@ -156,3 +156,133 @@ sealed results; it changes no selection, artifact or relation. Private attempts
 and consumed-source evidence remain in
 `data/generated/issue-33-knbc-screening-v1/`; operational evidence is in
 `.codex/goal-loop/issue-33-knbc-screening/`. Neither is a trusted Gold artifact.
+
+## Exclusion trace 2026-11-07
+
+**The evaluation frame collapses through equal inputs and prefix grouping,
+without needing any paragraph or sentence similarity edge.** More source prose
+alone is therefore not a demonstrated remedy. The proposed 915-row screening
+comparison remains stopped, its effect unmeasured, and adopted accuracy remains
+90.72%. This diagnosis changes neither exclusions nor the 0.25% safety criterion.
+
+The fixed eight-view trace rebuilds the same 995,283 nodes and 2,407,061 typed
+witness edges. It reproduces all 1,158 component identities and 1,150 exclusions.
+Its seeds are 503,339 historical input records, 6,260 explicitly consumed source
+records, and 167 new inputs matching the separately recorded 96,748 input aliases.
+Historical includes prior evaluation and other exposure; it does not mean all
+503,339 records trained a model. The 167 aliases alone are not an exhaustive count
+of every direct historical match: input edges also find 59 historical matches,
+45 overlapping the aliases. Their union is **181**, not 167.
+
+| Fixed relation view | Inputs connected to any seed | Inputs unconnected | New-input components |
+|---|---:|---:|---:|
+| Input equality only | 181 | 977 | 1,057 |
+| Article + input | 995 | 163 | 68 |
+| Prefix/template + input | 1,150 | 8 | 5 |
+| Article + prefix/template + input | 1,150 | 8 | 5 |
+| Paragraph + exact/near sentence only | 167 | 991 | 1,158 |
+| Identity + exact content, without near | 1,150 | 8 | 5 |
+| All relations except prefix/template | 1,008 | 150 | 60 |
+| Full unchanged contract | 1,150 | 8 | 5 |
+
+These are sensitivity counts, **not alternative admissible dataset sizes**.
+The content-only view's 167 are its own alias seeds; zero new inputs connect to
+historical inputs or consumed source through content edges alone. Every excluded
+input has a zero-content-edge path after article/prefix/input components are
+contracted. Those paths can contain many identity edges; zero does not mean a
+direct raw match. The path validator checks all 119,789 identity roots for each
+of the three seed sets, including unreachable terminals and acyclic parents.
+Distances are for the representative graph, not unique causal explanations or
+raw-pair graph distances.
+
+The largest component contains 1,103 new inputs from 158 articles and 58 prefix
+families, including 159 direct alias matches. The other components contain
+28/13/8/6 inputs. The schema's `author` edge compares `template_cluster_id`;
+KNBC uses filename prefixes there, without certification that they identify
+authors. Nevertheless, dropping that relation alone would leave only 150 inputs,
+still below the frozen minimum of 500. Article grouping plus input equality alone
+also fails the minimum (163). A prefix-only fix or a relaxed near-duplicate
+threshold would not make this reserved comparison ready.
+
+### Next decision, expected value and bounded cost
+
+1. **P0, #32/#35: specify the separation unit before another collection or fit.**
+   Distinguish source/author groups, consumed reading/context inputs, and complete
+   numeric candidate inputs. A shared reading is a real recorded match, but is
+   not by itself proof that every other input in both articles was consumed by
+   the model. Keep the old full closure and failed frame intact. Compare a
+   prospective policy that fixes source groups first and quarantines shared
+   consumed units, with explicit bans on re-entry through context, teachers or
+   pretraining. This is a specification change, not a refactor or permission to
+   restore rows. Expected value: determine whether future independent evaluation
+   is feasible; accuracy gain is unknown. Cost: one contract, boundary fixtures,
+   and one hash-only dry run on existing metadata; this trace took 144.893 seconds
+   and gives the scale of graph verification, not a promised total design time.
+2. **P1, #31: establish label and input-unit evidence on that contract.** A whole
+   annotated bunsetsu and its source spelling still do not certify IME intention.
+   Human absence cannot be replaced with invented human verdicts. Existing AI
+   evidence stays `ai_teacher`; independent Gold qualification remains unmet.
+   Cost and attainable Gold volume must be established before full collection.
+3. **P2, #33: reconsider the fixed-budget screen only after a separately reserved
+   frame qualifies.** The 915-row hypothesis is neither proven nor disproven.
+   The previous cap remains three 500-update fits with fixed controls, no threshold
+   or seed search. This already-consumed frame cannot become fresh Test after
+   seeing these results. No substitute source search starts automatically.
+
+Gold point 99.5%, Wilson95 lower bound 99.0%, final valid 3,000, independent
+calibration, one frozen final Test, and both 0.25% safety references remain fixed.
+No new performance sample exists, so accuracy confidence intervals or improvement
+claims are not manufactured from these deterministic graph counts.
+
+### Trace reproduction and verification
+
+`trace-plan-v1.json` and commit `f8961af` preserve the first failed execution.
+It authenticated inputs but failed before graph construction: a generic `history`
+import occupied the module name expected by an older cohort. The corrected
+adapter loads under a unique name. `trace-plan-v2.json`, frozen at `982d56f`, keeps
+the same eight views and data hashes. Original frozen code/data are unchanged.
+
+```text
+# Existing pinned Python environment; PYTHONPATH=src;.; no dependency install.
+python -B research/issue-33-knbc-screening/trace.py --output <new-private-output-directory>
+python -B -m unittest discover -s tests
+python -B research/issue-33-data-growth/verify_integrity.py
+git diff --check
+```
+
+The owner refuses an existing output directory, runs once with a 900-second bound,
+and records its terminal. Trace-02 completed in 146.650 seconds including ownership.
+All 2,407,061 edges satisfy the corresponding metadata relation; full components,
+exclusions, seed reachability, parent edges and shortest content distances verify.
+All 1,082 tests pass (five new contracts, zero failure/error/skip); two files pass
+syntax/import checks. No separate type checker was run. Original 16 artifacts,
+25 fit bindings, ten checkpoints and five prior reports remain byte-identical.
+All six recorded owner/child PIDs and their descendants/task commands are absent.
+The throwaway test runner was removed; no dedicated TEMP directory was created.
+
+The [aggregate result](../../reports/issue-32-knbc-trace-v1.json) contains all views
+and checks. Eight private recovery files (223,998 bytes) remain in `trace-01/` and
+`trace-02/` under `data/generated/issue-33-knbc-screening-v1/`; the original 40
+recovery files remain separate and unchanged. Operational evidence and rubric are
+in `.codex/goal-loop/issue-32-knbc-trace/`. The diagnostic passed in two iterations;
+the screening experiment and overall release are not complete.
+
+### Trace scope and ownership
+
+A. Scope: one research trace, its two frozen plans, one focused test file, the
+existing frame/history/witness contracts and result documentation. Full regression
+remains required; no model, original splitter or production code changed.
+
+B. Expansion: exact reproduction requires the historical import chain. The
+module-name collision exposed that dependency; the local adapter was isolated
+without refactoring prior experiments. Repeated historical-script loading is
+architectural debt, not a reason to expand this diagnostic into another framework.
+
+C. The trace owns diagnostic views and process receipts. The existing graph owns
+relation semantics; the original frame continues to own exclusions/admission.
+No semantic dependency, public production API or state owner was changed.
+
+D. The next isolation design can start from these eight views and verified paths
+without rereading the learning code or rerunning source extraction. It must still
+define source versus actual-consumption boundaries and validate them prospectively;
+this report is not an independence certificate.

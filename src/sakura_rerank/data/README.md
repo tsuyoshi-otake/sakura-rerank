@@ -10,6 +10,14 @@ Direct input matches and propagated exclusions are reported separately. The
 before candidate binding or fitting; the original isolation/admission rules are
 unchanged. Contracts: `tests/test_knbc_research.py`.
 
+The subsequent [relation trace](../../../research/issue-33-knbc-screening/README.md#exclusion-trace-2026-11-07)
+replays all 1,158 component identities and 1,150 exclusions. Input equality and
+prefix grouping suffice; content relations add zero excluded inputs in this
+frame. The `author` edge name denotes `template_cluster_id`, not verified KNBC
+authorship. Its eight views are diagnostic only and cannot admit an excluded
+row or reuse the consumed frame as independent Test. `tests/test_knbc_trace.py`
+checks propagation and rejects invalid path certificates.
+
 Issue #35's [native path features](../../../research/issue-35-native-paths/README.md)
 adds schema5 with exact pre-fusion raw edges. Native construction supplies source
 kinds/UTF-8 boundaries; display counts and evidence tags never substitute for them.
