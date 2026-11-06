@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #31's [source-conflict diagnosis](../../../research/issue-31-conflict-source/README.md)
+keeps dictionary uniqueness, original ruby agreement, source substring presence
+and intended IME correctness separate. All75,000 consumed source spans replay;
+335 dictionary-reading contradictions are hash-only repair proposals, not applied
+labels or Gold. Mechanical notation folds and character adjacency never admit or
+reject labels. The research-only contract tests are `test_conflict_source.py`;
+the existing source extractors, training cache and production inputs are unchanged.
+
 Issue #34's [fixed CPU proposals](../../../research/issue-34-cpu-proposals/README.md)
 add strict label-free source/empty-context projections in `gate_proposal_inputs.py`.
 Projected input equality is joined with complete original components before folds;
