@@ -43,7 +43,7 @@ def run(stage, commit):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('stage', choices=('acquire','verify','targeted','tests'))
+    parser.add_argument('stage', choices=('inspect','verify','targeted','tests'))
     parser.add_argument('--commit', default='')
     args = parser.parse_args()
     raise SystemExit(0 if run(args.stage, args.commit) else 1)

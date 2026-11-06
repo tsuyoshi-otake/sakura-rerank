@@ -78,6 +78,20 @@ class KnBCDocumentationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'empty_archive'):
             MODULE.inspect_archive(archive([]))
 
+    def test_explicit_metadata_only_symlink_policy_does_not_follow_link(self):
+        raw = archive([('root/link', b'', tarfile.SYMTYPE), ('root/README', b'fixture terms', tarfile.REGTYPE)])
+        inventory, documents, _ = MODULE.inspect_archive(raw, permit_unfollowed_symlinks=True)
+        self.assertEqual(inventory[0]['kind'], 'unfollowed_symlink')
+        self.assertEqual([d['raw'] for d in documents], [b'fixture terms'])
+
+    def test_document_named_symlink_is_never_read(self):
+        raw = archive([('root/README', b'', tarfile.SYMTYPE)])
+        self.assertEqual(MODULE.inspect_archive(raw, permit_unfollowed_symlinks=True)[1], [])
+
+    def test_metadata_only_policy_still_rejects_hard_links(self):
+        with self.assertRaisesRegex(ValueError, 'member_type'):
+            MODULE.inspect_archive(archive([('root/link', b'', tarfile.LNKTYPE)]), permit_unfollowed_symlinks=True)
+
 
 if __name__ == '__main__':
     unittest.main()
