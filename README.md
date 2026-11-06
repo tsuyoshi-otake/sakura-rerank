@@ -10,6 +10,15 @@ candidate generator.
 
 ## Status
 
+The [source-screened recipe](research/issue-31-source-recipe/README.md) connects
+source evidence to unchanged numeric-cache rows and original per-arm presentation
+order. It retains 49,085/50,000 dictionary-arm rows, excluding 335 reading conflicts
+and 580 uncertain annotations; the annotation arm retains all 50,000. All 75,000
+identities and excluded history remain. All 941 tests and complete source/numeric
+replay pass. This changes future research-fit preparation, not adopted accuracy
+(90.72%) or Gold status. A fresh isolated research evaluation reservation is the
+next prerequisite; existing models, 0.25% safety and release gates are unchanged.
+
 The [lexical coverage diagnosis](research/issue-31-lexical-coverage/README.md)
 separates exact indexed composition from observed candidates. Of 335 selected
 original-ruby contradictions, 320 have no full index cover; 15 can be composed,

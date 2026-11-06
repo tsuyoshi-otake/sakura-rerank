@@ -1,5 +1,14 @@
 # Data boundary tooling
 
+Issue #31's [source-screened recipe](../../../research/issue-31-source-recipe/README.md)
+adds `source_research_recipe.py`. It joins authenticated source decisions to all
+original numeric identities, distinguishes annotation evidence from explicitly
+weak dictionary-only evidence, and filters a separately bound original per-arm
+presentation order. Source order, numeric row order and arm order are distinct.
+The hash-bound reader permits only `fit_binding_preparation`; original cache
+admission, excluded history and Gold/evaluation restrictions remain. Contracts:
+`tests/test_source_research_recipe.py`.
+
 Issue #31's [lexical coverage diagnostic](../../../research/issue-31-lexical-coverage/README.md)
 adds `lexical_cover.py`. It checks complete exact target/reading composition from
 authenticated dictionary pairs, with optional literal-kana copying as a separate
