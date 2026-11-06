@@ -29,6 +29,18 @@ def evaluate(cases, observations, *, completed=True):
 
 
 class FixedCohortMetricsTests(unittest.TestCase):
+    def test_sixteen_variants_share_the_existing_bounded_statistics(self):
+        cases = [case(0), case(1, ("b", "a"))]
+        observations = {key(i): Observation("applied", (1, 0)) for i in range(2)}
+        runs = {"model-"+str(i): EvaluationRun(observations, True) for i in range(16)}
+        family = [(name, "baseline") for name in runs]
+        report = evaluate_runs(cases, runs, comparisons=family, bootstrap_replicates=100)
+        self.assertEqual(len(report["models"]), 16)
+        self.assertTrue(all(row["record_count"] == 2 for row in report["models"].values()))
+        family += [("model-0", "model-"+str(i)) for i in range(1, 15)]
+        with self.assertRaisesRegex(EvaluationError, "column budget"):
+            evaluate_runs(cases, runs, comparisons=family, bootstrap_replicates=100)
+
     def test_counts_denominators_failures_and_duplicate_surface(self):
         cases = [case(0, ("a", "b", "c")), case(1, ("b", "a", "c")),
                  case(2, ("b", "c", "a")), case(3), case(4, ("b", "a")),

@@ -109,10 +109,10 @@ def evaluate_runs(
     orientation is left-minus-right; the complete family is required up front.
     """
     ordered = _validate_cases(cases)
-    if (not isinstance(runs, Mapping) or not 1 <= len(runs) <= 8
+    if (not isinstance(runs, Mapping) or not 1 <= len(runs) <= 16
             or any(not isinstance(name, str) or _NAME.fullmatch(name) is None
                    or name == "baseline" for name in runs)):
-        raise EvaluationError("one to eight named model runs required")
+        raise EvaluationError("one to sixteen named model runs required")
     names = sorted(runs)
     case_keys = {case.case_key for case in ordered}
     for run in runs.values():
@@ -136,6 +136,8 @@ def evaluate_runs(
     family.sort()
     if any((name, "baseline") not in family for name in names):
         raise EvaluationError("each model requires a model-minus-baseline comparison")
+    if 3 + 2 * len(names) + len(family) > 64:
+        raise EvaluationError("comparison family exceeds the fixed bootstrap column budget")
     n = len(ordered)
     baseline = [case.candidates[0] == case.gold for case in ordered]
     c = sum(baseline)

@@ -10,6 +10,16 @@ candidate generator.
 
 ## Status
 
+The [bounded evaluation runner](research/evaluation-runner-v1.md) now connects
+authenticated one-use access, model execution, sealed predictions and metrics.
+All997 tests pass, including real spawned-process failures, native descendant
+cleanup and synthetic CPU ONNX execution. The current clean Sakura Input baseline
+is a six-feature GRU, but its protocol-v1 input projection and protected candidate
+selection differ from the research adapter. That adapter is therefore refused
+for the unchanged product baseline; product-policy parity remains required.
+The Gold trust set stays empty. No real Test, model fit or production inference
+was run; adopted90.72%, safety0.25% and release gates remain unchanged.
+
 The [fixed KNBC format pilot](research/issue-35-knbc-format-pilot/README.md)
 consumed exactly 100 reserved file slots: 99 annotation units and one empty
 annotation file. It preserves 1,479 token field sets. Five correction markers
@@ -22,8 +32,8 @@ distinguishes source sentences, full-reading cases, valid Gold and independent
 sampling units. The 3,000 valid Test minimum is separate from the initial planning
 target of 12,000 Test plus 3,000 calibration rows. A 1,000-case pilot cannot by
 itself establish the 0.25% harm bound. Independent label-quality evidence and
-final runner integration remain unresolved; existing admission and metric
-libraries can be reused. All 972 tests pass. Adopted 90.72%, safety, Gold and
+final runner integration were unresolved at that planning snapshot; the runner
+status above supersedes that implementation gap. All 972 tests passed then. Adopted 90.72%, safety, Gold and
 release gates remain unchanged.
 
 The [KNBC source qualification](research/issue-35-knbc-qualification/README.md)

@@ -143,6 +143,44 @@ class EvaluationAdmissionTests(unittest.TestCase):
         with self.trusted_fixture():
             self.assert_rejected_before_reservation()
 
+    def test_preflight_receives_immutable_non_test_snapshot_and_retained_plan(self):
+        expected_plan = self.plan_path.read_bytes()
+        def validate(snapshot, plan_bytes):
+            self.assertEqual(self.ledger(), [])
+            self.assertNotIn("test", snapshot)
+            self.assertNotIn("train", snapshot)
+            self.assertEqual(plan_bytes, expected_plan)
+            with self.assertRaises(TypeError):
+                snapshot["weights"] = b"changed"
+            self.plan_path.write_bytes(b"replaced after authentication")
+        with self.trusted_fixture():
+            with admission.access_test(artifact_root=self.root, plan_path=self.plan_path, expected_plan_sha256=self.plan_sha,
+                                       registry=self.registry, anchor=self.anchor, preflight=validate) as access:
+                self.assertEqual(access.plan_bytes, expected_plan)
+                access.complete(b'{"synthetic":true}')
+        self.assert_terminal("completed")
+
+    def test_preflight_error_does_not_consume_or_open_test(self):
+        def reject(snapshot, plan_bytes):
+            raise ValueError("unsupported execution contract")
+        original = admission._Artifact.authenticate
+        def checked(artifact, *, retain):
+            self.assertNotEqual(artifact.role, "test")
+            return original(artifact, retain=retain)
+        with self.trusted_fixture(), patch.object(admission._Artifact, "authenticate", checked):
+            with self.assertRaises(ValueError):
+                with admission.access_test(artifact_root=self.root, plan_path=self.plan_path, expected_plan_sha256=self.plan_sha,
+                                           registry=self.registry, anchor=self.anchor, preflight=reject):
+                    self.fail("unexpected access")
+        self.assertEqual(self.ledger(), [])
+
+    def test_false_preflight_result_is_not_silently_accepted(self):
+        with self.trusted_fixture(), self.assertRaises(admission.AdmissionError):
+            with admission.access_test(artifact_root=self.root, plan_path=self.plan_path, expected_plan_sha256=self.plan_sha,
+                                       registry=self.registry, anchor=self.anchor, preflight=lambda *_: False):
+                self.fail("unexpected Test access")
+        self.assertEqual(self.ledger(), [])
+
     def test_catalog_rejects_traversal_aliases_unreferenced_and_missing_models(self):
         original = json.loads(json.dumps(self.plan))
         mutations = [

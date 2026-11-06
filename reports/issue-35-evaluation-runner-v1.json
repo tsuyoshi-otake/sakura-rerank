@@ -1,0 +1,215 @@
+{
+  "kind": "evaluation_runner_contract_verification",
+  "version": 1,
+  "date": "2026-11-06",
+  "issue": 35,
+  "parent_issue": 1,
+  "status": "synthetic_execution_verified_real_evaluation_pending",
+  "scope": "Authenticated research execution and failure accounting; no Gold or production parity certification",
+  "validation": {
+    "full_suite": {
+      "tests": 997,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true
+    },
+    "outer_timeout_seconds": 600,
+    "elapsed_seconds": 34.528,
+    "new_contract_tests": 25,
+    "syntax_and_unused_import_checks": [
+      {
+        "path": "src/sakura_rerank/evaluation_worker.py",
+        "sha256": "da8c0d4fa3942fabdf898c37646a0565a6003e6d3179133eb089a7639214f598",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_runner.py",
+        "sha256": "5547f606c7a9dee15b5fda12208413cb09d500607ba1d06cc31c6abb74d50a68",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_payload.py",
+        "sha256": "a224d7a8586029d6639b0291de75c101212a1da335d1aa9792e2a12b539f5fe9",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_admission.py",
+        "sha256": "0a7712fd3dde37f5fe632ac3f9730d76b8fae1996bf910fd93ffd367ad0bbd48",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/evaluation_metrics.py",
+        "sha256": "6448ef465981c8a9c91ac062c924a86e8372b9d566419b05a329770de901bed6",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "src/sakura_rerank/data/contracts.py",
+        "sha256": "2fe8138c79bba22d6824109af3b1ec9b49438425f9aba3b3a32c0c8561e8d344",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_evaluation_runner.py",
+        "sha256": "3f804a6306089c9db6f741758e620ce196c956cf787837ffad3ec95184bfe164",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_evaluation_cpu_adapter.py",
+        "sha256": "0dda56186006cabb37fc0c5525fae367f4abc04fae38c8a27e177ca2c244f88f",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_evaluation_admission.py",
+        "sha256": "7f11a972b221f1a576b289bfe1e066311749f8ca2fdfd39ef71f03a9bb09cda0",
+        "syntax_valid": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_evaluation_metrics.py",
+        "sha256": "1b81e41dd36ec99faf7ffe79ffffe07f8de0119686aa715c54660e5a1881de40",
+        "syntax_valid": true,
+        "unused_imports": []
+      }
+    ],
+    "formal_type_checker": {
+      "mypy": false,
+      "pyright": false,
+      "ruff": false
+    },
+    "working_agent_verified": true,
+    "owned_runner_processes_checked": 10,
+    "owned_runner_processes_remaining": 0
+  },
+  "runtime": {
+    "python": "3.13.13",
+    "system": "Windows",
+    "packages": {
+      "numpy": "2.3.5",
+      "onnxruntime": "1.23.2"
+    },
+    "sources": {
+      "evaluation_worker.py": "da8c0d4fa3942fabdf898c37646a0565a6003e6d3179133eb089a7639214f598",
+      "evaluation_runner.py": "5547f606c7a9dee15b5fda12208413cb09d500607ba1d06cc31c6abb74d50a68",
+      "evaluation_payload.py": "a224d7a8586029d6639b0291de75c101212a1da335d1aa9792e2a12b539f5fe9",
+      "evaluation_admission.py": "0a7712fd3dde37f5fe632ac3f9730d76b8fae1996bf910fd93ffd367ad0bbd48",
+      "evaluation_metrics.py": "6448ef465981c8a9c91ac062c924a86e8372b9d566419b05a329770de901bed6",
+      "evaluation_statistics.py": "17dc12219e30af2baa565109b2009ab25e15b0e6e92d2a91b3d9e50819b4fe5f",
+      "source_model_inputs.py": "2070cf2cadd1e92067af2241d9cb3d9e869309560e400cd22baf34ce56c5a687",
+      "research_tiny.py": "a7ca1007ad2981f3008fa9363723f3d5c232213208ee0a4a9f89e572af3b2035",
+      "research_tiny_r2.py": "c2ede3575722b0cda97e0da52a04f42c2402db9cf12aec077d63993f09a95f66",
+      "data/contracts.py": "2fe8138c79bba22d6824109af3b1ec9b49438425f9aba3b3a32c0c8561e8d344"
+    }
+  },
+  "current_product_source_audit": {
+    "head": "bcf42d3ad931c6e081ae4b3fbd4d0e6cd9377d88",
+    "clean": true,
+    "artifacts": {
+      "crates/sakura-neural-worker/src/manifest.rs": {
+        "sha256": "bc902fcf4c74d61acf66d7e353044954f242ee3b8f51eca5baf0edbade32d2cf",
+        "bytes": 14378
+      },
+      "crates/sakura-neural-worker/src/sakura_scorer.rs": {
+        "sha256": "212c065bfbf73ac9663dbd7b80e5eacb2526685cc1a2119b62151597c4b9c9e3",
+        "bytes": 8285
+      },
+      "crates/sakura-neural-worker/src/sakura_runtime.rs": {
+        "sha256": "f479d67378476bc66c24f863dae6c936332fb66968bcce93225985558b806ccf",
+        "bytes": 16185
+      },
+      "crates/sakura-core/src/conversion/evidence.rs": {
+        "sha256": "d1c3ceebc62a52e110b3925644427412cb85c5bc194a8c4edbf7b10c84f6c37f",
+        "bytes": 10727
+      },
+      "crates/sakura-engine/src/long_conversion.rs": {
+        "sha256": "2ed17e2cabf1fab0dd35cfdbc3186c84abafce514beacbc9dbc8551a963e2ef3",
+        "bytes": 27376
+      },
+      "models/sakura-rerank-tiny-v1/research-manifest.json": {
+        "sha256": "07f1c54cbe361e117b547f47511de960977f1d0f754f051f44b9447a591d96b9",
+        "bytes": 2866
+      },
+      "models/sakura-rerank-tiny-v1/model.onnx": {
+        "sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+        "bytes": 7466707
+      }
+    },
+    "production_execution": false,
+    "production_changes": false
+  },
+  "synthetic_integration": {
+    "cases": 3000,
+    "model_count": 4,
+    "run_variants": 8,
+    "model_requests": 12000,
+    "sealed_gated_decisions_recomputed": 12000,
+    "baseline_correct": 1499,
+    "baseline_errors": 1501,
+    "oracle6": 2999,
+    "ungated_per_model": {
+      "rescues": 750,
+      "harms": 750,
+      "wrong_changes": 750
+    },
+    "gated_per_model": {
+      "rescues": 750,
+      "harms": 0,
+      "wrong_changes": 0
+    },
+    "independence_evidence": false,
+    "accuracy_improvement_evidence": false
+  },
+  "fault_contracts": [
+    "unsupported metadata before Test",
+    "frozen adapter aliases and source/runtime identity",
+    "retained plan/model/Test bytes",
+    "timeouts during startup/request/cleanup/metrics",
+    "crash including exit0 with incomplete output",
+    "stale/nonfinite/malformed result",
+    "native descendants after parent normal exit/crash/timeout",
+    "containment failure prevents adapter execution",
+    "shared-memory allocation failure and forced-termination cleanup",
+    "seal/write/metric failure consumes Test",
+    "same denominator after model fallback",
+    "second Test consumption rejected",
+    "16 variants remain within64 bootstrap columns"
+  ],
+  "history": {
+    "original_artifacts_unchanged": 16,
+    "bound_fit_artifacts_unchanged": 25,
+    "old_checkpoints_unchanged": 10,
+    "integrity_report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab",
+    "previous_pilot_and_feasibility_reports_unchanged": 2
+  },
+  "limitations": [
+    "Gold trust set remains empty",
+    "Default research GRU adapter does not reproduce current product input/selection policy; current_tiny rejects this factory including aliases",
+    "Custom adapters are trusted registered code and require independently established parity and full dependency binding",
+    "Windows-only process containment",
+    "Filesystem authentication/parsing/serialization/fsync are bounded by data size but not individually hard wall-clock interruptible",
+    "Selected runtime module/package fingerprints are not a complete transitive software manifest",
+    "No actual model parity, independent calibration, final Test, resource benchmark or release completed"
+  ],
+  "preserved": {
+    "adopted_accuracy_percent": 90.72,
+    "new_accuracy_improvement_demonstrated": false,
+    "safety_limit": 0.0025,
+    "gold_point_minimum": 0.995,
+    "gold_wilson95_lower_minimum": 0.99,
+    "gold_valid_test_minimum": 3000,
+    "gold_trust_entries": 0,
+    "real_test_accesses": 0,
+    "new_corpus_reads": 0,
+    "training_runs": 0,
+    "actual_model_inferences": 0,
+    "production_edits": 0,
+    "release_eligible": false
+  }
+}

@@ -169,8 +169,11 @@ required operational controls. The registry itself runs no models and certifies
 no Gold. The artifact access boundary is now implemented in
 `evaluation_admission.py`, and supplied-observation metrics/statistics are in
 `evaluation_metrics.py` and `evaluation_statistics.py`. Their presence does not
-establish a final model runner: no non-test caller connects `access_test` to model
-execution. The Gold trust set remains empty. See the
+establish a completed final evaluation. The [bounded execution runner](evaluation-runner-v1.md)
+now connects admission, model proposals, sealed outputs and metrics. It has
+synthetic end-to-end and CPU ONNX tests, but current-Tiny product-policy parity
+and the actual experiment registration remain unresolved. The Gold trust set
+remains empty. See the
 [unit and sample-size reconciliation](issue-35-knbc-format-pilot/README.md#evaluation-feasibility)
 for the implementation status checked on 2026-11-06.
 
@@ -189,8 +192,8 @@ for the implementation status checked on 2026-11-06.
 
 Remaining before final evaluation: independently supportable Gold evidence;
 complete historical inventory; representative new corpus and frozen partitions;
-final model runner integrated with the existing artifact-authenticating admission
-and metric/statistic computation; calibration; preregistered power/dependence
+verified current-product adapter and frozen real-model parity for the integrated
+admission/execution/metric path; calibration; preregistered power/dependence
 design; sealed experiment manifest. The access and metric libraries have synthetic
 contracts and historical research replays, not a completed independent evaluation.
 Then run Test once. Gate C CPU measurements and Gate D integration/rollout remain

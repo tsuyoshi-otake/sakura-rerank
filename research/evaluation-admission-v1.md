@@ -18,7 +18,13 @@ mapping and calls `complete(result_bytes)` exactly once. The result is a bounded
 JSON object saved with exclusive creation and fsync in the registry directory.
 Its SHA-256 is then committed in the terminal event. A completed access job is not
 necessarily a complete model comparison, valid metric report, or passing Gate B.
-Those semantics belong to the eventual evaluator, which is not implemented here.
+Those semantics belong to the [evaluation runner](evaluation-runner-v1.md).
+
+An optional `preflight(non_test_bytes, plan_bytes)` callback runs after non-Test
+authentication and before reservation or Test content access. It receives an
+immutable byte mapping and the authenticated original plan bytes; it must return
+`None` or raise. `EvaluationAccess.plan_bytes` retains those same bytes, so the
+caller need not reopen a mutable plan path. Existing callers remain compatible.
 
 The existing registry owns consumption history. The new module owns artifact
 identity and access sequencing. `atomic_io` owns atomic single-file replacement;
@@ -90,7 +96,7 @@ evidence. Duplicate JSON keys, non-finite values and excessive nesting are refus
    checks may stat Test but never open its content. Unknown evidence stops before
    opening dataset or model payloads.
 2. Authenticate all non-Test artifacts and bindings. Validate the partition receipt
-   and tokens. Append/fsync the consumption reservation and atomically publish its
+   and tokens. Run the optional metadata-only preflight. Append/fsync the consumption reservation and atomically publish its
    head outside the registry. A failed anchor publication never opens Test.
 3. Authenticate Test content and return immutable bytes. Hash mismatch consumes
    the population and produces a failed terminal event. File replacement between
