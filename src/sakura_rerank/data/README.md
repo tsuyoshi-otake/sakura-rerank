@@ -1,5 +1,13 @@
 # Data boundary tooling
 
+Issue #35's [evaluation runner](../../../research/evaluation-runner-v1.md) uses
+`contracts.validate_conversion_candidates(reading, candidates)` to check native
+candidate structure without asserting label validity. It reuses full UTF-8 segment,
+rank, provenance, cost and fingerprint validation, with1–32 unique surfaces.
+It grants no exporter-truth, Gold or training admission and does not infer current
+product candidate-evidence groups from legacy source categories. Contracts:
+`tests/test_evaluation_runner.py`.
+
 Issue #35's [fixed KNBC format pilot](../../../research/issue-35-knbc-format-pilot/README.md)
 adds `knbc_source.py`: metadata-only reservations and bounded, source-preserving
 annotation parsing. Annotated surface, reading, lemma, grammar, structural lines,

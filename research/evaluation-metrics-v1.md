@@ -14,7 +14,11 @@ denominator and surface-based outcomes. All runs use the same sorted cases.
 An `EvaluationCase` contains a private SHA-256 case key, component key, 1–32
 frozen local-order surfaces and one unique Gold surface. Text is bounded to 256
 characters per surface. Candidate generation/provenance and Gold validity belong
-to the data boundary. At most 100,000 cases and eight models are accepted.
+to the data boundary. At most 100,000 cases and sixteen named run variants are
+accepted, allowing eight models with ungated/gated outputs. The shared bootstrap
+budget remains 64 columns: `3 + 2 * run_count + comparison_count <= 64`.
+Up to36 comparisons are accepted only within that budget; an oversized family
+fails before allocating bootstrap work. Statistical definitions are unchanged.
 
 The component membership must come from the frozen full source population via
 `data.splitter.evaluation_component_keys`, which shares exactly the source/input

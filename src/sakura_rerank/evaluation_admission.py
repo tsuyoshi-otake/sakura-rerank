@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
-from typing import Iterator, Mapping
+from typing import Callable, Iterator, Mapping
 
 from .atomic_io import write_bytes_atomic
 from .data.contracts import canonical_json_bytes
@@ -236,7 +236,7 @@ def _prepare(root: Path, plan_path: Path, expected_sha256: str):
         raise AdmissionError("partition and Gold population counts differ")
     tokens = _json(snapshot[data["tokens"]])
     # reserve_test authenticates receipt rules/token correspondence before mutation.
-    return catalog, data, snapshot, partition, tokens
+    return catalog, data, snapshot, partition, tokens, raw
 
 
 def _anchor_identity(registry: Path) -> str:
@@ -287,9 +287,10 @@ def initialize_anchor(registry: Path, anchor: Path) -> None:
 class EvaluationAccess:
     """Immutable authenticated bytes; caller explicitly completes its access job."""
 
-    def __init__(self, artifacts: Mapping[str, bytes], reservation_sha256: str):
+    def __init__(self, artifacts: Mapping[str, bytes], reservation_sha256: str, plan_bytes: bytes = b""):
         self.artifacts = MappingProxyType(dict(artifacts))
         self.reservation_sha256 = reservation_sha256
+        self.plan_bytes = plan_bytes
         self._result: bytes | None = None
         self._closed = False
 
@@ -305,7 +306,8 @@ class EvaluationAccess:
 
 @contextmanager
 def access_test(*, artifact_root: Path, plan_path: Path, expected_plan_sha256: str,
-                registry: Path, anchor: Path) -> Iterator[EvaluationAccess]:
+                registry: Path, anchor: Path,
+                preflight: Callable[[Mapping[str, bytes], bytes], None] | None = None) -> Iterator[EvaluationAccess]:
     """Reserve and pin consumption before Test access; finalize every normal exit.
 
     Abrupt process termination leaves a consumed reservation/lock for explicit
@@ -322,7 +324,10 @@ def access_test(*, artifact_root: Path, plan_path: Path, expected_plan_sha256: s
             raise AdmissionError("anchor belongs to a different registry")
         old_head = _digest(commitment["head_sha256"])
         inspect_registry(registry, expected_head=old_head)
-        catalog, data, snapshot, partition, tokens = _prepare(root, plan_path, expected_plan_sha256)
+        catalog, data, snapshot, partition, tokens, plan_bytes = _prepare(root, plan_path, expected_plan_sha256)
+        if preflight is not None:
+            if preflight(MappingProxyType(dict(snapshot)), plan_bytes) is not None:
+                raise AdmissionError("preflight must explicitly accept by returning None")
         try:
             reservation = reserve_test(registry, expected_head=old_head, plan_sha256=expected_plan_sha256,
                                        partition_report=partition, test_tokens=tokens)
@@ -332,7 +337,7 @@ def access_test(*, artifact_root: Path, plan_path: Path, expected_plan_sha256: s
         try:
             write_bytes_atomic(anchor, _anchor_payload(registry, reservation))
             snapshot[data["test"]] = catalog[data["test"]].authenticate(retain=True)
-            access = EvaluationAccess(snapshot, reservation)
+            access = EvaluationAccess(snapshot, reservation, plan_bytes)
             yield access
             if access._result is None:
                 raise AdmissionError("access job exited without an explicit result")
