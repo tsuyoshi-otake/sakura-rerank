@@ -10,6 +10,17 @@ candidate generator.
 
 ## Status
 
+The [nested gate OOF audit](research/issue-34-oof-design/README.md) shows why
+fitted-training scores cannot be reused as out-of-fold proposals. The largest
+recorded Aozora component contains 23,977 of 25,000 annotation rows; component-safe
+five-fold allocation is severely imbalanced. Across the alternate extraction
+recipes, 25,000/24,830 directly unseen rows still connect to fitted components.
+Initialization ancestry remains explicitly uncertified. A nested five-fold gate
+design needs 16 ranker fits with identical symmetric-pair reuse, or 26 without it,
+plus six gate fits; none is launched. All 788 tests and independent graph/heap
+recounts pass. Adopted accuracy, Gold, safety, calibration and release gates are
+unchanged.
+
 The [fixed three-model source comparison](research/issue-35-source-models/README.md)
 finds no demonstrated improvement in adopted accuracy. On the same 1,228 observed
 source parts, ungated v1/r2/#29 gain 7/18/11 source matches and lose 14/19/14;
