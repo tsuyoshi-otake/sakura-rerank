@@ -79,6 +79,10 @@ discounted gain is 1/log2(r+1). Repeated identical surfaces do not accumulate
 relevance. Gold outside the available production prefix contributes zero.
 Observed Oracle@1/5/6/10/32 uses each captured candidate prefix; it is not an
 assertion that a short snapshot exhausts the entire converter search space.
+`observed_candidate_oracle["6"]` is positional and can count a product row's
+non-direct tail. `scored_prefix_oracle6` is the certified Oracle@6: Gold inside
+the prefix a model may rank (`production_count`, else at most six). The runner
+publishes a whole-cohort report only when it equals `oracle6_present` (#90).
 
 ## Statistics and bounds
 

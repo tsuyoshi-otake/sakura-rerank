@@ -120,8 +120,25 @@ class NativePopulationEvaluationTests(unittest.TestCase):
         self.shorten_direct_prefix()
         self.evidence['oracle6_present']=2996
         self.seal_population()
-        with self.trusted_fixture():self.run_job()
+        with self.trusted_fixture():result=self.run_job()
         self.assert_terminal('completed')
+        # Oracle@6 is published with the certificate's scored-prefix definition;
+        # the positional first-six view stays available beside it.
+        for report in (result['metrics']['overall'],result['metrics']['converter_reference']):
+            self.assertEqual(report['scored_prefix_oracle6']['numerator'],2996)
+            self.assertEqual(report['observed_candidate_oracle']['6']['numerator'],2997)
+            self.assertEqual(report['candidate_population']['model_prefix_oracle'],report['scored_prefix_oracle6'])
+
+    def test_published_oracle6_disagreeing_with_evidence_fails_closed(self):
+        from sakura_rerank import evaluation_runner
+        original=evaluation_runner.execute_metrics
+        def tampered(*args,**kwargs):
+            metrics,process=original(*args,**kwargs)
+            metrics['overall']['scored_prefix_oracle6']['numerator']-=1
+            return metrics,process
+        with self.trusted_fixture(),patch('sakura_rerank.evaluation_runner.execute_metrics',tampered):
+            with self.assertRaisesRegex(RunnerError,'published Oracle@6 differs'):self.run_job()
+        self.assert_terminal('failed')
 
     def test_oracle6_evidence_counting_a_non_direct_tail_is_rejected(self):
         self.shorten_direct_prefix()

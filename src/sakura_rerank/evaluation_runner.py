@@ -188,6 +188,10 @@ def run_evaluation(*, artifact_root: Path, plan_path: Path, expected_plan_sha256
                 record.update(baseline_index=row["product_state"]["baseline_index"], production_count=count)
         metrics, metric_process = execute_metrics({"cases": metric_rows, "sealed": {"runs": runs}, "experiment": experiment},
                                                  min(limits["metrics_seconds"], deadline-time.monotonic()), limits["shutdown_seconds"])
+        # Whole-cohort reports publish Oracle@6 only when it equals the authenticated evidence.
+        for report in (metrics["overall"], metrics.get("converter_reference")):
+            require(report is None or report["scored_prefix_oracle6"]["numerator"] == prepared["quality"]["oracle6_present"],
+                    "published Oracle@6 differs from quality evidence")
         result = {"kind": "authenticated_evaluation_execution", "version": 1,
                   "status": "complete" if all(m["complete"] for m in model_reports) else "incomplete",
                   "plan_sha256": expected_plan_sha256, "reservation_sha256": access.reservation_sha256,

@@ -176,11 +176,13 @@ def evaluate_runs(
         }) + b"\n")
     oracle = {str(k): _ratio(sum(case.gold in case.candidates[:k] for case in ordered), n)
               for k in (1, 5, 6, 10, 32)}
+    # Oracle@6 as certified: Gold inside the prefix a model may rank, never a
+    # positional first six that can include a product row's non-direct tail.
+    model_present = sum(case.gold in case.candidates[:case.production_count or min(6, len(case.candidates))]
+                        for case in ordered)
     population = {}
     if full_population:
         present = sum(case.gold in case.candidates for case in ordered)
-        model_present = sum(case.gold in case.candidates[:case.production_count or min(6,len(case.candidates))]
-                            for case in ordered)
         oracle["all"] = _ratio(present,n)
         population = {"candidate_contract":candidate_contract,
                       "candidate_population":{"total":sum(len(case.candidates) for case in ordered),
@@ -282,7 +284,7 @@ def evaluate_runs(
         "cohort_sha256": cohort_hash.hexdigest(), "record_count": n,
         "reference_baseline": reference_baseline,
         "baseline_correct": c, "baseline_errors": e, "baseline_accuracy": _ratio(c, n),
-        "observed_candidate_oracle": oracle, "models": reports,
+        "observed_candidate_oracle": oracle, "scored_prefix_oracle6": _ratio(model_present, n), "models": reports,
         "paired_comparisons": paired, "paired_component_intervals": intervals,
         "harm_limit": 0.0025, "gold_quality_certified": False,
         "independence_certified": False, "release_eligible": False,
