@@ -47,40 +47,28 @@
   artifact cannot silently enter the legacy path and a legacy artifact cannot
   enter the newer path.
 - For blinded model-weight experiments, do not assume that `fork_turns=none`
-  removes injected project guidance. In the 2026-11-03 weight-space study both
-  subjects reported receiving Sakura application hints despite fresh histories;
-  their task guesses were excluded as blind evidence. Record context exposure,
-  separate graph-derived conclusions from numeric-weight conclusions, and state
-  when a clean fallback sees only a subset of weights. See
+  removes injected project guidance. Record context exposure, separate
+  graph-derived conclusions from numeric-weight conclusions, and state when a
+  clean fallback sees only a subset of weights. Evidence:
   `reports/weight-space-programming-20261103.json`.
-- Materialize needed numeric-cache arrays once before per-row/grouping or
+- Materialize needed numeric-cache arrays once, before per-row/grouping or
   inference loops: `numpy.load(...)[key]` on an `NpzFile` rereads the archived
-  array on each access. In the 2026-11-03 manual weight-edit study, repeated
-  reads stalled grouping; preloading each train array once completed the same
-  12,516-row capture and grouping in about five seconds. Keep this I/O outside
-  model-only latency timing, and state timing scope explicitly when comparing
-  against older benchmarks. See `reports/weight-edit-improvement-20261103.json`.
-- Treat repeated dev-guided weight-edit rounds as exploratory. In the
-  2026-11-03 multiplier continuation, factor 3 passed both grouped train
-  comparisons against factor 1.5 (12 more correct overall, fewer local harms),
-  yet lost two dev cases and added three local harms. Keep incremental results
-  against the prior candidate as well as cumulative results against the original;
-  train-subset confirmation is not independent of original model fitting. The
-  factor-3 candidate was rejected; see `reports/weight-edit-trend-20261103.json`.
+  array on each access. Keep that I/O outside model-only latency timing, and
+  state the timing scope when comparing with older benchmarks. Evidence:
+  `reports/weight-edit-improvement-20261103.json`.
+- Treat repeated dev-guided weight-edit rounds as exploratory. Keep
+  incremental results against the prior candidate as well as cumulative
+  results against the original; train-subset confirmation is not independent
+  of the original model fitting. Evidence:
+  `reports/weight-edit-trend-20261103.json`.
 - For weight-edit diagnostics, distinguish source-exact labels from unique
-  correctness under the model's bounded input. In the 2026-11-03 conditional
-  study all 14 selected rows matched source spans and cache encodings, but four
-  remained ambiguous because of spelling variants or insufficient context.
-  Exclude ambiguous cases from causal diagnosis without changing canonical
-  labels or full evaluation denominators. Three confirmed harm/rescue pairs
-  nominated an edit that gained six train cases but lost one dev case; local
-  intervention effects did not establish general improvement. See
-  `reports/weight-edit-conditional-20261103.json`.
+  correctness under the model's bounded input. Exclude ambiguous cases from
+  causal diagnosis without changing canonical labels or full evaluation
+  denominators, and do not read local intervention effects as general
+  improvement. Evidence: `reports/weight-edit-conditional-20261103.json`.
 - Frozen converter segment `text_start`/`text_end` positions are UTF-8 byte
   offsets. Slice `surface.encode('utf-8')` at those offsets and decode each
-  segment, rather than slicing Python Unicode characters. All candidates in
-  the 14 selected 2026-11-03 label-audit rows reconstructed their full surfaces
-  exactly with byte slicing; character slicing had misrendered the audit view.
+  segment; slicing Python Unicode characters misrenders the audit view.
 
 - Repository commit identity may be unset in this environment. The 2026-11-04
   Gold pilot commit initially failed for that reason; a command-scoped Codex

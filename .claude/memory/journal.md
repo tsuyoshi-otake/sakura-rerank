@@ -279,3 +279,13 @@
 - branches: posted a name -> SHA recovery table (39 names) to #82, then deleted 38 merged remote and 38 merged local branches plus the task branch. Remaining: main, 7 unmerged local and 6 unmerged remote branches (issues #1/#5/#7/#9/#11/#13/#17 era, out of scope).
 - learning: before redacting a tracked research file, look up its SHA-256 and git blob ID in reports/manifests; a pinned script is evidence and must not be edited to tidy text.
 - Commit SHA: a77f759 (README fix); this entry lands in the follow-up journal PR.
+
+## 2026-11-08 — Codex review findings on #79 and #81 (#85; PRs #86, #87, memory PR)
+
+- request: the owner asked whether the pasted Codex findings held, then said to handle them.
+- verification of findings: all six held. Two were still public on main: (1) `primary_references` in `reports/weight-edit-conditional-20261103.json` tied cases R10/R12 to a real company, artist and wrestler; (2) one repository-path cleanup target in `reports/weight-space-programming-20261103.json`. My #81 scan had searched only user-path forms and no case-level identities.
+- fix 1 (#86, 51f3802): moved the three references to ignored `data/generated/weight-edit-conditional-20261103/primary-references.json` (sha256 b02287bd...), leaving count/location/hash. Recorded `reviewer_kind ai_teacher`, `reviewer_model not_recorded`, `owner_policy_acceptance not_recorded`, `admissible_as_gold false`, without inventing an acceptance. Made the path repository-relative. Re-pinned the CRLF byte-exact report: bf61d93f... -> 3ba02cac... History was not rewritten (public account name and public pages only).
+- fix 2 (#87, 47886d8): `evaluation_payload.scored_candidate_count(row)` is now the one Oracle@6 / runner prefix definition (`min(6, direct_count)` for product rows). `validate_policy_facts` requires `baseline_index < direct_count`, the native-capture contract, and no tighter. Three fail-before tests failed before the fix (correct certificate 2996 rejected; inflated 2997 accepted and the model started; baseline in a non-direct tail accepted) and pass after. The runner refactor is a separate commit.
+- fix 3 (this PR): `.claude/memory/rules.md` keeps durable procedures plus links to the reports holding results; the five 2026-11-03 entries in `.codex/memory/rules.md` keep the lesson and evidence link without dated figures.
+- learning: AGENTS.md routes results to reports/manifests/README. Memory rules hold procedures and links, and the journal holds dated figures. Public leak scans must cover case-level identities (URLs, names) as well as paths.
+- Commit SHA: 51f3802, 47886d8; the memory PR's squash SHA is in the #85 closing comment.
