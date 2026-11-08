@@ -273,7 +273,7 @@
 ## 2026-11-08 — Public-path cleanup on main and merged-branch pruning (#82, PR #83)
 
 - request: owner approved fixing the local user paths on main and deleting merged branches.
-- finding: a backslash-free probe for the local account name and `users/<name>` path forms found 7 hits on main 17bffe2: six research READMEs (`$python='C:/Users/<user>/tmp/...'`) and `research/issue-35-knbc-qualification/render_manual.py` (`TEMP`).
+- finding: a backslash-free probe for the local account name and `users/<name>` path forms found 7 hits on main 17bffe2: six research READMEs (an absolute user-profile path in the `$python` line) and `research/issue-35-knbc-qualification/render_manual.py` (`TEMP`).
 - decision: `render_manual.py` stays unchanged; its SHA-256 is the frozen `reports/issue-35-knbc-qualification-v1.json` `static_checks[4].sha256` record of the checked script, so editing either side breaks provenance. Residual: one generic account-name path remains public.
 - fix: the READMEs now use `$python="$HOME/tmp/..."`; running the snippet in PowerShell resolved to the same train-env interpreter (torch 2.12.1+cu130). Squash a77f759 (#83); 1095 tests OK; no python survivors.
 - branches: posted a name -> SHA recovery table (39 names) to #82, then deleted 38 merged remote and 38 merged local branches plus the task branch. Remaining: main, 7 unmerged local and 6 unmerged remote branches (issues #1/#5/#7/#9/#11/#13/#17 era, out of scope).
