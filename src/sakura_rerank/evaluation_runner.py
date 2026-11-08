@@ -12,7 +12,7 @@ from .data.contracts import canonical_json_bytes
 from .current_tiny import eligible, protected_choice
 from .evaluation_admission import access_test
 from .evaluation_metrics import EvaluationCase, EvaluationRun, Observation, evaluate_runs
-from .evaluation_payload import RunnerError, prepare, read_cohort, require
+from .evaluation_payload import RunnerError, prepare, read_cohort, require, scored_candidate_count
 from .evaluation_worker import default_adapters, execute_metrics, execute_model, runtime_identity
 
 
@@ -143,8 +143,7 @@ def run_evaluation(*, artifact_root: Path, plan_path: Path, expected_plan_sha256
         deadline = started + limits["job_seconds"]
         cases = read_cohort(access.artifacts[prepared["plan"]["data"]["test"]], prepared)
         # Slice/source identities and Gold are intentionally excluded from this payload.
-        counts = [min(6, row["product_state"]["direct_count"]) if "product_state" in row
-                  else min(6, len(row["input"]["candidates"])) for row in cases]
+        counts = [scored_candidate_count(row) for row in cases]
         requests = [{**row["input"], "candidates": row["input"]["candidates"][:count]} for row, count in zip(cases, counts)]
         runs, proposals, model_reports = {}, {}, []
         for model in prepared["models"]:
@@ -156,7 +155,7 @@ def run_evaluation(*, artifact_root: Path, plan_path: Path, expected_plan_sha256
                 if "product_state" in row:
                     a, b = _product_observations(scores, state, row["product_state"], model["threshold"])
                 else:
-                    a, b = _observations(scores, state, min(6, len(row["input"]["candidates"])), model["threshold"])
+                    a, b = _observations(scores, state, scored_candidate_count(row), model["threshold"])
                 ungated[row["case_key"]], gated[row["case_key"]] = a, b
             variants = (("shipped", gated),) if "shipped" in spec["runs"] else (("ungated", ungated), ("gated", gated))
             for variant, observations in variants:
