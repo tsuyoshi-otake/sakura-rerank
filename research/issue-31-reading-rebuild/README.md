@@ -127,7 +127,7 @@ child with a1,800-second deadline and explicit terminal/termination records.
 ```powershell
 $env:PYTHONPATH='src;.'
 $env:PYTHONDONTWRITEBYTECODE='1'
-$python='C:/Users/developer/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe'
+$python="$HOME/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe"
 $sourceCommit='a04998f814809342837816a1c003dc808b8de7de'
 $nativeCommit='c047ea6eab7671403e0e99fd810665254b4fa7bb'
 & $python -B research/issue-31-reading-rebuild/run_owned.py prepare --commit $sourceCommit

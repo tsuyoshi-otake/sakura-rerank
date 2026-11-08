@@ -80,7 +80,7 @@ wall time was 11.667 seconds. No packages, downloads or native probes were added
 
 ```powershell
 $env:PYTHONPATH='src'
-$python='C:/Users/developer/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe'
+$python="$HOME/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe"
 & $python research/issue-34-selector-lineage/audit_lineage.py plan
 # Commit the plan and audit code before execution.
 & $python research/issue-34-selector-lineage/run_stage.py audit audit_lineage.py 1200 execute --commit 9c726e20427f5a63df66581caf45d586dda7a3ff

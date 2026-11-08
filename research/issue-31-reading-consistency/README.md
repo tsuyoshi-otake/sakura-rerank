@@ -105,7 +105,7 @@ original16 artifacts,25 fit bindings and ten checkpoints retain their hashes.
 ```powershell
 $env:PYTHONPATH='src'
 $env:PYTHONDONTWRITEBYTECODE='1'
-$python='C:/Users/developer/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe'
+$python="$HOME/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe"
 $commit='4f7cca7109549a16b7d326504f17dd73794b78a6'
 & $python -B research/issue-31-reading-consistency/run_owned.py prepare --commit $commit
 & $python -B research/issue-31-reading-consistency/run_owned.py verify --commit $commit
