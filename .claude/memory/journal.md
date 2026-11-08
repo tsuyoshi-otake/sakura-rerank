@@ -320,3 +320,12 @@
 - verification: fail-before test `test_report_labels_sources_without_ledger_ids` failed (ledger id published) and passes after; full suite 1100 OK; no python survivors; tracked-file grep for the ten identity strings returns none while the ignored ledger still matches.
 - learning: a URL-domain inventory over reports/manifests/research catches case-level references that path and email probes miss. A generator that copies reviewer-chosen ids into a public report is a leak path even when it sets `raw_stable_ids_in_report=False`.
 - Commit SHA: see the #92 closing comment.
+
+## 2026-11-08 — Prerelease v0.1.0-research.4 (#92)
+
+- decision: 「リリースは不要なの?」 then 「なんでもいいよキレイにしといて」. main held 243 commits after `v0.1.0-research.3` (the #31-#35 research stack via #79, evaluator fixes #87/#91, hygiene #83/#86/#94) that no release covered. A source-and-evidence prerelease was warranted; it makes no accuracy claim (adopted 90.72% unchanged) and model release stays blocked on independent Gold evidence.
+- pre-release: the four mandatory checks ran in parallel on 94e2e82; the added URL-domain inventory found case-level identities, fixed in #94 before tagging. README headline test count corrected to 1,100 (#95).
+- verification: fresh rubric verifier (12 criteria, all pass) on target 711b8e6 and the draft notes: 1100 tests OK with no survivors; tracked-file scan with positive control (only the synthetic test email and the pinned `render_manual.py` path); history identities owner + Codex/GitHub noreply, 0 work-address; PUBLIC; prior tags b4b21b0d/a0a3cfe4/20fcf527 with 0 assets; MIT LICENSE; every number in the notes traced to README, code or git; #92 comments clean; redaction hashes correct and all five removed URLs present in the ignored ledger. Its one wording note (hygiene bullet read as absolute despite the pinned script) was applied before publishing.
+- release: `gh release create v0.1.0-research.4 --target 711b8e6 --prerelease`; tag -> 711b8e686d17c0fbdb4da306bc7cc0ff1717fefa, 0 assets, published notes rescanned with 0 leak hits.
+- learning: promoted to rules.md: the URL-domain inventory step and the squash-merged branch check.
+- Commit SHA: release target 711b8e6; this entry lands after the tag (see the #92 closing comment).
