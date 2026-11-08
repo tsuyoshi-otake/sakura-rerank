@@ -71,6 +71,10 @@ before relying on any result it holds.
   `devin.exe -p --prompt-file <md> --model swe-2-high --permission-mode auto
   --respect-workspace-trust false | Tee-Object <out>`, then `Set-Content <done>
   $LASTEXITCODE`, and wait for the done file.
+- `git cherry` and `--no-merged` list squash-merged branches as unmerged.
+  Before deleting one, compare its tip tree with the PR's squash commit
+  (`git diff --name-only <branch> <squash>` empty) and post a name -> SHA
+  table to the tracking Issue (#82, #92).
 - Local `main` lags after a remote merge. When a tracked file is modified in
   the tree, run `git branch -f main origin/main` (after an ancestor check)
   before `git switch main`.
@@ -86,7 +90,11 @@ before relying on any result it holds.
   positive control that must hit, and build literal backslashes with
   `chr(92)`. Scan for case-level identities as well: URLs and names that reveal
   which rows were audited belong under ignored `data/generated/`, not in
-  reports (#85).
+  reports (#85). Inventory URL domains over reports, manifests and research
+  READMEs (`git grep -o -E 'https?://[A-Za-z0-9.-]+'`) and open every
+  non-dataset, non-package domain: path probes missed per-case links and
+  ledger-id keys in #31 reports (#92). Generators must not copy
+  reviewer-chosen ledger ids into public reports.
 - Verbatim leak checks over Japanese prose flag generic vocabulary. Scope them
   to task-added content, and adjudicate each residual hit by location, length
   and SHA-256 instead of editing published text.
