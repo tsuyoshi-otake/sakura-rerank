@@ -610,7 +610,7 @@
     "status": "complete",
     "targets": [
       "~/tmp/weight-study-20261103",
-      "C:\\Codes\\tsuyoshi-otake\\sakura-rerank\\data\\generated\\weight-space-study-20261103\\__pycache__"
+      "data/generated/weight-space-study-20261103/__pycache__"
     ],
     "temporary_files": 23863,
     "temporary_bytes": 329227334,
