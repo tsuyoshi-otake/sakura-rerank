@@ -31,6 +31,10 @@ desktop.ini
 # Local Codex scratch files (project memory remains trackable)
 .codex/tmp/
 .codex/goal-loop/
+# Claude Code per-task rubrics hold local paths; its project memory remains trackable
+.claude/goal-loop/
+# Root-level local audit exports with source text (moved under data/generated/)
+/jawiki_*.jsonl
 
 # Downloaded source corpora and generated datasets
 /data/raw/
