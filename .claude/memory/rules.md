@@ -48,9 +48,9 @@ before relying on any result it holds.
 
 - Full suite: `PYTHONPATH=src ~/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe
   -m unittest discover -s tests`. Without `PYTHONPATH=src` most modules fail
-  to import. Under a Python without torch,
-  `test_language_pretraining.TiedLanguageHeadTests` errors because its `setUp`
-  imports torch without a skip guard.
+  to import. Test classes that need torch carry
+  `@unittest.skipUnless(importlib.util.find_spec("torch"), ...)`; a new one
+  without that guard errors under a Python without torch (#92).
 - This shell has no git identity. Commit with `git -c user.name=tsuyoshi-otake
   -c user.email=<owner-email>`, the identity of every direct commit here. Read
   the address with `git log -1 --format=%ae 1859098`. It is kept out of tracked

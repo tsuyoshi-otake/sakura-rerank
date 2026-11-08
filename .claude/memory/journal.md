@@ -299,3 +299,13 @@
 - verification: two fail-before tests (`scored_prefix_oracle6` 2996 beside positional 2997; tampered metrics output fails closed with terminal `failed`) errored with KeyError before the fix and pass after; full suite 1099 tests OK; no python survivors.
 - learning: when a certificate check is narrowed to a new definition, the published metric must carry that same definition and be checked against it; otherwise the report and its certificate silently diverge.
 - Commit SHA: see the #90 closing comment.
+
+## 2026-11-08 — Tidy-up after #90: torch skip guard and stale branches (#92)
+
+- request: after 「リリースは不要なの?」 the owner said 「なんでもいいよキレイにしといて」, leaving the remaining cleanup and the release decision to me.
+- symptom: under a Python without torch, `tests.test_language_pretraining` failed with 3 errors because `TiedLanguageHeadTests.setUp` imports torch, while every other torch class carries a skip guard.
+- fix: added the same `@unittest.skipUnless(importlib.util.find_spec("torch"), ...)` guard. Global Python 3.13 (no torch): before 3 errors, after `OK (skipped=3)`; train-env: 6 OK; full suite 1099 OK; no python survivors.
+- branches: the six remaining `issue-1/5/7/9/11/13-*` branches each had a tip tree identical to its PR's squash commit (#2/#6/#8/#10/#12/#14, 0 differing files). Posted the name -> tip -> squash table to #92, then deleted them locally and on the remote. Remote now holds only `main`.
+- kept: local-only `issue-17-public-ime-benchmarks` (930a1f6) holds 2,465 added lines of unpublished work for open #17 (public IME / AJIMEE benchmark pipelines and baseline reports) absent from main. It is neither deleted nor pushed; pushing would first need a leak review.
+- learning: `git cherry` reports squash-merged branches as unmerged. Compare the branch tip tree with the PR's squash commit (`git diff --name-only <branch> <squash>`) before calling a branch stale or unique.
+- Commit SHA: see the #92 closing comment.
