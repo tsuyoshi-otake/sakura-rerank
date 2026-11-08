@@ -107,6 +107,30 @@ class NativePopulationEvaluationTests(unittest.TestCase):
         self.assertFalse(result['release_eligible'])
         with self.trusted_fixture(),self.assertRaises(TestUseError):self.run_job()
 
+    def shorten_direct_prefix(self):
+        # Row 4 keeps six native candidates but only the first three are direct, so
+        # Gold at index 4 lies inside a blind first six yet outside the scored prefix.
+        row=self.rows[4]
+        row['product_state'].update(direct_count=3)
+        row['gold']=row['input']['candidates'][4]['surface']
+        row['native_capture']=captured.capture_for(row,4)
+        row['input']=native.population_input(native.inspect_event(row['native_capture'])['snapshot'])
+
+    def test_oracle6_evidence_counts_only_the_scored_direct_prefix(self):
+        self.shorten_direct_prefix()
+        self.evidence['oracle6_present']=2996
+        self.seal_population()
+        with self.trusted_fixture():self.run_job()
+        self.assert_terminal('completed')
+
+    def test_oracle6_evidence_counting_a_non_direct_tail_is_rejected(self):
+        self.shorten_direct_prefix()
+        self.evidence['oracle6_present']=2997
+        self.seal_population()
+        with self.trusted_fixture(),patch('sakura_rerank.evaluation_runner.execute_model',side_effect=AssertionError('started')):
+            with self.assertRaisesRegex(RunnerError,'actual oracle differs'):self.run_job()
+        self.assert_terminal('failed')
+
     def test_tail_change_consumes_once_and_cannot_start_model(self):
         self.rows[0]['input']['candidates'].pop()
         self.seal_population_test()

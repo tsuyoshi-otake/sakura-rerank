@@ -30,6 +30,18 @@ def require(condition: bool, reason: str) -> None:
         raise RunnerError(reason)
 
 
+def scored_candidate_count(row: dict) -> int:
+    """Candidates a model may rank for one normalized cohort row.
+
+    Product rows expose only their direct candidates to the native ranker, at
+    most six; a retained non-direct tail is population evidence, never scored.
+    Oracle@6 evidence and the runner both use this one definition.
+    """
+    if "product_state" in row:
+        return min(6, row["product_state"]["direct_count"])
+    return min(6, len(row["input"]["candidates"]))
+
+
 def document(raw: bytes) -> dict:
     def pairs(items):
         value = {}
@@ -230,6 +242,7 @@ def read_cohort(raw, prepared):
             product_state["native_binding"] = receipt
         normalized.append({**row, "input": {**request, "candidates": candidates}, **product_state})
     require(len(components) == prepared["sampling"]["component_count"], "component count differs")
-    oracle = sum(row["gold"] in [c["surface"] for c in row["input"]["candidates"][:6]] for row in normalized)
+    oracle = sum(row["gold"] in [c["surface"] for c in row["input"]["candidates"][:scored_candidate_count(row)]]
+                 for row in normalized)
     require(oracle == prepared["quality"]["oracle6_present"], "actual oracle differs from quality evidence")
     return normalized

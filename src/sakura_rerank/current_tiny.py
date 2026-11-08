@@ -119,12 +119,14 @@ def validate_policy_facts(value, candidate_count):
     schedule_eligible includes native scope/host/preedit/cursor and build checks;
     selection_allowed includes local learning/cache/literal/bridge protections.
     The provenance certificate must bind the producer and both facts to this row.
+    The native local selection (baseline_index) is always a direct candidate,
+    matching native capture; a retained non-direct tail never holds it.
     """
     keys = {"source_head", "baseline_index", "direct_count", "evidence_tags", "schedule_eligible", "selection_allowed"}
     _require(isinstance(value, dict) and value.keys() == keys and value["source_head"] == HEAD,
              "native policy facts missing or from another source")
-    _require(type(value["baseline_index"]) is int and 0 <= value["baseline_index"] < candidate_count
-             and type(value["direct_count"]) is int and 1 <= value["direct_count"] <= candidate_count,
+    _require(type(value["direct_count"]) is int and 1 <= value["direct_count"] <= candidate_count
+             and type(value["baseline_index"]) is int and 0 <= value["baseline_index"] < value["direct_count"],
              "native policy indices outside cohort")
     _require(type(value["schedule_eligible"]) is bool and type(value["selection_allowed"]) is bool,
              "native policy booleans missing")

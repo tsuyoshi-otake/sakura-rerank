@@ -101,6 +101,14 @@ class ProductPolicyTests(unittest.TestCase):
         for changes in ({"selection_allowed": False}, {"schedule_eligible": False}, {"direct_count": 1}):
             self.assertFalse(current.eligible(facts(**changes)))
 
+    def test_policy_baseline_must_be_a_direct_candidate(self):
+        # A schema-v2 row may retain a non-direct tail after its direct candidates.
+        # The native local selection is always direct, as native capture requires.
+        value = facts(3, direct_count=2)
+        self.assertEqual(current.validate_policy_facts({**value, "baseline_index": 1}, 3)["baseline_index"], 1)
+        with self.assertRaises(current.ProductContractError):
+            current.validate_policy_facts({**value, "baseline_index": 2}, 3)
+
     def test_shipped_choice_has_no_invented_margin_against_local_preference(self):
         value = facts(evidence_tags=[1, 2, 1])
         a, b = _product_observations([10., -2., 30., 0., 0., 0.], "complete", value, None)
