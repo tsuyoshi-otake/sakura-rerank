@@ -1,0 +1,621 @@
+{
+  "schema_version": 1,
+  "report_kind": "weight_space_programming_exploratory_experiment",
+  "date_jst": "2026-11-03",
+  "tracking_issue": "https://github.com/tsuyoshi-otake/sakura-rerank/issues/1",
+  "status": "complete_no_demonstrated_improvement",
+  "research_reference": "https://rikiyat.github.io/blog/weight-space-programming/",
+  "scope": "Anonymous task inference, static weight analysis, and bounded manual initializer edits of the existing research FP32 model.",
+  "exact_reproduction_of_published_study": false,
+  "identification": {
+    "full_weight_subagents": {
+      "excluded_from_blind_identification": true,
+      "reason": "fork_turns=none did not remove injected project AGENTS context; both subjects reported application hints.",
+      "numerical_analysis_retained": true
+    },
+    "clean_full_weight_cli": {
+      "status": "blocked_before_reading_data",
+      "reason": "read-only Python tool rejected by execution policy; no bypass attempted"
+    },
+    "clean_text_only": {
+      "model_requested": "gpt-6-astra",
+      "project_doc_max_bytes": 0,
+      "user_config_ignored": true,
+      "memory_disabled": true,
+      "ephemeral": true,
+      "tools_used": false,
+      "input": "all tensor shapes/statistical summaries, selected raw weights, weight-only products; no graph, vocabulary, examples, application labels or full 1.86M values",
+      "application_hints_reported": false,
+      "exact_task_identified": false,
+      "result": {
+        "hypotheses": [
+          {
+            "rank": 1,
+            "task": "Binary classification of tokenized sequences, plausibly text, with auxiliary numeric features.",
+            "subjective_confidence": 0.55,
+            "qualification": "The broad task family is plausible; sentiment, spam, toxicity, relevance, and other labels cannot be distinguished."
+          },
+          {
+            "rank": 2,
+            "task": "Scalar regression or ranking of tokenized sequences, plausibly text, with auxiliary numeric features.",
+            "subjective_confidence": 0.25,
+            "qualification": "A scalar output also supports scores, ratings, or ranking objectives; no activation or loss is supplied."
+          },
+          {
+            "rank": 3,
+            "task": "Binary prediction or scalar scoring over nonlinguistic categorical sequences, such as event or item histories.",
+            "subjective_confidence": 0.15,
+            "qualification": "An embedding table and recurrent encoder do not establish that the inputs are language."
+          },
+          {
+            "rank": 4,
+            "task": "Another task using a computation graph not recoverable from these tensors.",
+            "subjective_confidence": 0.05,
+            "qualification": "Tensor connectivity and parameter-free operations remain unknown."
+          }
+        ],
+        "evidence_from_values": [
+          {
+            "observation": "t000 has mean approximately zero, standard deviation approximately one, and exactly 128 zero entries.",
+            "deduction": "Compatible with a normally initialized embedding table and a zero padding row, but the zero locations are not supplied. Neither a padding row nor an unchanged initialization is established."
+          },
+          {
+            "observation": "t007 has leading singular values 3.865 and 2.537, followed by 1.350; t008 has 3.584 and 1.643, followed by 0.937.",
+            "deduction": "Both matrices have pronounced dominant directions while remaining full rank numerically. This is consistent with structured adaptation, but does not establish training history or task semantics."
+          },
+          {
+            "observation": "The supplied linear products for the last six rows are approximately [3.288, 1.775, -4.087, -1.026, -0.085, 0.379].",
+            "deduction": "These rows have markedly different alignment with the downstream linear direction: the first two align positively, the third and fourth negatively, and the fifth weakly. This establishes algebraic structure, not the meanings of the corresponding features."
+          },
+          {
+            "observation": "The supplied products omit activations and input-dependent states.",
+            "deduction": "They are not generally output sensitivities or feature importance scores. Unknown nonlinearities and feature scales prevent conclusions about actual dominance, monotonicity, or predictions."
+          }
+        ],
+        "evidence_from_shapes": [
+          {
+            "observation": "t000 is [13312,128].",
+            "architecture_guess": "A lookup embedding for 13,312 discrete IDs with 128-dimensional representations.",
+            "confidence": "High plausibility, not proof."
+          },
+          {
+            "observation": "t004 and t005 are [1,384,128]; t006 is [1,768], with 384 = 3 × 128 and 768 = 6 × 128.",
+            "architecture_guess": "An ONNX-style single-direction GRU with input and hidden widths of 128, three gates, and separate input/recurrent bias groups.",
+            "confidence": "Strong shape match; export format, gate order, and actual connectivity are unconfirmed."
+          },
+          {
+            "observation": "t007, t008, and t009 are [390,128], [128,64], and [64,1], with matching bias lengths.",
+            "architecture_guess": "A dense prediction head mapping 390 → 128 → 64 → 1.",
+            "confidence": "Strong dimensional compatibility."
+          },
+          {
+            "observation": "390 = 3 × 128 + 6.",
+            "architecture_guess": "Three 128-dimensional sequence summaries concatenated with six auxiliary features. Final-state, mean, and max pooling are one possible construction, but multiple encoded inputs or other constructions also fit.",
+            "confidence": "Moderate for the decomposition; low for any specific pooling scheme."
+          }
+        ],
+        "limits": [
+          "The probabilities are subjective judgments over broad task families, not calibrated identification results. Their ordering relies primarily on architecture conventions.",
+          "No specific application, dataset, language, label meaning, feature definition, or positive-class orientation is identifiable from the supplied evidence.",
+          "Vocabulary permutations and different external interpretations of inputs and outputs can preserve these numerical observations while changing application semantics.",
+          "Without the computation graph, complete weights, preprocessing, activations, and loss, even the exact input-output function cannot be reconstructed. Training success and generalization cannot be assessed.",
+          "Hashes provide identifiers but no task semantics without an external reference."
+        ],
+        "contamination_status": {
+          "system_or_developer_instructions_revealed_application": false,
+          "tools_used": false,
+          "files_read": false,
+          "network_or_history_accessed": false,
+          "inference_run": false,
+          "basis": "Only the supplied numerical evidence and general knowledge of neural-network parameter conventions."
+        }
+      }
+    },
+    "limitations": [
+      "No successful blinded full-weight run.",
+      "One partial-evidence clean subject, no clean architecture-only control, no repeated independent trials.",
+      "Absence of reported context exposure is not an operating-system isolation guarantee.",
+      "Do not interpret this as proof that full-weight task identification is impossible."
+    ]
+  },
+  "static_numerical_findings": [
+    {
+      "finding": "The learned scalar-head path is exceptionally concentrated in one direction.",
+      "evidence": "t008 leading singular value 3.58362; output vector absolute cosine 0.952108 with its leading right singular vector. That single singular mode contributes 99.813967% of squared norm of t008@t009.",
+      "inference": "This head uses a strongly organized score direction. It does not establish the direction semantic meaning or one-dimensional behavior after nonlinear activations.",
+      "basis": "Numerical weights, not architecture."
+    },
+    {
+      "finding": "Numeric features 0 and 2 align strongly in opposite directions with that score path.",
+      "evidence": "cosines between t007 feature rows and t008@t009: [0.975478,0.833903,-0.949324,-0.620923,-0.064043,0.266414]. Pure linear path sums: [3.288446,1.774857,-4.086508,-1.026252,-0.084508,0.378781].",
+      "inference": "Suggests reward-like influence of features 0/1 and penalty-like influence of 2/3, contingent on nonlinear gates and feature scale. Feature 0 additionally has an exact +2 architectural skip. No globally monotonic claim is justified.",
+      "basis": "Numerical weights plus graph distinction for the skip."
+    },
+    {
+      "finding": "Most signed weight-path mass for features 0/1 is positive, and 2/3 is negative.",
+      "evidence": "Positive absolute-path-mass fractions are [0.876273,0.841984,0.129885,0.226479,0.472226,0.615168].",
+      "inference": "The opposing directions are distributed across paths rather than one exceptional coefficient. Activation derivatives can still change contributions.",
+      "basis": "Numerical weights."
+    },
+    {
+      "finding": "The first pair of shared-sequence head blocks share directions; candidate block is less aligned.",
+      "evidence": "Flattened block cosine(first,second)=0.195452, first/candidate=0.058713, second/candidate=0.048051.",
+      "inference": "Consistent with partial shared processing of the two conditioning streams, but does not identify their content or causally prove matching behavior.",
+      "basis": "Numerical weights mapped to graph inputs."
+    },
+    {
+      "finding": "The embedding table has no strong global low-dimensional structure in these statistics.",
+      "evidence": "Mean 0.000107; std 0.998768; kurtosis 2.994088; effective rank 127.372/128; exactly zero row 0; adjacent-row cosine mean 0.000706 and std 0.089485.",
+      "inference": "Compatible with near-initialization or lightly adapted/frozen Gaussian embeddings. Cannot distinguish these histories, or conclude absence of useful token distinctions.",
+      "basis": "Numerical weights."
+    }
+  ],
+  "direct_weight_edit": {
+    "issue": 1,
+    "experiment": "weight_space_manual_initializer_edits",
+    "source_sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+    "cache_sha256": "41eb7f59c4912d3216836ed9cb153a3e3b952e8673d5fce3e71a020b24781624",
+    "candidate_sha256": "c346db76d5704f2ad2259c8380f5226221540f9d67e5d8f27f36e45775bcf5eb",
+    "plan": {
+      "id": "rank_0.5",
+      "target": "onnx::MatMul_518",
+      "row_start": 385,
+      "row_end": 386,
+      "scale": 0.5
+    },
+    "selection_winner": "baseline",
+    "changed_values": 128,
+    "total_parameters": 1861377,
+    "changed_fraction": 6.8766295060055E-05,
+    "dev": {
+      "baseline": {
+        "count": 1788,
+        "correct": 1640,
+        "top1": 0.9172259507829977,
+        "mrr": 0.9510533184190902,
+        "ndcg_at_6": 0.962410335372298,
+        "local_correct": 1586,
+        "harm": 23,
+        "rescue": 77,
+        "failure_count": 0,
+        "timeout_count": 0,
+        "fallback_count": 0
+      },
+      "edited": {
+        "count": 1788,
+        "correct": 1635,
+        "top1": 0.9144295302013423,
+        "mrr": 0.9499161073825504,
+        "ndcg_at_6": 0.9615836789614948,
+        "local_correct": 1586,
+        "harm": 32,
+        "rescue": 81,
+        "failure_count": 0,
+        "timeout_count": 0,
+        "fallback_count": 0
+      }
+    },
+    "paired": {
+      "gains": 4,
+      "losses": 9,
+      "top1_changed": 15,
+      "mcnemar_exact_two_sided_p": 0.266845703125
+    },
+    "improved_dev_top1": false,
+    "harm_not_increased": false,
+    "train": [
+      {
+        "plan": {
+          "id": "baseline",
+          "target": null,
+          "scale": 1.0
+        },
+        "changed_values": 0,
+        "metrics": {
+          "count": 12516,
+          "correct": 11655,
+          "top1": 0.9312080536912751,
+          "mrr": 0.9594119527005434,
+          "ndcg_at_6": 0.9687431660134419,
+          "local_correct": 11120,
+          "harm": 109,
+          "rescue": 644,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "residual_0.5",
+          "target": "onnx::MatMul_520",
+          "scale": 0.5
+        },
+        "changed_values": 64,
+        "metrics": {
+          "count": 12516,
+          "correct": 11592,
+          "top1": 0.9261744966442953,
+          "mrr": 0.9566022158304038,
+          "ndcg_at_6": 0.9666492589902688,
+          "local_correct": 11120,
+          "harm": 72,
+          "rescue": 544,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "residual_0.75",
+          "target": "onnx::MatMul_520",
+          "scale": 0.75
+        },
+        "changed_values": 64,
+        "metrics": {
+          "count": 12516,
+          "correct": 11634,
+          "top1": 0.9295302013422819,
+          "mrr": 0.9585091083413232,
+          "ndcg_at_6": 0.968070364428992,
+          "local_correct": 11120,
+          "harm": 94,
+          "rescue": 608,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "residual_1.25",
+          "target": "onnx::MatMul_520",
+          "scale": 1.25
+        },
+        "changed_values": 64,
+        "metrics": {
+          "count": 12516,
+          "correct": 11653,
+          "top1": 0.9310482582294662,
+          "mrr": 0.959515819750719,
+          "ndcg_at_6": 0.9688325803986991,
+          "local_correct": 11120,
+          "harm": 125,
+          "rescue": 658,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "residual_1.5",
+          "target": "onnx::MatMul_520",
+          "scale": 1.5
+        },
+        "changed_values": 64,
+        "metrics": {
+          "count": 12516,
+          "correct": 11651,
+          "top1": 0.9308884627676574,
+          "mrr": 0.9594625545967828,
+          "ndcg_at_6": 0.9687951432098661,
+          "local_correct": 11120,
+          "harm": 131,
+          "rescue": 662,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "segment_0",
+          "target": "onnx::MatMul_518",
+          "row_start": 386,
+          "row_end": 387,
+          "scale": 0.0
+        },
+        "changed_values": 128,
+        "metrics": {
+          "count": 12516,
+          "correct": 11640,
+          "top1": 0.9300095877277086,
+          "mrr": 0.9587448066474912,
+          "ndcg_at_6": 0.9682458457206486,
+          "local_correct": 11120,
+          "harm": 115,
+          "rescue": 635,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "segment_0.5",
+          "target": "onnx::MatMul_518",
+          "row_start": 386,
+          "row_end": 387,
+          "scale": 0.5
+        },
+        "changed_values": 128,
+        "metrics": {
+          "count": 12516,
+          "correct": 11646,
+          "top1": 0.9304889741131351,
+          "mrr": 0.9590044742729307,
+          "ndcg_at_6": 0.9684381561667806,
+          "local_correct": 11120,
+          "harm": 112,
+          "rescue": 638,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "segment_0.75",
+          "target": "onnx::MatMul_518",
+          "row_start": 386,
+          "row_end": 387,
+          "scale": 0.75
+        },
+        "changed_values": 128,
+        "metrics": {
+          "count": 12516,
+          "correct": 11650,
+          "top1": 0.9308085650367529,
+          "mrr": 0.9591682646212848,
+          "ndcg_at_6": 0.9685596090859682,
+          "local_correct": 11120,
+          "harm": 110,
+          "rescue": 640,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "rank_0",
+          "target": "onnx::MatMul_518",
+          "row_start": 385,
+          "row_end": 386,
+          "scale": 0.0
+        },
+        "changed_values": 128,
+        "metrics": {
+          "count": 12516,
+          "correct": 11655,
+          "top1": 0.9312080536912751,
+          "mrr": 0.9599565888995419,
+          "ndcg_at_6": 0.9691793721379547,
+          "local_correct": 11120,
+          "harm": 184,
+          "rescue": 719,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "rank_0.5",
+          "target": "onnx::MatMul_518",
+          "row_start": 385,
+          "row_end": 386,
+          "scale": 0.5
+        },
+        "changed_values": 128,
+        "metrics": {
+          "count": 12516,
+          "correct": 11657,
+          "top1": 0.931367849153084,
+          "mrr": 0.9597208905933738,
+          "ndcg_at_6": 0.9689870173344552,
+          "local_correct": 11120,
+          "harm": 145,
+          "rescue": 682,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "context_0",
+          "target": "onnx::MatMul_518",
+          "row_start": 0,
+          "row_end": 128,
+          "scale": 0.0
+        },
+        "changed_values": 16384,
+        "metrics": {
+          "count": 12516,
+          "correct": 11643,
+          "top1": 0.9302492809204218,
+          "mrr": 0.9589858314690529,
+          "ndcg_at_6": 0.968431360904652,
+          "local_correct": 11120,
+          "harm": 113,
+          "rescue": 636,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      },
+      {
+        "plan": {
+          "id": "context_0.5",
+          "target": "onnx::MatMul_518",
+          "row_start": 0,
+          "row_end": 128,
+          "scale": 0.5
+        },
+        "changed_values": 16384,
+        "metrics": {
+          "count": 12516,
+          "correct": 11648,
+          "top1": 0.930648769574944,
+          "mrr": 0.9591802492809205,
+          "ndcg_at_6": 0.9685747255459085,
+          "local_correct": 11120,
+          "harm": 117,
+          "rescue": 645,
+          "failure_count": 0,
+          "timeout_count": 0,
+          "fallback_count": 0
+        }
+      }
+    ],
+    "replay_max_absolute_error": 1.71661376953125E-05,
+    "runtime": {
+      "numpy": "2.3.5",
+      "onnx": "1.19.1",
+      "onnxruntime": "1.23.2",
+      "provider": "CPUExecutionProvider",
+      "batch_size": 1,
+      "intra_op_threads": 1,
+      "inter_op_threads": 1,
+      "elapsed_seconds": 27.303695600006904,
+      "train_capture_batch_size": 32,
+      "dev_evaluation_batch_size": 1,
+      "train_batch_parity_rows": 8,
+      "train_batch_parity_check": "passed; max absolute error < 1e-4 and argmax identical"
+    },
+    "originals_unchanged": true,
+    "graph_unchanged": true,
+    "raw_text_logged": false,
+    "final_holdout_used": false,
+    "training_or_gradients_used": false,
+    "production_authorized": false,
+    "limitations": [
+      "One model and one pre-existing dev set; no independent held-out generalization claim.",
+      "Manual scale/ablation hypotheses do not prove semantic comprehension of weights.",
+      "Gate A remains failed; no production suitability claim.",
+      "No latency benchmark or 10000-run production benchmark performed."
+    ]
+  },
+  "interpretation": {
+    "task_identification": "Exact application not established under the clean partial-evidence condition.",
+    "weight_edit": "Manual edits were implemented without gradients or retraining. None beat the unchanged model while satisfying the predeclared train harm constraint. The best changed top1 train candidate also worsened on dev.",
+    "selected_for_use": "unchanged_original",
+    "candidate_binary_retained": false,
+    "candidate_reconstruction": "Run the retained experiment.py with the original immutable model/cache and a fresh output directory.",
+    "semantic_claim": "Structured numeric directions and successful weight modification do not establish understanding of their application semantics."
+  },
+  "verification": {
+    "all_originals": [
+      {
+        "file": "sakura-rerank-tiny-v1-research.pt",
+        "sha256": "d7d58fce6ea00ee577f3b60ac87d179c237730b5814d1dbe5bdd51fa4f1d2fbd",
+        "unchanged": true
+      },
+      {
+        "file": "sakura-rerank-tiny-v1-fp32.onnx",
+        "sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+        "unchanged": true
+      },
+      {
+        "file": "sakura-rerank-tiny-v1-int8.onnx",
+        "sha256": "8e38d66b1d841f852ca1a6a82cd8b71e7526167a7cc96f7281df2ded5a8421e8",
+        "unchanged": true
+      }
+    ],
+    "edit_exactly_matches_declared_formula": true,
+    "changed_values": 128,
+    "graph_and_io_unchanged": true,
+    "all_weights_finite": true,
+    "all_denominators_preserved": true,
+    "metric_identities_pass": true,
+    "selection_correctly_retained_baseline": true,
+    "static_weight_product_dominant_mode_fraction": 0.9981397986412048,
+    "checks": "pass"
+  },
+  "experiment_execution_incidents": [
+    {
+      "incident": "anonymizer initially encountered an ONNX GraphProto attribute",
+      "resolution": "recursive graph anonymization; all tensor bytes verified identical"
+    },
+    {
+      "incident": "initial batch-one intermediate capture projected beyond time budget",
+      "resolution": "stopped its owned process tree before completion; reran with train batch 32 after eight-row batch parity check; dev remained batch one",
+      "excluded_product_records": 0
+    },
+    {
+      "incident": "clean CLI read-only Python command rejected",
+      "resolution": "no tool-policy bypass; separate tool-free run with an explicitly limited numeric packet"
+    }
+  ],
+  "verification_commands": {
+    "reproduce_edits": "python data/generated/weight-space-study-20261103/experiment.py --repo . --out <new-task-output-directory>",
+    "dependencies": "Create a fresh task venv and install the retained requirements.lock with --require-hashes --no-deps. The lock was resolved with --exclude-newer 2026-10-30.",
+    "expect": "baseline dev 1640/1788, edited rank_0.5 1635/1788, original selected; exact source/cache hashes must match"
+  },
+  "architecture_impact": {
+    "behavior_owner": "research_tiny.py remains the owner of model input/output semantics; it was not modified",
+    "state_owner": "only temporary copied ONNX initializers were changed",
+    "contract_changes": false,
+    "new_runtime_dependencies": false,
+    "semantic_dependencies_added_or_removed": false
+  },
+  "scope_actual": {
+    "contracts": [
+      "research_tiny.py candidate_features/build_model/export_onnx/ranking_metrics",
+      "existing FP32 model manifest and numeric cache manifest"
+    ],
+    "artifacts": [
+      "three existing model binaries for hashes",
+      "existing train-dev numeric cache",
+      "anonymous tensor packet"
+    ],
+    "tests": "model checker, exact tensor mutation, head replay parity, batch parity, baseline metric reproduction, complete denominators; no production tests or benchmarks",
+    "expansion": "Fresh-history subagents inherited application hints, requiring isolated CLI attempt and a tool-free partial-data fallback. Intermediate-output train capture needed bounded batching.",
+    "future_irv": "No production architecture improvement claimed. Retained scripts, trial plan and results avoid re-deriving the same 11 edits; future studies must understand the blinding limits and use a new sealed evaluation protocol."
+  },
+  "artifacts_directory": "data/generated/weight-space-study-20261103",
+  "retained_artifact_sha256": {
+    "clean-events.jsonl": "04fe69058c058ff30e980e4f7bcf515ffd7bbedb87222606674e28baff3c9ee7",
+    "clean-prompt.txt": "8f5e6398c82081a470ef57bac57fb3c9519b6218e4046074e0c9e5acd1625a42",
+    "clean-result.json": "57ecd99e717a545360ad74f5c3ca3f447324e0a313236b5c6ca4c74ac46fdcb0",
+    "clean-stderr.txt": "26603c34266a1b56ccd9460f275aa11fd2e50a5f3576e00fc25ef20015b915f8",
+    "control-result.json": "9155bac8f0cb5f35dbc0dcee5d02d3e86f73381e178876606d38a333b1b4a322",
+    "edit-results.json": "cecc070136e0637865c9306e37f04a4e501998cdbb0fb51d9754f132512461c2",
+    "experiment.py": "9a439e4f5d254ce3f25f9657bb6f80aa577281f6031f72a57b76f62c243ea36a",
+    "prepare_blind.py": "8e17d0d3ae458ebbfbe51a789fdd5ca761628f91fce1f4840c9cfde3e2b7d625",
+    "preregistered-plan.json": "60d5a2704ea4a9d44959bf14a24d7426edd31dd9dee02c7cbe07f23ac1f9a8a1",
+    "requirements.in": "e9fbde123e868a260733ce7e8673370c378358f4563b57ce403607f95c95110f",
+    "requirements.lock": "33208979e5d16af30c568622db1b68cfe3eddaaa410e678a32f667bb446e4cf4",
+    "run_blind.py": "9cf024a2bcbf0b8e405737911a38f3d147b6f16c04e38bc006a2acfe779db536",
+    "run_text_subject.py": "f389295f871bb54451b791a97327ca3c844559374dfb489e0b1a1cb601a7ef6f",
+    "sealed-selection.json": "36130b2f7f07c86eff4f8482d001b724729fe27e756aac1ee7f70e807c8c9be3",
+    "text-events.jsonl": "9424aadb42d5888b3011dc6559c956738342a4cba47384cceb011d46f2abdabb",
+    "text-process.json": "a54ce786ed5576d4fbfab87ae67103150b963f8fa8ce651d95ff7a6582c55acf",
+    "text-prompt.txt": "e1601c8c4f144e16a22e7c4a29b4a7755e63c34cbdd5fc180d925a4c48a0dfad",
+    "text-result.json": "848ae753b8b560c9665c573089dfa7a74fd04c52ef14382078b4520b9aedb283",
+    "verification.json": "c6bac299c7082473522bfbbd33fbc61d8d0ea0859fc80692962ec18a38d93ca7",
+    "verify_results.py": "cbddfc5ad8ab87b9ca097c77cc7d623724400779767208c9bec12674b2775f91",
+    "contaminated-subject/graph_compact.txt": "cdd4c12d0c6c7ed9433dfcd680a421206762dedcd59c6e45e15af13483c5db47",
+    "contaminated-subject/head_weight_analysis.json": "cd6c24fcdbdcfcc3db41e2e087b9a873e3b5373d7271d45e173fe50ee26f6718",
+    "contaminated-subject/stage1.json": "2aca2fcbf52d4aac1b6361f5addd7e0fae64c0a4bb461c85b92b4bc35b45b000",
+    "contaminated-subject/stage2.json": "ccccb56831890aff541bb4fdd2f8bd0d8e024623e94c212a749be8fc722fcc62",
+    "contaminated-subject/tensor_statistics.json": "3badf45e468ae614e5a8b5bf6586cce7eacde8f46898ab1cacbb9b5fb35ce1e1",
+    "contaminated-subject/tensor_structure.json": "e5fe22776c4b161cb13721ec86fde1e0eee79c3dc47a69f43a45f03ff0239965",
+    "cleanup.json": "a128bcb5b2b3f538349dc01a03aac33502706a7bcffd6e89776cccbdc7b15ee0"
+  },
+  "cleanup": {
+    "status": "complete",
+    "targets": [
+      "~/tmp/weight-study-20261103",
+      "C:\\Codes\\tsuyoshi-otake\\sakura-rerank\\data\\generated\\weight-space-study-20261103\\__pycache__"
+    ],
+    "temporary_files": 23863,
+    "temporary_bytes": 329227334,
+    "owned_processes_before": 0,
+    "candidate_binary_retained": false,
+    "owned_processes_after": 0
+  }
+}

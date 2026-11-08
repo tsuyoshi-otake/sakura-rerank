@@ -1,0 +1,549 @@
+{
+  "schema_version": 1,
+  "report_kind": "label_audited_middle_layer_manual_weight_intervention",
+  "date_jst": "2026-11-03",
+  "tracking_issue": "https://github.com/tsuyoshi-otake/sakura-rerank/issues/1",
+  "status": "complete_candidate_rejected_previous_retained",
+  "conclusion_ja": "正解ラベルを確認した訓練例の中間層から22通りの直接編集を試した。選んだ案は訓練で6件改善したがdevで1件悪化し、追加の精度改善は確認できなかった。前回の1.5倍モデルを維持する。",
+  "user_constraint": "Direct existing-weight edits only; no retraining, optimizer, gradients, new learned vector, architecture or production change.",
+  "inputs": {
+    "repository_head": "b4b21b0d939af990d4f19ae533381d59f0d0612b",
+    "sakura_input_current_head_inspected": "d586fae572d32aa76512994dca616dadef2899b1",
+    "frozen_converter_head": "8e966dff456e4e7165e025f97c1f73327ff3f550",
+    "relying_on_current_converter_behavior": false,
+    "sakura-rerank-tiny-v1-segment-weight-1p5-fp32.onnx": "778fe98314aa6cbac403d75c52b690d6b0cbc886594fb423d080f3af9aa17ea6",
+    "sakura-rerank-tiny-v1-fp32.onnx": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+    "train-dev-cache.npz": "41eb7f59c4912d3216836ed9cb153a3e3b952e8673d5fce3e71a020b24781624",
+    "frozen-split.jsonl": "0651bfaa3fb67da7980dcbbe4ad5de6e383e2878c726ace53a189d74519b1d82"
+  },
+  "label_audit": {
+    "selected_rows": 14,
+    "train_rows": 10,
+    "dev_posthoc_rows": 4,
+    "source_and_cache_binding_passed": 14,
+    "confirmed": 10,
+    "ambiguous": 4,
+    "label_error": 0,
+    "confirmed_train_rows": 9,
+    "ambiguous_train_rows": 1,
+    "confirmed_dev_rows": 1,
+    "ambiguous_dev_rows": 3,
+    "reviewer": "root assistant, not human adjudication",
+    "truth_limit": "Source-exactness and automatic dictionary/converter checks do not establish unique semantic correctness from the bounded input. Ambiguous labels are not demonstrated errors.",
+    "blinding": "Opaque cases were reviewed without prediction/split/role; mapping was revealed afterward. R12 was conservatively downgraded before numeric analysis because identity is not established by bounded context.",
+    "canonical_labels_changed": false,
+    "benchmark_rows_removed": 0,
+    "no_new_raw_text_artifact": true,
+    "primary_references": [
+      {
+        "case": "R10",
+        "url": "https://www.iwi.co.jp/company/about/",
+        "purpose": "official corporate spelling"
+      },
+      {
+        "case": "R12",
+        "url": "https://www.teichiku.co.jp/teichiku/artist/masuiyama/profile/",
+        "purpose": "official artist spelling/reading; does not resolve bounded-context identity"
+      },
+      {
+        "case": "R12",
+        "url": "https://www.sumo.or.jp/Yokozuna/profile/97/",
+        "purpose": "role-specific reading caveat"
+      }
+    ],
+    "scope_limit": "Targeted error/gain sample, not a corpus-wide label audit; verdicts are contextual judgments."
+  },
+  "middle_layer_analysis": {
+    "confirmed_discovery_pairs": 4,
+    "segment_amplification_pair_count": 1,
+    "existing_harm_rescue_pair_count": 3,
+    "inputs_compared": [
+      "context GRU",
+      "reading GRU",
+      "candidate GRU",
+      "numeric features",
+      "128-unit first scorer layer",
+      "64-unit second scorer layer"
+    ],
+    "valid_candidate_positions_only": true,
+    "paired_representation_differences": {
+      "pair_count": 4,
+      "context_0_128": {
+        "mean_l2": 3.452857653060025,
+        "mean_abs": 0.22666150444638333
+      },
+      "reading_128_256": {
+        "mean_l2": 2.7450816953142834,
+        "mean_abs": 0.18796558337089664
+      },
+      "candidate_256_384": {
+        "mean_l2": 3.4079979010307637,
+        "mean_abs": 0.2444879868852089
+      },
+      "features_384_390": {
+        "mean_l2": 0.09758718762582108,
+        "mean_abs": 0.01873679927343296
+      },
+      "h0": {
+        "mean_l2": 3.149723753873385,
+        "mean_abs": 0.20655299935587362
+      },
+      "h1": {
+        "mean_l2": 3.3727158283363416,
+        "mean_abs": 0.3380260972715708
+      },
+      "interpretation": "These paired numeric distances are associations, distinct from the causal finite interventions."
+    },
+    "causal_probes": "128 first-scorer units per family. A doubles a single segment-count connection; B halves a single outgoing row. Probe responses nominate units using confirmed train-discovery cases only.",
+    "nomination_epsilon": 0.0001,
+    "nominated_segment_units": [
+      28,
+      100
+    ],
+    "nominated_outgoing_units": [
+      36,
+      88,
+      65,
+      77,
+      19,
+      33,
+      104,
+      22
+    ],
+    "numerical_verification": {
+      "status": "pass",
+      "confirmed_discovery_rows": 9,
+      "probes": [
+        {
+          "family": "P",
+          "unit": 28,
+          "max_abs_score_error": 7.62939453125E-06,
+          "top1_equal": true,
+          "edited_values": 1,
+          "max_abs_actual_score_change": 0.0006542205810546875
+        },
+        {
+          "family": "P",
+          "unit": 100,
+          "max_abs_score_error": 9.5367431640625E-06,
+          "top1_equal": true,
+          "edited_values": 1,
+          "max_abs_actual_score_change": 0.000762939453125
+        },
+        {
+          "family": "H",
+          "unit": 36,
+          "max_abs_score_error": 1.1444091796875E-05,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.12389564514160156
+        },
+        {
+          "family": "H",
+          "unit": 88,
+          "max_abs_score_error": 9.5367431640625E-06,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.2944526672363281
+        },
+        {
+          "family": "H",
+          "unit": 65,
+          "max_abs_score_error": 9.5367431640625E-06,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.18520164489746094
+        },
+        {
+          "family": "H",
+          "unit": 77,
+          "max_abs_score_error": 1.1444091796875E-05,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.22016525268554688
+        },
+        {
+          "family": "H",
+          "unit": 19,
+          "max_abs_score_error": 7.62939453125E-06,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.1826019287109375
+        },
+        {
+          "family": "H",
+          "unit": 33,
+          "max_abs_score_error": 9.5367431640625E-06,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.3159313201904297
+        },
+        {
+          "family": "H",
+          "unit": 104,
+          "max_abs_score_error": 8.58306884765625E-06,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.814549446105957
+        },
+        {
+          "family": "H",
+          "unit": 22,
+          "max_abs_score_error": 7.62939453125E-06,
+          "top1_equal": true,
+          "edited_values": 64,
+          "max_abs_actual_score_change": 0.607966423034668
+        }
+      ],
+      "verification": "Fresh actual ONNX edits vs finite-intervention replay, CPU one thread, all inputs from selected confirmed train-discovery cases."
+    },
+    "interpretation": "Finite interventions establish effects on these scores. Distances do not identify a unique semantic circuit, and useful local effects did not transfer to improved dev accuracy."
+  },
+  "search": {
+    "full_train_candidates": 22,
+    "train_eligible": 7,
+    "selected_candidate": {
+      "candidate_id": "B-08-0.75",
+      "A_units": [],
+      "A_factor": null,
+      "B_units": [
+        36,
+        88,
+        65,
+        77,
+        19,
+        33,
+        104,
+        22
+      ],
+      "B_factor": 0.75
+    },
+    "selected_changed_values_vs_prior": 512,
+    "selection_rule": {
+      "frozen_at_utc": "2026-11-03T21:34:38.641655+09:00",
+      "nominations": "top 8 units per family from confirmed train group0 pairs, finite causal probe with epsilon 1e-4",
+      "prefix_sizes": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "A_segment_connection_multipliers_relative_prior": [
+        1.25,
+        1.5,
+        2.0
+      ],
+      "B_hidden_outgoing_row_multipliers": [
+        0.75,
+        0.5,
+        0.0
+      ],
+      "combined": "same prefix sizes, A factor2 and B factor0.5; only if both families nonempty",
+      "maximum_candidates": 28,
+      "gate": "Both train groups correct>=prior and local-harm<=prior, total correct strictly improves, all confirmed discovery cases correct under prior remain correct.",
+      "ranking": "most total correct; then least total local harm; then least changed weight count; then lexicographic candidate ID",
+      "dev": "Select and seal exactly one candidate before dev evaluation. Retain only if dev correct strictly improves and local harm does not increase. Otherwise keep prior. No alternate candidates evaluated on dev.",
+      "final_holdout_used": false
+    },
+    "selection_sealed_before_current_candidate_dev_evaluation": true,
+    "train_group_warning": "Both groups belong to original model training, were reused in earlier editing rounds, and do not guarantee article-level independence. They are not unseen validation.",
+    "dev_candidates_evaluated_this_round": 1,
+    "dev_reused_exploratory": true,
+    "final_holdout_used": false
+  },
+  "metrics": {
+    "train": {
+      "prior": {
+        "n": 12516,
+        "correct": 11659,
+        "local_baseline_correct": 11120,
+        "local_correct_retained": 11012,
+        "gold_outside_candidates": 50,
+        "failures": 0,
+        "timeouts": 0,
+        "fallbacks": 0,
+        "local_harm": 108,
+        "rescues": 647,
+        "gains_vs_prior": 0,
+        "losses_vs_prior": 0,
+        "prior_correct": 11659,
+        "prior_local_harm": 108,
+        "accuracy": 0.9315276446148929,
+        "mcnemar_exact_p": 1.0,
+        "mrr": 0.9596583040374987,
+        "ndcg": 0.9689308611187013
+      },
+      "candidate": {
+        "n": 12516,
+        "correct": 11665,
+        "local_baseline_correct": 11120,
+        "local_correct_retained": 11015,
+        "gold_outside_candidates": 50,
+        "failures": 0,
+        "timeouts": 0,
+        "fallbacks": 0,
+        "local_harm": 105,
+        "rescues": 650,
+        "gains_vs_prior": 10,
+        "losses_vs_prior": 4,
+        "prior_correct": 11659,
+        "prior_local_harm": 108,
+        "accuracy": 0.9320070310003196,
+        "mcnemar_exact_p": 0.1795654296875,
+        "mrr": 0.9599246298071801,
+        "ndcg": 0.9691287103505418
+      },
+      "groups": {
+        "0": {
+          "n": 6225,
+          "correct": 5796,
+          "local_baseline_correct": 5557,
+          "local_correct_retained": 5503,
+          "gold_outside_candidates": 24,
+          "failures": 0,
+          "timeouts": 0,
+          "fallbacks": 0,
+          "local_harm": 54,
+          "rescues": 293,
+          "gains_vs_prior": 4,
+          "losses_vs_prior": 1,
+          "prior_correct": 5793,
+          "prior_local_harm": 56
+        },
+        "1": {
+          "n": 6291,
+          "correct": 5869,
+          "local_baseline_correct": 5563,
+          "local_correct_retained": 5512,
+          "gold_outside_candidates": 26,
+          "failures": 0,
+          "timeouts": 0,
+          "fallbacks": 0,
+          "local_harm": 51,
+          "rescues": 357,
+          "gains_vs_prior": 6,
+          "losses_vs_prior": 3,
+          "prior_correct": 5866,
+          "prior_local_harm": 52
+        }
+      }
+    },
+    "dev": {
+      "original": {
+        "n": 1788,
+        "correct": 1640,
+        "local_baseline_correct": 1586,
+        "local_correct_retained": 1563,
+        "gold_outside_candidates": 8,
+        "failures": 0,
+        "timeouts": 0,
+        "fallbacks": 0,
+        "local_harm": 23,
+        "rescues": 77,
+        "gains_vs_prior": 0,
+        "losses_vs_prior": 0,
+        "prior_correct": 1640,
+        "prior_local_harm": 23,
+        "accuracy": 0.9172259507829977,
+        "mcnemar_exact_p": 1.0,
+        "mrr": 0.9510533184190902,
+        "ndcg": 0.962410335372298
+      },
+      "prior": {
+        "n": 1788,
+        "correct": 1641,
+        "local_baseline_correct": 1586,
+        "local_correct_retained": 1563,
+        "gold_outside_candidates": 8,
+        "failures": 0,
+        "timeouts": 0,
+        "fallbacks": 0,
+        "local_harm": 23,
+        "rescues": 78,
+        "gains_vs_prior": 0,
+        "losses_vs_prior": 0,
+        "prior_correct": 1641,
+        "prior_local_harm": 23,
+        "accuracy": 0.9177852348993288,
+        "mcnemar_exact_p": 1.0,
+        "mrr": 0.9513329604772558,
+        "ndcg": 0.9626167504989359
+      },
+      "candidate": {
+        "n": 1788,
+        "correct": 1640,
+        "local_baseline_correct": 1586,
+        "local_correct_retained": 1563,
+        "gold_outside_candidates": 8,
+        "failures": 0,
+        "timeouts": 0,
+        "fallbacks": 0,
+        "local_harm": 23,
+        "rescues": 77,
+        "gains_vs_prior": 0,
+        "losses_vs_prior": 1,
+        "prior_correct": 1641,
+        "prior_local_harm": 23,
+        "accuracy": 0.9172259507829977,
+        "mcnemar_exact_p": 1.0,
+        "mrr": 0.9512397464578672,
+        "ndcg": 0.9625567892353534
+      },
+      "candidate_vs_original": {
+        "n": 1788,
+        "correct": 1640,
+        "local_baseline_correct": 1586,
+        "local_correct_retained": 1563,
+        "gold_outside_candidates": 8,
+        "failures": 0,
+        "timeouts": 0,
+        "fallbacks": 0,
+        "local_harm": 23,
+        "rescues": 77,
+        "gains_vs_prior": 1,
+        "losses_vs_prior": 1,
+        "prior_correct": 1640,
+        "prior_local_harm": 23,
+        "accuracy": 0.9172259507829977,
+        "mcnemar_exact_p": 1.0,
+        "mrr": 0.9512397464578672,
+        "ndcg": 0.9625567892353534
+      }
+    }
+  },
+  "decision": {
+    "candidate_retained": false,
+    "rejected_sha256": "6c0b365e94b8268c46123d9c0485f97de6987d35cd493990944bd799ee5efd0e",
+    "retained_prior_path": "data/generated/sakura-rerank-tiny-v1-weight-edit-20261103/sakura-rerank-tiny-v1-segment-weight-1p5-fp32.onnx",
+    "retained_prior_sha256": "778fe98314aa6cbac403d75c52b690d6b0cbc886594fb423d080f3af9aa17ea6",
+    "reason": "Dev correct decreased by 1 versus prior, with zero gains and one loss; strict predeclared acceptance gate failed.",
+    "cumulative_warning": "Candidate equals original total dev count but has one gain and one loss vs original; it is not prediction-identical to original.",
+    "benchmark": "No novel model retained; new 10000-run candidate benchmark was not required. No speed claim made."
+  },
+  "verification": {
+    "root_owned": true,
+    "graph_exactly_unchanged": true,
+    "changed_weights_vs_prior": {
+      "onnx::MatMul_519": 512
+    },
+    "all_other_weights_exactly_unchanged": true,
+    "train_replay_max_error": 1.52587890625E-05,
+    "train_replay_top1_equal": true,
+    "permutation_max_error": 0.0,
+    "empty_context_finite": true,
+    "mask_controls_pass": true,
+    "batch_one_and_batch16_pass": true,
+    "full_denominators": true,
+    "train_selection_reproduced_in_actual_onnx": true,
+    "raw_inputs_logged_in_retained_artifacts": false,
+    "original_artifact_hashes_unchanged": true,
+    "rubric": [
+      {
+        "Verify": "source/cache row mapping and hashes",
+        "Expect": "all selected row encodings, features and gold indices exactly match cache",
+        "result": "pass"
+      },
+      {
+        "Verify": "audit source provenance and bounded left-context/candidate evidence",
+        "Expect": "each reviewed row has explicit confirmed/ambiguous/label_error terminal verdict; no invented truth",
+        "result": "pass"
+      },
+      {
+        "Verify": "middle-layer replay and causal intervention controls",
+        "Expect": "scores reproduce ORT; declared neuron/connection edits are the only changed weights",
+        "result": "pass"
+      },
+      {
+        "Verify": "sealed full-denominator train/dev comparisons",
+        "Expect": "prior 11659 train and1641 dev reproduced; no dropped failures or post-hoc relabeling",
+        "result": "pass"
+      },
+      {
+        "Verify": "model contract and CPU benchmark",
+        "Expect": "mask/input/output preserved; selected novel model gets 10000 CPU measurements if one is retained",
+        "result": "not_applicable_novel_model_rejected"
+      },
+      {
+        "Verify": "process/temporary-file cleanup",
+        "Expect": "no owned workers or temporary environment remains",
+        "result": "pass"
+      }
+    ],
+    "saved_artifact_check": {
+      "git_diff_check": "pass",
+      "label_binding_and_seal": "pass",
+      "evidence_hashes": 22,
+      "selection_ranking_and_denominators": "pass",
+      "python_syntax_files": 8,
+      "status": "pass"
+    }
+  },
+  "scope_accounting": {
+    "A_actual_scope": {
+      "responsibilities": [
+        "immutable source/cache label correspondence",
+        "research Tiny scoring contract",
+        "manual intermediate-layer edits and offline full-denominator evaluation"
+      ],
+      "source_contract": "src/sakura_rerank/research_tiny.py",
+      "specs_and_manifests": [
+        "AGENTS.md",
+        ".codex/memory/rules.md",
+        "manifests/sakura-rerank-tiny-v1-research-prototype.json",
+        "manifests/jawiki-20260801-pages-articles-multistream.json",
+        "manifests/jawiki-tier-a-source-spans-v5-slot120-verified.json"
+      ],
+      "prior_evidence": [
+        "reports/weight-edit-improvement-20261103.json",
+        "reports/weight-edit-trend-20261103.json"
+      ],
+      "checks": [
+        "14 exact cache/source bindings",
+        "10 actual ONNX single-unit probe controls",
+        "full 12516-row train replay",
+        "full 1788-row dev comparison",
+        "unchanged graph/weight scope",
+        "candidate permutation/mask/empty-context/batch controls",
+        "script syntax and git diff --check",
+        "process and temporary directory cleanup"
+      ]
+    },
+    "B_expansion": "Semantic label judgments required tracing frozen examples back to source spans and checking selected official proper-name spellings. UTF-8 byte segment boundaries were checked separately from Unicode character slicing.",
+    "C_architecture": "No production/source architecture changes. Frozen source/cache owns labels; existing ONNX contract owns inputs/scores; task-local copies own proposed weights. No dependency or protocol change.",
+    "D_future_IRV": "Saved hash-bound label verdicts, neuron nominations, causal-control results and full candidate ranking make this exact experiment reproducible without rediscovering offsets or edits. No architectural IRV reduction claimed; future studies must still understand label ambiguity and dev reuse."
+  },
+  "reproduction": {
+    "artifact_directory": "data/generated/weight-edit-conditional-20261103",
+    "environment": "Fresh task venv under ~/tmp, install exact requirements.lock with --require-hashes --no-deps; original lock excludes packages newer than 2026-10-30.",
+    "order": [
+      "copy retained scripts/lock into the fresh task directory",
+      "run prepare.py",
+      "run verify_labels_binding.py",
+      "run source_check.py",
+      "run freeze_audit.py to replay the recorded judgments, not perform a new human audit",
+      "run middle_analysis.py",
+      "run verify_probes.py",
+      "run train_candidates.py",
+      "run verify_candidate.py"
+    ],
+    "expect": "same 22 candidate specs, B-08-0.75 selected, train11665/dev1640, rejected_keep_prior; timestamps and seals differ on rerun"
+  },
+  "cleanup": {
+    "directory": "~/tmp/weight-conditional-20261103",
+    "removed_contents": [
+      "task venv and dependency cache",
+      "train/dev activation captures",
+      "rejected ONNX candidate",
+      "temporary scripts and Python bytecode"
+    ],
+    "evidence_directory": "data/generated/weight-edit-conditional-20261103",
+    "unrelated_processes_untouched": true,
+    "directory_absent": true,
+    "elapsed_seconds": 4.2135162,
+    "owned_processes_before_delete": 0,
+    "measured_bytes": 569177334,
+    "status": "complete",
+    "owned_processes_after_delete": 0,
+    "measured_files": 23840
+  }
+}

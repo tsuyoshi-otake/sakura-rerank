@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "report_kind": "activation_guided_manual_weight_edit",
+  "date_jst": "2026-11-03",
+  "tracking_issue": "https://github.com/tsuyoshi-otake/sakura-rerank/issues/1",
+  "status": "complete_exploratory_one_case_dev_gain",
+  "model_manifest": "manifests/sakura-rerank-tiny-v1-weight-edit-20261103.json",
+  "artifact_directory": "data/generated/sakura-rerank-tiny-v1-weight-edit-20261103",
+  "user_constraint": "weight edits only; no retraining",
+  "method": {
+    "trial_count_including_baseline": 22,
+    "predeclared_limit": 50,
+    "diagnostics": "Discovery-only harm and rescue activation differences. All output units with positive harm contribution had no larger mean harm than mean rescue under the predeclared ratio, so no unit-suppression groups qualified.",
+    "direction_edit": "Analytic projection of mean harm direction orthogonal to mean rescue was tested at five fixed strengths, without gradients or fitted optimizers. It was not selected.",
+    "winning_edit": {
+      "initializer": "onnx::MatMul_518",
+      "row_zero_based": 386,
+      "formula": "multiply the complete row by float32(1.5)",
+      "changed_values": 128,
+      "changed_percent": 0.0068766295060055,
+      "semantic_input": "candidate_features[2] = min(number of segments, 8) / 8",
+      "graph_changed": false,
+      "io_contract_changed": false
+    },
+    "selection_rule": "Both discovery and confirmation must not lose correct cases or increase harm relative to original. Then maximize total correct, minimize harm, minimize changed values. Baseline eligible. No dev examined until selected.",
+    "same_query_group_assignment": "SHA256 domain label + full fixed reading IDs + candidate IDs; first byte modulo 2. Related-context/article leakage is not ruled out by this internal split.",
+    "dev_used_after_sealing": true,
+    "final_holdout_used": false,
+    "training_or_gradients_used": false
+  },
+  "train_selection": {
+    "plan": {
+      "id": "feature2_1.5",
+      "type": "row",
+      "row": 386,
+      "scale": 1.5
+    },
+    "changed_values": 128,
+    "all": {
+      "rows": 12516,
+      "correct": 11659,
+      "top1": 0.9315276446148929,
+      "local_correct": 11120,
+      "harm": 108,
+      "rescue": 647,
+      "mrr": 0.9596583040374987,
+      "ndcg": 0.9689308611187015,
+      "failures": 0,
+      "timeouts": 0,
+      "fallbacks": 0
+    },
+    "discovery": {
+      "rows": 6225,
+      "correct": 5793,
+      "top1": 0.9306024096385542,
+      "local_correct": 5557,
+      "harm": 56,
+      "rescue": 292,
+      "mrr": 0.9591967871485944,
+      "ndcg": 0.9686182697272699,
+      "failures": 0,
+      "timeouts": 0,
+      "fallbacks": 0
+    },
+    "confirmation": {
+      "rows": 6291,
+      "correct": 5866,
+      "top1": 0.9324431727865204,
+      "local_correct": 5563,
+      "harm": 52,
+      "rescue": 355,
+      "mrr": 0.9601149790706301,
+      "ndcg": 0.9692401730582437,
+      "failures": 0,
+      "timeouts": 0,
+      "fallbacks": 0
+    }
+  },
+  "dev": {
+    "original": {
+      "rows": 1788,
+      "correct": 1640,
+      "top1": 0.9172259507829977,
+      "local_correct": 1586,
+      "harm": 23,
+      "rescue": 77,
+      "mrr": 0.9510533184190902,
+      "ndcg": 0.962410335372298,
+      "failures": 0,
+      "timeouts": 0,
+      "fallbacks": 0
+    },
+    "candidate": {
+      "rows": 1788,
+      "correct": 1641,
+      "top1": 0.9177852348993288,
+      "local_correct": 1586,
+      "harm": 23,
+      "rescue": 78,
+      "mrr": 0.9513329604772558,
+      "ndcg": 0.9626167504989359,
+      "failures": 0,
+      "timeouts": 0,
+      "fallbacks": 0
+    }
+  },
+  "paired": {
+    "gains": 1,
+    "losses": 0,
+    "mcnemar_p": 1.0
+  },
+  "statistical_superiority_established": false,
+  "interpretation": "The fixed dev set gained one correct case and lost zero, with unchanged local-baseline harm. Exact paired p=1.0 does not establish a generalizable improvement. Keep as a separate research candidate; no production/default replacement.",
+  "verification": {
+    "checks": "pass",
+    "original_hashes": {
+      "sakura-rerank-tiny-v1-research.pt": "d7d58fce6ea00ee577f3b60ac87d179c237730b5814d1dbe5bdd51fa4f1d2fbd",
+      "sakura-rerank-tiny-v1-fp32.onnx": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+      "sakura-rerank-tiny-v1-int8.onnx": "8e38d66b1d841f852ca1a6a82cd8b71e7526167a7cc96f7281df2ded5a8421e8"
+    },
+    "only_changed_initializers": {
+      "onnx::MatMul_518": 128
+    },
+    "formula": "scorer first matrix input row 386 multiplied by float32(1.5)",
+    "graph_and_io_identical": true,
+    "all_weights_finite": true,
+    "group_assignment_reproduced": true,
+    "diagnostic_counts_and_contributions_verified": true,
+    "zero_segment_feature_equal_outputs": true,
+    "candidate_permutation_equivariant": true,
+    "all_invalid_mask_terminal_scores": -10000,
+    "empty_context_reading_finite": true,
+    "all_dev_denominators_preserved": true
+  },
+  "cpu_benchmark": {
+    "contract": {
+      "platform": "Windows-11-10.0.26300-SP0",
+      "provider": "CPUExecutionProvider",
+      "gpu_disabled": true,
+      "batch_size": 1,
+      "intra_op_threads": 1,
+      "inter_op_threads": 1,
+      "warmup_each": 100,
+      "measurements_each": 10000,
+      "measurement_scope": "ORT session.run only; inputs preloaded and feed prepared outside timing; excludes NPZ decompression, tokenization, worker, IPC",
+      "pair_order": "alternated each input, same immutable dev sequence",
+      "historical_benchmark_comparable": false
+    },
+    "models": {
+      "original": {
+        "runs": 10000,
+        "p50_ms": 0.6379,
+        "p95_ms": 0.7021,
+        "p99_ms": 0.7816,
+        "mean_ms": 0.60528151,
+        "failures": 0
+      },
+      "candidate": {
+        "runs": 10000,
+        "p50_ms": 0.6357,
+        "p95_ms": 0.7042,
+        "p99_ms": 0.7857,
+        "mean_ms": 0.60529766,
+        "failures": 0
+      }
+    },
+    "wall_seconds": 12.291660200004117,
+    "production_authorized": false
+  },
+  "cpu": {
+    "name": "AMD Ryzen 7 9700X",
+    "physical_cores": 8,
+    "logical_processors": 16
+  },
+  "tests": {
+    "research_tiny_unittest": {
+      "run": 5,
+      "passed": 4,
+      "skipped": 1,
+      "reason": "PyTorch parameter-shape test skipped; PyTorch was not installed. Actual ONNX graph, shapes, masking and numerical behavior were checked directly."
+    },
+    "reproduce_patch": {
+      "byte_identical": true,
+      "sha256": "778fe98314aa6cbac403d75c52b690d6b0cbc886594fb423d080f3af9aa17ea6"
+    },
+    "direct_checks": "Exact 128-value mutation; unchanged original hashes, graph and IO; finite weights; grouping and contribution verification; zero-feature parity; candidate permutation; all-invalid and empty-context behavior; full metric denominators; 10000 CPU runs for each model."
+  },
+  "rubric": [
+    {
+      "Verify": "apply_edit.py SOURCE NEW_OUTPUT; compare SHA256",
+      "Expect": "778fe98314aa6cbac403d75c52b690d6b0cbc886594fb423d080f3af9aa17ea6"
+    },
+    {
+      "Verify": "campaign.py capture -> diagnose.py -> campaign.py search",
+      "Expect": "original train 11655; sealed feature2_1.5 train 11659; harm 109 -> 108; same-key records remain in the same partition"
+    },
+    {
+      "Verify": "campaign.py evaluate after sealing",
+      "Expect": "1788 total rows; 1640 -> 1641 correct; harm 23 -> 23; 1 gain / 0 losses; no dropped failures"
+    },
+    {
+      "Verify": "verify_and_benchmark.py",
+      "Expect": "all direct checks pass and 10000 measurements per model on CPU, batch one, one intra/inter thread"
+    },
+    {
+      "Verify": "post-run process inventory and cleanup.json",
+      "Expect": "zero owned Python/ORT/worker processes and no task temporary directory"
+    }
+  ],
+  "limitations": [
+    "Pre-existing research labels failed Gate A. This is dev-only evidence, not final-holdout or production evidence.",
+    "Internal discovery/confirmation are subsets of the original training data, and thus not independent of original model fitting; query grouping does not prove article/context independence.",
+    "One observed dev gain, exact paired p=1.0; generalization is not established.",
+    "Manual finite hypotheses and analytic weight projection are not proof of semantic understanding of arbitrary weights.",
+    "Latency measures ORT inference on preloaded inputs only; excludes input preprocessing, worker roundtrip and IPC. Do not compare absolute timing with the old NPZ-reading benchmark.",
+    "Only FP32 export is provided; original PyTorch and INT8 artifacts remain unchanged."
+  ],
+  "scope_actual": {
+    "responsibilities": "research model input-feature/head contract, numeric-cache evaluation, copied-model mutation",
+    "files": "research_tiny.py, test_research_tiny.py, existing model/cache manifests, immutable train/dev cache, new experiment scripts and reports",
+    "expansion": "Activation diagnostics and an internal grouped confirmation split were added after the prior coarse weight-scaling trials failed. NPZ data was preloaded after repeated archive reads caused a slow initial capture.",
+    "architecture_impact": "No source architecture, input-output contract, production ownership, defaults or persistent runtime state changed. Only a separate copied ONNX initializer was edited.",
+    "future_irv": "The sealed patch, full trial log and executable verification avoid re-deriving this edit. A future study must still establish statistical evidence, label quality and independent evaluation."
+  },
+  "incidents": [
+    {
+      "kind": "initial_capture_interrupted",
+      "cause": "NpzFile repeated indexing reread array data in a grouping loop",
+      "resolution": "owned processes stopped parents-first; materialized each needed train array once; successful capture completed in approximately five seconds"
+    },
+    {
+      "kind": "diagnostics_started_before_capture_completed",
+      "resolution": "failed before reading data; rerun only after successful capture terminal state; no partial result used"
+    },
+    {
+      "kind": "diagnostic_implementation_corrected_before_use",
+      "resolution": "parent found residual-only predictions and missing final weights in contribution sums; fixed before execution and independently verified against full scores and direct calculations"
+    }
+  ],
+  "cleanup": {
+    "status": "complete",
+    "target": "~/tmp/weight-improve-20261103",
+    "files": 24054,
+    "bytes": 454422839,
+    "owned_processes_before": 0,
+    "owned_processes_after": 0
+  },
+  "production_authorized": false
+}
