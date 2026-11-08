@@ -17,3 +17,7 @@ research/issue-35-native-paths/*.rs.in text eol=lf
 # Preserve the byte-bound research figure script across Windows checkouts.
 research/issue-33-train-change-audit/plot_training_harms.ps1 text eol=lf
 research/issue-33-loss-balance/plot_balance_harms.ps1 text eol=lf
+
+# Byte-exact evidence: manifests/sakura-rerank-tiny-v1-conditional-edit-20261103.json
+# pins this report's SHA-256 over its original CRLF bytes, so it must not be normalized.
+reports/weight-edit-conditional-20261103.json -text whitespace=cr-at-eol

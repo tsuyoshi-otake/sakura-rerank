@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "manual_weight_edit_experiment_evidence",
+  "created_utc": "2026-11-03T21:41:58.703596+09:00",
+  "status": "rejected_candidate_evidence_only",
+  "distribution_authorized": false,
+  "model_license_status": "not_selected_no_distribution_authorized",
+  "snapshot": {
+    "name": "jawiki-20260801-pages-articles-multistream.xml.bz2",
+    "official_md5": "b51bab6d1cc23efddc4363e78b5526c6",
+    "official_sha1": "6c917b51d6f6b53a34eaebcb2a675c0769054343",
+    "local_sha256": "4822a58b180fc0057ce6f64325f11c34fe6396fb5ed2e4a04eaf7a9658acc12d",
+    "license": {
+      "summary": "Wikimedia text is generally available under CC BY-SA 4.0 and GFDL; source-specific exceptions may apply",
+      "url": "https://dumps.wikimedia.org/legal.html"
+    },
+    "preprocessing_git_sha": "0e9dca182b0319988f49a89c28b9e9f602ebe70f"
+  },
+  "source_spans_sha256": "610d9252966d1ff3d1f44c62ed008765c5053f003c003acbe745c11b8c713fb6",
+  "environment": {
+    "python": "3.13.13 (tags/v3.13.13:01104ce, Apr  7 2026, 19:25:48) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "packages": {
+      "numpy": "2.3.5",
+      "onnx": "1.19.1",
+      "onnxruntime": "1.23.2",
+      "protobuf": "6.33.2",
+      "ml_dtypes": "0.5.4"
+    }
+  },
+  "inputs": {
+    "repository_head": "b4b21b0d939af990d4f19ae533381d59f0d0612b",
+    "sakura_input_current_head_inspected": "d586fae572d32aa76512994dca616dadef2899b1",
+    "frozen_converter_head": "8e966dff456e4e7165e025f97c1f73327ff3f550",
+    "relying_on_current_converter_behavior": false,
+    "sakura-rerank-tiny-v1-segment-weight-1p5-fp32.onnx": "778fe98314aa6cbac403d75c52b690d6b0cbc886594fb423d080f3af9aa17ea6",
+    "sakura-rerank-tiny-v1-fp32.onnx": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+    "train-dev-cache.npz": "41eb7f59c4912d3216836ed9cb153a3e3b952e8673d5fce3e71a020b24781624",
+    "frozen-split.jsonl": "0651bfaa3fb67da7980dcbbe4ad5de6e383e2878c726ace53a189d74519b1d82"
+  },
+  "rejected_model_sha256": "6c0b365e94b8268c46123d9c0485f97de6987d35cd493990944bd799ee5efd0e",
+  "rejected_model_binary_retained": false,
+  "evidence": {
+    "data/generated/weight-edit-conditional-20261103/audit-bindings.json": {
+      "sha256": "494b0e52774dac35043801deb1b52b3d726e500b5f070c8129a6a840761ef155",
+      "bytes": 19976
+    },
+    "data/generated/weight-edit-conditional-20261103/audit-opaque-map.json": {
+      "sha256": "0af6c587efcbc4bbadf8472643e3232c810009e84399b08e538d0f83f904cb35",
+      "bytes": 18610
+    },
+    "data/generated/weight-edit-conditional-20261103/audit-selection.json": {
+      "sha256": "ba9b4bdad97512bcd02c0b293d5506f02631e24d0a7cd4d88f6261ab66f960f6",
+      "bytes": 3585
+    },
+    "data/generated/weight-edit-conditional-20261103/audit-verdicts.json": {
+      "sha256": "5a4c4fcd4757656fd04c879132d0234d27a4934d9eaf579de26ee860f06db9dd",
+      "bytes": 4894
+    },
+    "data/generated/weight-edit-conditional-20261103/cache-binding-verification.json": {
+      "sha256": "5a34dfc6cbbce8cf5d090aed80f0d7e9842c8f7f65675c1c0b06472407580fb5",
+      "bytes": 4359
+    },
+    "data/generated/weight-edit-conditional-20261103/candidate-policy.json": {
+      "sha256": "421bee379672faa6f7f8858340f82d898eefd6059dea8c56292fecc479456f03",
+      "bytes": 1079
+    },
+    "data/generated/weight-edit-conditional-20261103/evaluation.json": {
+      "sha256": "6a23cf9c2ad9c6f31528b63b7efe95b910bb36b840d83bf382c04ccdfc6f6691",
+      "bytes": 5567
+    },
+    "data/generated/weight-edit-conditional-20261103/freeze_audit.py": {
+      "sha256": "89309851ad2b0319b4b1881a2cdf869878031973fc217c1bac784a9f38c048db",
+      "bytes": 4413
+    },
+    "data/generated/weight-edit-conditional-20261103/middle-analysis.json": {
+      "sha256": "26362527eb07528075a1e766ddf88a08f159931fc27aefe375409bd95cb100a3",
+      "bytes": 58387
+    },
+    "data/generated/weight-edit-conditional-20261103/middle_analysis.py": {
+      "sha256": "2f45daa6aab7cc66f4b574ce1bf8833011fffdf2e1965275b54939b8ecb09e30",
+      "bytes": 7341
+    },
+    "data/generated/weight-edit-conditional-20261103/plan.json": {
+      "sha256": "7a1b8da47ef51e1a64db518f343a2c9ebeabee90bb77c55174e1230c3868148a",
+      "bytes": 2770
+    },
+    "data/generated/weight-edit-conditional-20261103/prepare.py": {
+      "sha256": "2b8b6bec4806da358f33d5866164c8d5cf7a932598ca3697dbd74cac3debe2d9",
+      "bytes": 10285
+    },
+    "data/generated/weight-edit-conditional-20261103/probe-verification.json": {
+      "sha256": "ce99b94ed56609453f2a3697ffcee561d7c06685ef3b5a68b271bb771afa7cbb",
+      "bytes": 2419
+    },
+    "data/generated/weight-edit-conditional-20261103/requirements.lock": {
+      "sha256": "33208979e5d16af30c568622db1b68cfe3eddaaa410e678a32f667bb446e4cf4",
+      "bytes": 17825
+    },
+    "data/generated/weight-edit-conditional-20261103/selected-sealed.json": {
+      "sha256": "06bc785b3eb879a8340b36e5393308828778e09c0b462dce8199faa7430aa972",
+      "bytes": 42233
+    },
+    "data/generated/weight-edit-conditional-20261103/source-verification.json": {
+      "sha256": "6b63a27d7c304aee52ea64a9445caef723b527dc0f94edef0f082a3870da7c2c",
+      "bytes": 4755
+    },
+    "data/generated/weight-edit-conditional-20261103/source_check.py": {
+      "sha256": "a85adeaeb26636c0d856928000760c857174557df9f51cadaf0d66f31d4f1bde",
+      "bytes": 2263
+    },
+    "data/generated/weight-edit-conditional-20261103/train-candidates.json": {
+      "sha256": "311bafa93ae119a1a0a58393fa37bf4ae14695a92349b97c3cc550d4304571c5",
+      "bytes": 43635
+    },
+    "data/generated/weight-edit-conditional-20261103/train_candidates.py": {
+      "sha256": "369171b0ad45e742e3e5c36229fcbffc22cad06f9228e97dfb040e704827a03d",
+      "bytes": 10640
+    },
+    "data/generated/weight-edit-conditional-20261103/verify_candidate.py": {
+      "sha256": "ac4715b10149ddb1359d05a1a6cfefb89755d1eae29c7c9a2cc01b157d47119b",
+      "bytes": 8256
+    },
+    "data/generated/weight-edit-conditional-20261103/verify_labels_binding.py": {
+      "sha256": "58d76735113301ea61eb87213c483e475a01565020a58715cb22842088ae072b",
+      "bytes": 2668
+    },
+    "data/generated/weight-edit-conditional-20261103/verify_probes.py": {
+      "sha256": "6b87d50cb8b6d80a5b4e5dd31423cdeb57aa51b1014965823cb3fc406ff109af",
+      "bytes": 2464
+    }
+  },
+  "report": "reports/weight-edit-conditional-20261103.json",
+  "report_sha256": "bf61d93ff38deaa81bd463f9cbc4415151b99d335f808bf1e690c36ad7567d5a",
+  "cleanup_status": "complete"
+}

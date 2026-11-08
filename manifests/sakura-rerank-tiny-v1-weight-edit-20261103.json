@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "manifest_kind": "sakura_rerank_tiny_manual_weight_edit",
+  "model_name": "Sakura-Rerank-Tiny-v1-segment-weight-1p5-research",
+  "status": "research_only_dev_gain_not_statistically_established",
+  "model_contract_version": 1,
+  "parameter_count": 1861377,
+  "artifact": {
+    "path": "data/generated/sakura-rerank-tiny-v1-weight-edit-20261103/sakura-rerank-tiny-v1-segment-weight-1p5-fp32.onnx",
+    "bytes": 7466707,
+    "sha256": "778fe98314aa6cbac403d75c52b690d6b0cbc886594fb423d080f3af9aa17ea6"
+  },
+  "source": {
+    "fp32_model_sha256": "b3fe1e0aa7229edfd0760162d648f10328b0d75224a9cd49f2ba986b7db2ccbd",
+    "numeric_cache_sha256": "41eb7f59c4912d3216836ed9cb153a3e3b952e8673d5fce3e71a020b24781624",
+    "repository_head": "b4b21b0d939af990d4f19ae533381d59f0d0612b",
+    "implementation_sha256": "a7ca1007ad2981f3008fa9363723f3d5c232213208ee0a4a9f89e572af3b2035"
+  },
+  "edit": {
+    "initializer": "onnx::MatMul_518",
+    "row_zero_based": 386,
+    "formula": "multiply the complete row by float32(1.5)",
+    "changed_values": 128,
+    "changed_percent": 0.0068766295060055,
+    "semantic_input": "candidate_features[2] = min(number of segments, 8) / 8",
+    "graph_changed": false,
+    "io_contract_changed": false
+  },
+  "selection": {
+    "trial_count_including_baseline": 22,
+    "discovery_rows": 6225,
+    "confirmation_rows": 6291,
+    "both_groups_nonregressing": true,
+    "train_correct_before": 11655,
+    "train_correct_after": 11659,
+    "train_harm_before": 109,
+    "train_harm_after": 108,
+    "dev_evaluation_after_sealing": true
+  },
+  "dev": {
+    "original": {
+      "rows": 1788,
+      "correct": 1640,
+      "top1": 0.9172259507829977,
+      "local_correct": 1586,
+      "harm": 23,
+      "rescue": 77,
+      "mrr": 0.9510533184190902,
+      "ndcg": 0.962410335372298,
+      "failures": 0,
+      "timeouts": 0,
+      "fallbacks": 0
+    },
+    "candidate": {
+      "rows": 1788,
+      "correct": 1641,
+      "top1": 0.9177852348993288,
+      "local_correct": 1586,
+      "harm": 23,
+      "rescue": 78,
+      "mrr": 0.9513329604772558,
+      "ndcg": 0.9626167504989359,
+      "failures": 0,
+      "timeouts": 0,
+      "fallbacks": 0
+    }
+  },
+  "paired": {
+    "gains": 1,
+    "losses": 0,
+    "mcnemar_p": 1.0
+  },
+  "final_holdout_used": false,
+  "training_or_gradients_used": false,
+  "gate_a_pass": false,
+  "gate_b_pass": false,
+  "production_change_authorized": false,
+  "distribution_authorized": false,
+  "license_status": "not_selected_no_distribution_authorized",
+  "retained_files_sha256": {
+    "sakura-rerank-tiny-v1-segment-weight-1p5-fp32.onnx": "778fe98314aa6cbac403d75c52b690d6b0cbc886594fb423d080f3af9aa17ea6",
+    "apply_edit.py": "3b46d144f617be0bf79d834d4545ef00056848b734fb8c35998d877e9e9cceab",
+    "campaign.py": "6526a16747956b813f28fd9d0ca1531c85a03381afedc1d7950d3dfd5b4fe6f7",
+    "diagnose.py": "7aba013d56c79db47bd6c219291737909fb0c5db6de6ec87b490e37f8491ed67",
+    "verify_and_benchmark.py": "b90559a7ccf2f90e6948f8aeebafd7c44157c97715c923a03a86d265bb812b9f",
+    "requirements.lock": "33208979e5d16af30c568622db1b68cfe3eddaaa410e678a32f667bb446e4cf4",
+    "capture-report.json": "53e0d27bd96880586d6c3572176d38e925118f4a8b5d9740d7ec57bc1c8faaa4",
+    "diagnostics.json": "32282b6348401d7c7cc6831f67d5fff6a5782bea9d45652dafd7ef208219687f",
+    "trial-plan.json": "47cda7551a76a837b55cf9c03e88113956e140bbab86e68546a1aa77bdc6c055",
+    "selection.json": "fbe1639837a0dc344abb8ab000c96c4dac9945ecb529581cf286f3f64dfac5b0",
+    "evaluation.json": "f15333939787d0c81ed8d5d2d218d8a06a87b1ee9450fbac32f08bc8830131fa",
+    "verification.json": "3eca56fca4934d2a911b3b18c5928fe115d154f925901d6320087f3bf12259b5",
+    "cpu-benchmark.json": "d44e98391d36c2db739235971f0048d4c319efb5cb3e82eac2cc508125cea6f6",
+    "cleanup.json": "188ddcf30438335981eaf458fb4c78947866e12c45c36a2e47628864f21dccbc"
+  }
+}
