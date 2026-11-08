@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "kind": "context_conditioned_data_growth_research_plan",
+  "issue": 33,
+  "parent_issue": 1,
+  "supersedes_for_execution_only": "plan-v1.json",
+  "v1_plan_sha256": "d9c6e93a9eb816a8aed133357e46b454cce86de094d9451dec2b3d63cacf0021",
+  "v1_outcome": "insufficient_fixed_cohort_yield; no converter/model outcome or fitting",
+  "reason": "Short shared inputs joined unrelated works into large source components. Excluding short-context targets before relation closure preserves every leakage relation among the retained inputs.",
+  "scope": "Conditional source-exact research on left context of 8-64 characters; not overall IME accuracy, independent Gold or final Test",
+  "minimum_left_context_chars": 8,
+  "source_target_filter": "Apply after the original per-document bottom-hash selection; no replacement targets; retain original source partitions",
+  "wikipedia_extension": {
+    "page_sample_slot": 1,
+    "source": "Same pinned 2026-08-01 dump and all v1 historical article exclusions",
+    "selection": "SHA256 canonical JSON [20261105, jawiki, page_id, sample] modulo 100 equals 1; disjoint from v1 slot 0",
+    "max_targets_per_page": 8,
+    "reason": "Reserve one extra fixed article group before converter outcomes to allow 50000 eligible training rows after source-exact candidate verification"
+  },
+  "sources": "Reuse all immutable v1 Wiki/Aozora targets plus the fixed slot-1 Wikipedia extension; no new Aozora requests",
+  "isolation": "Retain all v1 source/input relations and quarantine the entire surviving cross-partition or historical component; never move evaluation source members into training",
+  "cohorts": {
+    "wiki_small": 12516,
+    "wiki_large": 50000,
+    "mixed": {"jawiki":25000,"aozora":25000},
+    "development": {"jawiki":2000,"aozora":2000},
+    "selection": "Lowest stable-ID hash order after isolation; evaluation fixed before converter outcomes. Training uses the first eligible rows in that order. wiki_small and mixed Wikipedia rows are nested subsets of wiki_large."
+  },
+  "labels": "Unchanged v1 source-exact weak supervision; dictionary-unique reading is not independent contextual truth",
+  "candidate_contract": "One immutable bound reference-exporter snapshot per unique reading; validate every batch, retain failed readings and evaluation misses",
+  "training": {
+    "architecture": "Unchanged Issue-29 C2",
+    "initial_checkpoint": "data/generated/issue-29-distill-gate/final/student-s20260814.pt",
+    "initial_checkpoint_sha256": "cf20755918400ae4ab79bc800cd59ded888124a3c96b54197b6e3d7581aa132a",
+    "seeds": [20260814,20261103,20261104],
+    "updates_per_fit": 500,
+    "batch_size": 256,
+    "examples_per_fit": 128000,
+    "sampling": "Seeded shuffled full-cohort cycles, carry incomplete cycles into the next full batch",
+    "optimizer": "AdamW",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.01,
+    "gradient_clip_norm": 1.0,
+    "loss": "Unchanged Issue-21 C2 masked cross entropy, label smoothing 0.05; no new teacher or language pretraining",
+    "dropout": 0.1,
+    "model_selection": "None; final step only for every cohort and seed",
+    "evaluation_access": "Only after all nine fits and checkpoints are complete; no per-epoch evaluation or old-dev tuning",
+    "artifact_hashes": "Commit exact cohort/cache/environment/implementation hashes before fitting"
+  },
+  "reporting": {
+    "reference": "Frozen Issue-29 checkpoint on the same new conditional population",
+    "modes": ["ungated","unchanged L > 1.7"],
+    "required": ["source-exact Accuracy","rescue","harm","wrong-to-wrong","application","Precision","Recall","95% intervals","paired baseline gain","all failures","per-source/reading-length slices","all seeds"],
+    "safety_threshold": 0.0025,
+    "promotion": "No model adoption, gate tuning, production change or release from this weak-label experiment"
+  },
+  "stop_conditions": ["hash mismatch","insufficient fixed cohort yield","retained leakage","unaccounted failure","non-finite training"],
+  "new_final_test_used": false,
+  "existing_artifacts_changed": false
+}

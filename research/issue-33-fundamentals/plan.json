@@ -1,0 +1,38 @@
+{
+  "kind": "posthoc_mechanism_diagnostic_plan",
+  "issue": 33,
+  "parent_issue": 1,
+  "date": "2026-11-05",
+  "question": "Which task, representation, or decision bottleneck merits the next controlled accuracy experiment?",
+  "population": "Previously exposed 4000-row source-exact development cohort from data-growth v2; not independent Gold or final Test",
+  "fit_commit": "ad976a7f4515a80ff2602e8153b3decb35e37f6f",
+  "scores_sha256": "46bd96ae084971de47754e9502aa13382ff616db178ebef067e98e9a5fd524b7",
+  "sakura_input_observed_head": "a41d11a5b9d1f2c93854105b31fc7d329cf1db00",
+  "sakura_input_worktree": "dirty; no production behavior inferred from this checkout; use historical authenticated converter artifacts only",
+  "models": "All ten frozen v2 checkpoints, including reference; none selected or fitted",
+  "context_diagnostics": {
+    "variants": ["intact", "empty", "tail8", "shuffle20261105", "shuffle20261106", "shuffle20261107"],
+    "shuffle": "PCG64 permutation within corpus and context-length bins 8-15/16-31/32-64, circular nonzero rotation of each permuted group; fixed points forbidden",
+    "other_inputs": "reading, candidate paths, numeric features, masks and source labels unchanged",
+    "gate": "Existing strict score(winner)-score(baseline)>1.7, diagnostic only",
+    "limitations": "Posthoc descriptive interventions; empty/shuffled context can be out of distribution; no causal claim about an alternative trained architecture"
+  },
+  "saved_score_diagnostics": [
+    "All-model error overlap and unattainable label-aware selection ceilings, with baseline included explicitly",
+    "Gate blocked-rescue, prevented-harm and unchanged-ranking accounting",
+    "Fixed margin bins, no threshold optimization",
+    "Input/target conflicts, reading-only ambiguity, character-hash collisions and feature variation"
+  ],
+  "margin_bin_edges": [0, 0.5, 1, 1.7, 3],
+  "training": false,
+  "threshold_selection": false,
+  "new_final_test": false,
+  "gold_certification": false,
+  "safety_harm_upper_bound": 0.0025,
+  "verify_expect": [
+    {"verify": "Authenticate original 25 fit artifacts and model receipts; hash old source artifacts before completion", "expect": "All hashes unchanged"},
+    {"verify": "Recount original saved scores and reproduce intact inference for every frozen model", "expect": "20 published point counts match; maximum absolute score difference <=1e-5, identical winners/gates"},
+    {"verify": "Check paired diagnostic populations, permutations and additive error partitions", "expect": "4000 rows retained per run, no fixed-point shuffle, every error accounted for"},
+    {"verify": "Run focused contracts and full repository tests before push; inspect owned processes", "expect": "Pass with no owned runner left alive"}
+  ]
+}

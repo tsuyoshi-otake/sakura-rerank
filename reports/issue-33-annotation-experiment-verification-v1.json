@@ -1,0 +1,35 @@
+{
+  "all_source_cohort_artifacts_verified": true,
+  "candidate_report_sha256": "440b11f1fa94d99f80c8d01fb427e074ee4aec2258ceb277003b2225501c1e28",
+  "ci95": [
+    -0.051049301043715224,
+    -0.018912529550827423
+  ],
+  "cohort_report_sha256": "0e9df17cf4c67fcb2ea46a640982ad293fe31ba333fd7775204879fda56dd42c",
+  "cpu_report_sha256": "3eadacdfb55fcb4af7f095a607d9e22e777739c58c1902177055b7c03e83a1b9",
+  "final_test_used": false,
+  "fixed_main_slots": 1000,
+  "gold_certified": false,
+  "kind": "annotation_experiment_result_verification",
+  "latency_samples_verified": 20000,
+  "main_rows": 985,
+  "mean_difference": -0.03451776649746193,
+  "model_report_sha256": "8465b0677fe4757e776011ffd7081d7351e29de83be025400b95309f33610d85",
+  "original_integrity": {
+    "bound_fit_artifacts": 25,
+    "original_artifacts": 16,
+    "report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab",
+    "status": "passed"
+  },
+  "original_source_blobs_verified": 1000,
+  "production_adoption": false,
+  "research_advances": false,
+  "scalar_metric_populations_checked": 126,
+  "score_conditions": 21,
+  "script_sha256": "3b59329f6d4977ed788883842adf4375cf85a59da9889a64af16d129f4be3bd6",
+  "shared_component_mean_recomputed": true,
+  "source_report_sha256": "4861049974d710cef6eb7578049410a44911d1fabbff6ef24396a3a343c87557",
+  "status": "passed",
+  "training_report_sha256": "8a747df3896ba604e66b1e2e6fddf33f622e76ec2d09c46595d6a199a09e9472",
+  "verification_method": "Direct Codex verification using saved scores, scalar per-row arithmetic and separate aggregated-component bootstrap; no external agent or human review."
+}

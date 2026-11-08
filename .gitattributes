@@ -3,6 +3,9 @@
 *.md text eol=lf
 *.py text eol=lf
 *.rs text eol=lf
+research/issue-35-current-tiny-parity/native_harness.rs.in text eol=lf
+research/issue-35-native-state/*.rs.in text eol=lf
+research/issue-35-native-paths/*.rs.in text eol=lf
 *.toml text eol=lf
 *.lock text eol=lf
 *.yml text eol=lf
@@ -10,3 +13,7 @@
 *.json text eol=lf
 *.patch text eol=lf
 *.ps1 text eol=crlf
+
+# Preserve the byte-bound research figure script across Windows checkouts.
+research/issue-33-train-change-audit/plot_training_harms.ps1 text eol=lf
+research/issue-33-loss-balance/plot_balance_harms.ps1 text eol=lf

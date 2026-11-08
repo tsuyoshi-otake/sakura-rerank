@@ -1,0 +1,51 @@
+{
+  "acquisition_sha256": "7c28ee64362defb811b6c3866a9813f51615f21feed397cebc047116ffe9aa46",
+  "all_original_positions_verified": true,
+  "artifacts": {
+    "main-slots": {
+      "decoded_bytes": 168000,
+      "path": "main-slots.jsonl.gz",
+      "rows": 1000,
+      "sha256": "337295a31e2655faa319dbfb6ac876f4138013c206545843483abfdd3296a90c"
+    },
+    "pool": {
+      "decoded_bytes": 31435607,
+      "path": "pool.jsonl.gz",
+      "rows": 10572,
+      "sha256": "2746c43c8756844230157fdf4bc4bb4dedad67db4f7a14c792e1c254a282fe9e"
+    },
+    "source-coverage": {
+      "decoded_bytes": 6837985,
+      "path": "source-coverage.jsonl.gz",
+      "rows": 3132,
+      "sha256": "9b111f038dde4e242639dd3dbcc60a7b3c3a397820858c286b64b17b7d20ec84"
+    }
+  },
+  "deterministic_replay": true,
+  "elapsed_seconds": 14.0,
+  "execution_commit": "2da87623c070353b2d25259bda6199efaa8d5955",
+  "extraction_counts": {
+    "annotated_named_entity": 3550,
+    "eligible_research_pool": 10572,
+    "insufficient_left_context": 5612,
+    "no_kanji_target": 11951,
+    "outside_model_bounds": 17745,
+    "unsupported_reading": 35
+  },
+  "final_test_used": false,
+  "gold_certified": false,
+  "implementation": {
+    "research/issue-33-annotation-experiment/cohort.py": "5127d7fa21ca733588d2dd30f32259f9d424fd5534df324a230b94d3a605cd86",
+    "research/issue-33-annotation-experiment/experiment_common.py": "768a3bfa10624d60e0e72ef07a960173443f83345be1cc64e0c29466a7b652ac",
+    "src/sakura_rerank/data/context_contrasts.py": "61d12d0757f60c40094b14e4d9e4fe0fef3be4086aea947a5c38fa2d334eb224",
+    "src/sakura_rerank/data/context_pilot.py": "95d195e738ba0a70c7278c0f3a0612094320268e03cb19bad6dd506da61993f7",
+    "src/sakura_rerank/data/reconstruction_graph.py": "b10ae16b08744d243dff7cb81eb9fc94dd86ef46a276a0bba4a471178a96dd9b"
+  },
+  "kind": "annotation_experiment_source_preparation",
+  "main_slots": 1000,
+  "model_fits": 0,
+  "model_predictions": 0,
+  "pool_rows": 10572,
+  "source_units": 3132,
+  "status": "complete"
+}

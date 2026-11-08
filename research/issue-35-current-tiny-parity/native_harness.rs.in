@@ -1,0 +1,103 @@
+// Diagnostic only: compile pinned product functions with a capture backend.
+use std::{cell::RefCell, io::{Read, Write}, time::{Duration, Instant}};
+
+mod protocol {
+    #[derive(Debug, Clone)]
+    @@CANDIDATE@@
+    #[derive(Debug, Clone)]
+    @@REQUEST@@
+}
+mod sakura_runtime {
+    @@CONSTANTS@@
+    #[derive(Debug, Clone, PartialEq)]
+    @@INPUTS@@
+    pub struct ModelRuntime;
+    impl ModelRuntime {
+        pub fn scores(&self, _: &Inputs, _: std::time::Instant) -> Result<Vec<f32>, ()> { Err(()) }
+    }
+}
+#[path = @@SCORER_PATH@@]
+mod sakura_scorer;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+@@REPAIR_KIND@@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+@@REPAIR_TIER@@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+@@EVIDENCE@@
+impl CandidateEvidence {
+    @@NEURAL_GROUP@@
+    @@FINGERPRINT_TAG@@
+}
+@@CHOICE@@
+
+struct Capture(RefCell<Option<sakura_runtime::Inputs>>);
+impl sakura_scorer::ScoreBackend for Capture {
+    fn scores(&self, inputs: &sakura_runtime::Inputs, _: Instant) -> Result<Vec<f32>, sakura_scorer::Error> {
+        *self.0.borrow_mut() = Some(inputs.clone());
+        Ok(vec![0.; 6])
+    }
+}
+
+fn take<const N: usize>(bytes: &mut &[u8]) -> [u8; N] {
+    let result = bytes[..N].try_into().unwrap();
+    *bytes = &bytes[N..]; result
+}
+fn u32_at(bytes: &mut &[u8]) -> u32 { u32::from_le_bytes(take(bytes)) }
+fn tag_group(tag: u8) -> Option<u8> {
+    use CandidateEvidence::*;
+    let all = [ExactSystem, ExactUser, CompositeLexical, Generated,
+        Repair(RepairKind::Rule), Repair(RepairKind::Advanced), Repair(RepairKind::EnglishSpelling),
+        Repair(RepairKind::CommitHistory), MixedRepair, Fallback,
+        RawRepair { tier: RepairTier::LocalCompletion }, RawRepair { tier: RepairTier::GeneralSingleInsertion }];
+    all.iter().find(|v| v.fingerprint_tag() == tag).unwrap().neural_group()
+}
+fn main() {
+    let mut raw = Vec::new();
+    std::io::stdin().take(1_048_577).read_to_end(&mut raw).unwrap();
+    assert!(raw.len() <= 1_048_576);
+    let mut input = raw.as_slice();
+    let mode = take::<1>(&mut input)[0];
+    let count = u32_at(&mut input) as usize;
+    assert!(count <= 4096);
+    let mut output = Vec::new();
+    for _ in 0..count {
+        let size = take::<1>(&mut input)[0] as usize;
+        assert!(size <= 7);
+        if mode == 0 {
+            let mut candidates = Vec::new();
+            for i in 0..size {
+                let cost = i64::from_le_bytes(take(&mut input));
+                let len = u32_at(&mut input) as usize;
+                assert!(len <= 1024);
+                let text = std::str::from_utf8(&input[..len]).unwrap().to_owned();
+                input = &input[len..];
+                candidates.push(protocol::Candidate { fingerprint: i as u64,
+                    local_cost: cost.clamp(i32::MIN as i64, i32::MAX as i64) as i32, text });
+            }
+            let capture = Capture(RefCell::new(None));
+            let result = sakura_scorer::score(&protocol::Request { id: 1, candidates }, &capture,
+                Instant::now() + Duration::from_secs(2));
+            output.push(u8::from(result.is_ok()));
+            if let Some(feed) = capture.0.into_inner() {
+                for array in [&feed.context_ids, &feed.context_lengths, &feed.reading_ids, &feed.reading_lengths,
+                              &feed.candidate_ids, &feed.candidate_lengths] {
+                    for v in array { output.extend_from_slice(&v.to_le_bytes()); }
+                }
+                for v in feed.features { output.extend_from_slice(&v.to_bits().to_le_bytes()); }
+                for v in feed.candidate_mask { output.push(u8::from(v)); }
+            }
+        } else {
+            assert!(mode == 1 && size <= 6);
+            let mut scores = Vec::new(); let mut tags = Vec::new();
+            for _ in 0..size {
+                scores.push(f32::from_bits(u32_at(&mut input)));
+                tags.push(take::<1>(&mut input)[0]);
+            }
+            let choice = neural_listwise_choice(size, |i| scores[i], |i| tag_group(tags[i]));
+            output.push(choice.map_or(255, |i| i as u8));
+        }
+    }
+    assert!(input.is_empty());
+    std::io::stdout().write_all(&output).unwrap();
+}

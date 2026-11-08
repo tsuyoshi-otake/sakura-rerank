@@ -1,0 +1,22 @@
+{
+  "documents": 1000,
+  "downloaded_bytes": 5684261,
+  "elapsed_seconds": 282.387,
+  "finished_at": "2026-11-05T13:18:44.234298+00:00",
+  "identity": {
+    "execution_plan_commit": "dc39ee520df68cb99d99ec85905c19b3388e32f5",
+    "execution_plan_sha256": "ca24a919c0346b7c8660f74369a237bf12575c308bea9db48383f8ae2be14a78",
+    "executor_sha256": "c702224ac5f2c4a20a1b09b1487318c31d022c8633a25b772b5b868b41c3e9d3",
+    "plan_sha256": "7bf31518d1ba08ab650b4fd18fe287fcde51c4e63012d57a5b6245a0f5130ed5",
+    "script_sha256": "dac3fb6f05fa6e16253c90e3f67fddfb1da52097ddddda8f9211f7bcd14566bf",
+    "selection_sha256": "87d4e304759f7e638730ad784229a0c6355735bd865e60bb7d3332bd67e63ffd"
+  },
+  "kind": "reserved_source_acquisition",
+  "original_receipt_sha256": "7c28ee64362defb811b6c3866a9813f51615f21feed397cebc047116ffe9aa46",
+  "per_document_identifiers_published": false,
+  "received": 1000,
+  "replacements": 0,
+  "retries": 0,
+  "started_at": "2026-11-05T13:14:01.851578+00:00",
+  "status": "complete"
+}

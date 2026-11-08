@@ -1,0 +1,30 @@
+// Private research archive only. The extra carrier must not affect native Eq.
+#[derive(Clone)]
+pub struct ResearchPath { reading: String, json: String }
+impl PartialEq for ResearchPath { fn eq(&self, _: &Self) -> bool { true } }
+impl Eq for ResearchPath {}
+impl std::fmt::Debug for ResearchPath {
+    fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result { f.write_str("ResearchPath") }
+}
+impl ResearchPath {
+    pub fn edge(rs:usize,re:usize,ts:usize,te:usize,left:u16,right:u16,flags:u16,source:&str)->String {
+        format!(concat!("{{\"reading_start\":{},\"reading_end\":{},\"text_start\":{},\"text_end\":{},",
+            "\"left_id\":{},\"right_id\":{},\"flags\":{},\"source_category\":\"{}\"}}"),rs,re,ts,te,left,right,flags,source)
+    }
+    pub fn new(kind:&str,reading:&str,surface:&str,edges:Vec<String>)->Self {
+        assert!(!edges.is_empty() && edges.len()<=64);
+        let hex=|raw:&[u8]| raw.iter().map(|b|format!("{b:02x}")).collect::<String>();
+        Self {reading:reading.to_owned(),json:format!(
+            "{{\"kind\":\"{}\",\"reading_hex\":\"{}\",\"surface_hex\":\"{}\",\"segments\":[{}]}}",
+            kind,hex(reading.as_bytes()),hex(surface.as_bytes()),edges.join(","))}
+    }
+    pub fn synthetic(reading:&str,surface:&str,segments:&[ConversionSegment],category:&str)->Self {
+        let rows=segments.iter().map(|s|Self::edge(s.reading_start.into(),s.reading_end.into(),
+            s.text_start.into(),s.text_end.into(),s.left_id,s.right_id,s.flags.bits(),category)).collect();
+        Self::new("synthetic_materialization",reading,surface,rows)
+    }
+    pub fn rewritten_literal(&self,surface:&str,segments:&[ConversionSegment])->Self {
+        Self::synthetic(&self.reading,surface,segments,"generated_literal")
+    }
+    pub fn json(&self)->&str { &self.json }
+}

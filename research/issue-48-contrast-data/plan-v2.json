@@ -1,0 +1,86 @@
+{
+  "issue": 48,
+  "parent": 1,
+  "kind": "train_only_contrast_feasibility",
+  "schema_version": 2,
+  "source": {
+    "path": "data/generated/issue-41-language-pretraining-v1/lm-admitted-fragments.jsonl",
+    "sha256": "9b27115ab1cc23607b750d9ae3891c47e0ad4e5f0f93ea8a20ad51ccb84fc911",
+    "rows": 162502,
+    "preparation": "manifests/language-pretraining-data-v1.json",
+    "preparation_sha256": "843bfca44f155f264ae60e8b093d1a3e547dbaf66355ead82a75fd309947e473",
+    "history_replay": "research/issue-41-language-pretraining/prepare_language.py:admitted_fragments",
+    "history_script_sha256": "1d2916269c3e897506a32ec6b41a3e36172f1d7642fb16974803786f659311e2",
+    "new_evaluations_since_history": 0
+  },
+  "candidate_receipt": {
+    "path": "data/generated/issue-33-data-growth-v2/candidates/execution.json",
+    "sha256": "756fd99ad9e24977935ee7a4f48cc4a8732565fe1268731a4e53f543fe8e0ea3"
+  },
+  "sakura_input_observed": {
+    "head": "3aa36b991329d9a7e924950a5d356db3d4f28f35",
+    "worktree_clean": true,
+    "behavior_used": false,
+    "note": "Only the separately pinned research reference converter snapshots are used. Current production HEAD is recorded, not substituted for their identity."
+  },
+  "bounds": {
+    "maximum_rows": 200000,
+    "maximum_forms_per_reading": 32,
+    "maximum_reading_chars": 32,
+    "maximum_target_chars": 32,
+    "minimum_context_chars": 8,
+    "maximum_context_chars": 64,
+    "runner_timeout_seconds": 900
+  },
+  "populations": [
+    "all admitted train fragments",
+    "exact unique full-reading Top6 system-dictionary target with no input/candidate truncation",
+    "deterministic source-balanced 50000-row control",
+    "same-size source-balanced contrast-prioritized feasibility selection"
+  ],
+  "metrics": [
+    "source/reading/form counts and reading-majority in-sample oracle",
+    "duplicate and contradictory literal context/reading inputs",
+    "exact source presence at Top1/5/6/10/32 with failures retained",
+    "conservative two-form/two-context/four-source witness",
+    "stricter four-disjoint-source-component witness",
+    "source-balanced 25000 jawiki and 25000 aozora selection capacity",
+    "reading provenance, span and boundary evidence availability",
+    "orthographic/protection/meaning/intent evidence states, without automatic semantic labels"
+  ],
+  "selection": {
+    "seed": 20261105,
+    "corpus_quotas": {
+      "jawiki": 25000,
+      "aozora": 25000
+    },
+    "control": "Lowest stable IDs per corpus after refreshed isolation and candidate eligibility.",
+    "contrast": "One conservative four-distinct-component quartet per reading, ordered by canonical hash of reading; reserve all four only when both corpus quotas permit; fill each remaining quota by lowest stable IDs. No replacement, duplication, or evaluation-word matching.",
+    "quantity_signal": "A planning diagnostic passes only if both selections meet quotas and the contrast selection has at least twice as many four-component witnessed readings as control, with at least one witness in control. This measures intervention strength, not accuracy or label quality."
+  },
+  "quality_policy": "quality-policy-v1.md",
+  "fit_rule": "No fit in this feasibility unit. A later fit plan may be frozen only after quantity feasibility and documented reading/span/meaning/orthography evidence for reserved contrast rows have been checked. Missing evidence stays unresolved, never a valid label. Source-only weak supervision is not independent Gold.",
+  "history_access": "Historical source metadata and bounded input hashes are used solely for exclusion closure. No evaluation label, prediction, missing-word list or score may guide grouping or selection. Selection consumes only the authenticated train list and converter snapshots indexed by its readings.",
+  "verification": [
+    "Replay latest full source closure and compare all admitted IDs, row bytes, components and exclusions",
+    "Authenticate original full-reading candidate receipts and all referenced batch outputs",
+    "Independent Counter/set recounts, witness invariants and reverse-order replay",
+    "Hash-chain sidecars, unchanged source/baseline artifacts, bounded tests and no surviving owned process"
+  ],
+  "model_fits": 0,
+  "new_evaluation_reservations": 0,
+  "gold_certified": false,
+  "final_test_used": false,
+  "safety_threshold": 0.0025,
+  "gold_quality_thresholds": {
+    "point": 0.995,
+    "wilson_95_lower": 0.99,
+    "final_valid_minimum": 3000
+  },
+  "correction": {
+    "supersedes_path": "research/issue-48-contrast-data/plan-v1.json",
+    "supersedes_sha256": "51810e48aeb6dd5f5087682545cfc7a85e8dc954927764d294af8710eca356fa",
+    "reason": "Transcription error in preparation_sha256; source rows, candidate receipt, selection, quality and thresholds unchanged. Initial run stopped in source authentication before closure or measurements.",
+    "previous_value": "843bfca44f155f264ae60e8b093d1a3e36172f1d7642fb16974803786f659311e2"
+  }
+}

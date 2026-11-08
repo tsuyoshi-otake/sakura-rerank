@@ -1,0 +1,21 @@
+{
+  "policy_version": "gold-pilot-v1",
+  "pilot_size": 1000,
+  "gate_a_eligible": false,
+  "verdicts": ["unique_correct", "orthographic_equivalent", "context_insufficient", "wrong_reading", "wrong_segmentation", "wrong_gold_surface", "extraction_noise", "unresolved"],
+  "review_instructions": {
+    "purpose": "二重人手判定・裁定・履歴管理の運用pilot。独立Testや最終品質保証ではない。",
+    "evidence": "提示された左文脈・読み・候補・原gold・gold分割のみを使う。候補は表記順であり変換器順位ではない。原goldとの一致だけで唯一正解としない。",
+    "privacy": "host文書・右/未来文脈を追加しない。候補本文を外部AIへ送信しない。担当者は相手の判定を見ずに判定する。",
+    "precedence": "抽出ノイズ→読み誤り→分割誤り→文脈不足→同義表記集合→唯一正解/誤goldの順で判断。複合要因はreasonにも記録。不明はunresolved。",
+    "unique_correct": "このbounded inputで原goldが一意に妥当。accepted_surfacesは原gold1件。",
+    "orthographic_equivalent": "同じ意図・読み・文脈に対して表記だけが異なる複数候補が妥当。原goldを含む集合を記録。NFKCや漢字/仮名を無条件に同値化しない。",
+    "context_insufficient": "語義・固有名詞の同一性・意図を限定できない。表記揺れとは区別する。正解集合を推測せず空にする。",
+    "wrong_reading": "原goldと提示読みに根拠ある不一致がある。新しい読みを推測しない。accepted_surfacesは空。",
+    "wrong_segmentation": "提示分割が不適切で、正解判定前に修復が必要。accepted_surfacesは空。",
+    "wrong_gold_surface": "一意に妥当な別候補を根拠付きで指定できる。accepted_surfacesは原goldを含まない1件。候補外の修正が必要ならunresolved。",
+    "extraction_noise": "文脈切断・注記・機械的抽出などの不備が判定を妨げる。accepted_surfacesは空。",
+    "unresolved": "根拠不足・方針不足・候補外修復などで終結できない。裁定へ送る。accepted_surfacesは空。",
+    "reason": "根拠を1〜2000文字で記載。全判定に必須。新旧判定を消さず、修正はprevious_event_sha256で以前のeventへ連結する。"
+  }
+}

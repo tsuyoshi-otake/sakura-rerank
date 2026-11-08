@@ -8,7 +8,273 @@ The project reranks bounded N-best full-path candidates produced by Sakura
 Input. It does **not** replace the dictionary, lattice, Viterbi search, or
 candidate generator.
 
+**Adopted accuracy remains 90.72%; an improvement has not been demonstrated.**
+The [Gold evidence audit](research/issue-31-gold-evidence/README.md) distinguishes
+KNBC/KWDLC/Tatoeba/AJIMEE annotation guarantees from independent IME-label quality.
+The certified Gold trust set and independently usable Test capacity are both zero.
+Release is blocked on externally justified, task-matched quality evidence;
+no automatic fit or source-search loop follows. All 1,095 tests pass.
+The [prospective partition](research/issue-35-consumption-partition/README.md)
+leaves615 inputs/47 source groups only as a metadata counterfactual, not new Gold.
+Safety0.25%, complete provenance and parent#1's full release requirements remain.
+
+The [bounded KNBC preparation](research/issue-33-knbc-screening/README.md)
+stopped the proposed 915-row screening comparison before any fitting. Of 2,786
+fixed slots, 1,158 produced complete-unit input hypotheses; current isolation
+retained only eight slots in one component, below the frozen 500/20 rule.
+Direct matches to consumed reading/context inputs account for 167 slots; another
+983 lie in connected components. They are not all duplicate or mislabeled
+sentences. No exclusions were restored and no substitute source was selected.
+All 1,077 tests pass. Adopted 90.72% and safety 0.25% remain unchanged; independent
+Gold and release remain incomplete. The next decision concerns the evaluation
+contract, rather than another automatic fit or infrastructure expansion.
+
+The [exclusion trace](research/issue-33-knbc-screening/README.md#exclusion-trace-2026-11-07)
+now establishes that input equality plus prefix grouping alone reproduces all
+1,150 exclusions: sentence/paragraph similarity adds none in this frame. Removing
+prefix grouping alone still leaves only 150 inputs. The next prerequisite is an
+explicit contract for source grouping versus actual consumed-input exclusion;
+no old row is restored by these diagnostic views. All 1,082 tests pass; this is
+an explanation of failed evaluation readiness, not an accuracy improvement.
+
 ## Status
+
+The [native path adapter](research/issue-35-native-paths/README.md) records real
+pre-fusion path edges for the unchanged v1/r2/#29 feature definitions. Schema5
+binds all path facts before inference.62 controlled native executions retain60
+snapshots/1178 candidates/2046 edges; the original50-event behavior is unchanged.
+All1064 tests pass. Three fixed models match30780 input scalars and540 scores
+across180 CPU requests. This establishes projection parity, not accuracy or release;
+independent Gold/calibration/Test and live native/session/resource Gates remain.
+
+The [full native evaluation contract](research/issue-35-native-population/README.md)
+retains up to768 candidates and1536 UTF-8 bytes per reading/surface, with a separate
+six-candidate model prefix. Schema4 binds all48 prior snapshots/924 candidates,
+including both108-candidate cases. All1051 tests pass. Synthetic3000-row integration
+retains9874 candidates and tail local selections; long-text native tensors and120
+current-model scores match. Accuracy improvement is unproved; per-edge features,
+independent Gold/calibration/Test and production release Gates remain required.
+
+The [native state capture](research/issue-35-native-state/README.md) now drives
+the pinned engine dispatcher in a private research build.25 paired conditions
+produce50 executions and48 conversion snapshots; separate builds reproduce the
+same capture bytes. Schema3 binds those observations before model execution and
+refuses replay or unproven legacy features. All1,037 tests pass. Native snapshots
+can exceed the old32-row contract (108 observed); schema4 now retains them,
+while per-edge feature migration remains necessary. Adoption stays90.72%, Gold remains uncertified,
+and safety0.25%/final Test/release requirements are unchanged.
+
+The earlier [current Tiny snapshot adapter](research/issue-35-current-tiny-parity/README.md)
+matched the pinned native scorer's input tensors and protected candidate
+choice:67 synthetic projection conditions,21,632 scalar values,1,756 choices
+and384 output scores agree. Each frozen parity run executes128 actual-model CPU
+requests; three recorded runs retain the policy/safety-binding changes. All1,017
+tests pass. Version2 preserves native-local fallback and also reports the original
+converter-Top1 safety reference; both keep the0.25% requirement. Real native-state
+provenance, independent Gold/calibration/Test and production deployment evidence
+remain incomplete. No corpus, label, model or production setting changed; adopted
+accuracy90.72% has not improved on verified independent evidence.
+
+The [bounded evaluation runner](research/evaluation-runner-v1.md) now connects
+authenticated one-use access, model execution, sealed predictions and metrics.
+All997 tests pass, including real spawned-process failures, native descendant
+cleanup and synthetic CPU ONNX execution. The current clean Sakura Input baseline
+is a six-feature GRU, but its protocol-v1 input projection and protected candidate
+selection differ from the research adapter. That research adapter is therefore
+refused for the unchanged product baseline; the separate snapshot adapter above
+now covers tensor/choice parity, while native-state provenance and deployment
+remain required.
+The Gold trust set stays empty. No real Test, model fit or production inference
+was run; adopted 90.72%, safety0.25% and release gates remain unchanged.
+
+The [fixed KNBC format pilot](research/issue-35-knbc-format-pilot/README.md)
+consumed exactly 100 reserved file slots: 99 annotation units and one empty
+annotation file. It preserves 1,479 token field sets. Five correction markers
+occur on phrase/segment lines, while 47 units carry lemma-ambiguity markers;
+these are not measured IME-label errors. Conservative reserved-family exclusions
+leave at most 2,786 sentence candidates for a future one-sentence/one-example
+Test, before quality/history exclusions. The
+[evaluation feasibility reconciliation](research/issue-35-knbc-format-pilot/README.md#evaluation-feasibility)
+distinguishes source sentences, full-reading cases, valid Gold and independent
+sampling units. The 3,000 valid Test minimum is separate from the initial planning
+target of 12,000 Test plus 3,000 calibration rows. A 1,000-case pilot cannot by
+itself establish the 0.25% harm bound. Independent label-quality evidence and
+final runner integration were unresolved at that planning snapshot; the runner
+status above supersedes that implementation gap. All 972 tests passed then. Adopted 90.72%, safety, Gold and
+release gates remain unchanged.
+
+The [KNBC source qualification](research/issue-35-knbc-qualification/README.md)
+identifies an independently annotated blog source for a reserved research pilot.
+Its provider describes 249 articles by 81 commissioned writers. The package also
+preserves source errors alongside correction annotations, so original spelling
+cannot be adopted blindly as the label. Metadata contains 4,187 sentence-candidate
+files versus the provider's 4,186-sentence claim; the discrepancy remains explicit.
+Documentation and archive structure are verified, with 954 tests passing. No corpus
+body was decoded, and no new Gold, model accuracy or release claim is made.
+
+The [source-screened recipe](research/issue-31-source-recipe/README.md) connects
+source evidence to unchanged numeric-cache rows and original per-arm presentation
+order. It retains 49,085/50,000 dictionary-arm rows, excluding 335 reading conflicts
+and 580 uncertain annotations; the annotation arm retains all 50,000. All 75,000
+identities and excluded history remain. All 941 tests and complete source/numeric
+replay pass. This changes future research-fit preparation, not adopted accuracy
+(90.72%) or Gold status. A fresh isolated research evaluation reservation is the
+next prerequisite; existing models, 0.25% safety and release gates are unchanged.
+
+The [lexical coverage diagnosis](research/issue-31-lexical-coverage/README.md)
+separates exact indexed composition from observed candidates. Of 335 selected
+original-ruby contradictions, 320 have no full index cover; 15 can be composed,
+of which 13 appear in Top-32 and two do not. Following-kana/maximal-run views have
+45/41 covers and 39/26 Top-32 matches. All 1,340 source/control pairs and 2,680
+graph conditions were replayed; all 911 tests pass. This conditional diagnosis
+does not certify Japanese correctness or general dictionary coverage. Adopted
+accuracy remains 90.72%; no labels, models, safety thresholds or release gates
+changed. A fixed source-data admission recipe precedes another fit.
+
+The [source-extent comparison](research/issue-31-source-extents/README.md) keeps all
+335 parents under three fixed hypotheses. Exact source presence in Top-6 is7 for
+the original ruby,31 with following literal kana, and23 for maximal supported runs;
+Top-32 is13/39/26. Following kana recovers source presence in23 of the305 previous
+Top-32 misses, leaving282: these extent rules do not explain most missing targets.
+All830 requests validate (264 reused/566 new), all1005 view slots remain, and890
+tests pass. Different inputs/targets are not an adopted accuracy gain or certified
+IME units. Original data/models,90.72%,0.25% safety and release gates are unchanged.
+
+The [original-reading reconstruction](research/issue-31-reading-rebuild/README.md)
+preserves all335 contradictory parents and derives318 separately identified
+source inputs;17 one-character readings remain pending. All264 native requests
+validate, but only7 rows meet the existing Top-6 candidate contract,6 more have
+the original surface only in Top-32, and305 measured rows lack it. Reading repair
+alone does not yield335 usable training examples. Direct input exposure is retained:
+5 current matches with source prefix,161 with empty context, including1 historical
+train match. All867 tests pass; original data/models remain unchanged. Adopted
+accuracy90.72%, safety0.25%, independent Gold and release gates are unchanged.
+
+The [original-reading preparation guard](research/issue-31-reading-consistency/README.md)
+now prevents source-reading contradictions and uncertain annotations from reaching
+new candidate/numeric preparation. On all75,000 consumed rows,335 known reading
+conflicts and580 uncertain cases remain pending;74,085 unchanged inputs are
+available only for source preparation. Missing annotations are pending by default;
+this explicit run preserves dictionary-only weak supervision without promoting it.
+All849 tests pass. Original data/models/evaluation remain unchanged; adopted 90.72%,
+Gold, calibration, safety0.25% and release requirements are not newly satisfied.
+
+The [source-conflict diagnosis](research/issue-31-conflict-source/README.md)
+verifies all 75,000 original source spans and finds335 dictionary-derived Aozora
+readings that contradict the exact original ruby (1.34% of that25,000-row cohort).
+Separate hash-only repair proposals preserve every original label. The2,114
+empty-input conflicts are not explained by encoding aliases/truncation; only27
+groups collapse under mechanical notation folds, which do not authorize label
+equivalence. Source context reduces census contradictions but mostly distinguishes
+individual examples, so it proves no held-out gain. All821 tests pass. Adopted
+accuracy90.72%, safety0.25%, Gold, calibration, final-Test and release gates remain
+unchanged; no new fit or source-label correction has been applied.
+
+The [fixed CPU proposal census](research/issue-34-cpu-proposals/README.md)
+reproduces all 150,000 #29 scores exactly. Removing context creates 2,114 identical
+input groups with incompatible source targets: at least 5,658/75,000 mismatches
+are unavoidable, giving a 92.456% empirical source-match ceiling for this pool.
+This is not the old dev or Japanese IME accuracy ceiling. The new projection also
+connects 73,623 rows to actual historical inputs through complete components;
+the original zero-overlap result applies only to source-prefix inputs. All 805
+tests pass. No gate fit, threshold selection, independent calibration, Gold
+admission, final Test, production change or adopted accuracy improvement occurred.
+
+The [fixed selector ancestry audit](research/issue-34-selector-lineage/README.md)
+resolves #29's previously unknown root against the 75,000-row research pool.
+All 22 recorded artifact ancestors are authenticated; the rebuilt source closure
+and 14,304 old numeric inputs show zero overlap. Keeping this selector fixed
+requires zero new ranker fits; gate fitting and CPU proposal generation still
+need separate bindings. The pool remains consumed research with weak labels,
+not independent calibration or Gold. All 788 tests and direct graph/teacher/input
+replays pass. No model fitting, inference, accuracy improvement or release
+qualification is claimed.
+
+The [nested gate OOF audit](research/issue-34-oof-design/README.md) shows why
+fitted-training scores cannot be reused as out-of-fold proposals. The largest
+recorded Aozora component contains 23,977 of 25,000 annotation rows; component-safe
+five-fold allocation is severely imbalanced. Across the alternate extraction
+recipes, 25,000/24,830 directly unseen rows still connect to fitted components.
+Initialization ancestry was left uncertified in that audit and is resolved for
+the fixed #29 root above. When the ranker is learned on the same pool, a nested
+five-fold gate design needs 16 ranker fits with identical pair reuse, or 26 without it,
+plus six gate fits; none is launched. All 788 tests and independent graph/heap
+recounts pass. Adopted accuracy, Gold, safety, calibration and release gates are
+unchanged.
+
+The [fixed three-model source comparison](research/issue-35-source-models/README.md)
+finds no demonstrated improvement in adopted accuracy. On the same 1,228 observed
+source parts, ungated v1/r2/#29 gain 7/18/11 source matches and lose 14/19/14;
+published gates each gain one and lose zero. Original surfaces are available in
+Top-6 for 292 baseline mismatches, so substantial ranking headroom remains.
+All 1,000 sentence slots, including 43 with unmeasured parts or invalid source
+inputs, remain reported. All 769 tests pass; CPU scores and 152 conditional
+component intervals are directly reproduced. This is source reconstruction,
+not independent Japanese correctness. No retraining or new model adoption;
+90.72%, 0.25% safety, Gold requirements and final-Test restrictions are unchanged.
+
+The [prospective continuous-source cohort](research/issue-35-source-consumption/README.md)
+reserves 1,000 further Tatoeba sentences before decoding text. Continuous input
+ranges are available for 966; 34 remain explicit source failures. All 1,230 native
+requests were attempted once: 1,221 validated and nine contract rejections.
+Every source part occurs in Top-1/6/32 for 556/816/873 sentences respectively;
+these are source-presence counts, not model accuracy. An explicit exposure overlay
+also catches consumed source-only records with invalid readings, adding one real
+historical connection. Final relation counts are 483 connected, 483 provisionally
+unconnected and 34 without inputs. All 755 tests pass; adopted 90.72%, Gold,
+calibration, final Test, safety and production gates remain unchanged.
+
+The [source-unit diagnostic](research/issue-35-source-units/README.md) preserves
+all 100 exposed pilot sentences. Punctuation-delimited runs contain every
+source-exact part in Top-32 for 89 sentences versus 38 for individual ruby
+fragments (52 paired gains, one reverse case); these are component-presence
+counts, not model accuracy. All 426 native requests have one terminal result:
+401 validated, six rejected by the unchanged 18-segment contract, and 19 by
+the converter's candidate-count check. Omitting only Tatoeba administrative-owner
+relations reduces historical connections from 84 to 12 sentences while retaining
+all 528,894 legacy author edges. No original exclusions are restored. All 732
+tests pass; no model, Gold/calibration, final Test or production changes are made.
+
+The [external-source pilot](research/issue-35-source-pilot/README.md) reserved
+100 Tatoeba sentences before reading their text. Exact source/ruby alignment
+passed for 98; two had empty readings. Complete history isolation retained
+14 sentences / 44 provisional annotations. Twelve direct bounded-input matches
+propagated to 84 sentences through source/owner relations; text-only relations
+did not connect this pilot to history. Source ownership is not proven authorship,
+and ruby spans are not certified IME input units. All 701 tests passed; existing
+data and ten checkpoints remain unchanged. This advances source/evaluation design,
+with no new fits, Gold admission, calibration, final Test or production change.
+
+The latest [fixed loss-balance experiment](research/issue-33-loss-balance/README.md)
+improved the annotation recipe by a mean 1.349 percentage points on 593 previously
+unused research examples (paired component 95% CI 0.112 to 2.586). All three seeds
+reduced harmful changes, satisfying the frozen research rule. However, it did
+not beat the dictionary anchors and fixed-gate accuracy decreased. No model is
+adopted: 90.72%, the 0.25% safety requirement, Gold requirements and Gates A/B remain
+unchanged. All 676 tests and independent metric/weight/exposure checks passed.
+The KWDLC public-train reservation is exhausted; new source-isolated evaluation
+and independent calibration must precede another comparison.
+
+The preceding [train-only change audit](research/issue-33-train-change-audit/README.md)
+found 357–419 additional harmful changes on the same 25,000 Wikipedia training
+rows after the annotation-recipe fits, despite identical per-update Wikipedia
+exposure. The Aozora target-rank distribution changed substantially. This narrows
+the loss-contribution hypothesis tested above; the audit itself used no new fits
+and claimed no independent accuracy gain. All 420
+metric groups and 78 paired comparisons were recounted. GPU/CPU numerical
+parity did not pass every sampled condition, so this remains a GPU training
+diagnostic, not a CPU-equivalence or safety claim.
+
+The earlier [paired extraction experiment](research/issue-33-annotation-experiment/README.md)
+completed six fixed fits and all evaluations on 985 isolated research examples.
+The original-annotation recipe failed the prespecified primary comparison:
+mean accuracy difference versus dictionary extraction was -3.45 percentage points
+(paired component 95% CI -5.10 to -1.89). It is not adopted. Both fixed-seed CPU
+exports passed parity and 10,000-run latency checks; 658 unit tests passed.
+These source-reconstruction results are not independent IME Gold accuracy.
+The recorded adopted result remains 90.72%; the 0.25% safety criterion,
+independent Gold requirements, and Gates A/B are unchanged. The subsequent audit
+and one-change comparison are linked above.
 
 The repository has completed the current-HEAD audit, current Tiny baseline
 reproduction, deterministic data contracts, fixed jawiki acquisition, and a

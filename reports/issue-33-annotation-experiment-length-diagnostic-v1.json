@@ -1,0 +1,282 @@
+{
+  "causal_interpretation": "Extraction unit, lexical/domain distribution, reading length and label difficulty changed together. Their separate causal contributions remain unmeasured.",
+  "kind": "annotation_experiment_posthoc_length_diagnostic",
+  "new_fits": 0,
+  "predeclared_primary_changed": false,
+  "reading_length_strata": {
+    "2": {
+      "arms": {
+        "annotation": {
+          "correct": [
+            146,
+            145,
+            147
+          ],
+          "harm": [
+            18,
+            18,
+            16
+          ],
+          "rescue": [
+            29,
+            28,
+            28
+          ],
+          "wrong_to_wrong": [
+            25,
+            26,
+            25
+          ]
+        },
+        "dictionary": {
+          "correct": [
+            148,
+            151,
+            152
+          ],
+          "harm": [
+            10,
+            8,
+            8
+          ],
+          "rescue": [
+            23,
+            24,
+            25
+          ],
+          "wrong_to_wrong": [
+            19,
+            20,
+            19
+          ]
+        }
+      },
+      "baseline_correct": 135,
+      "rows": 213
+    },
+    "3-4": {
+      "arms": {
+        "annotation": {
+          "correct": [
+            510,
+            512,
+            514
+          ],
+          "harm": [
+            58,
+            57,
+            54
+          ],
+          "rescue": [
+            24,
+            25,
+            24
+          ],
+          "wrong_to_wrong": [
+            21,
+            20,
+            21
+          ]
+        },
+        "dictionary": {
+          "correct": [
+            530,
+            541,
+            539
+          ],
+          "harm": [
+            34,
+            23,
+            26
+          ],
+          "rescue": [
+            20,
+            20,
+            21
+          ],
+          "wrong_to_wrong": [
+            13,
+            13,
+            13
+          ]
+        }
+      },
+      "baseline_correct": 544,
+      "rows": 614
+    },
+    "5-8": {
+      "arms": {
+        "annotation": {
+          "correct": [
+            140,
+            140,
+            140
+          ],
+          "harm": [
+            9,
+            9,
+            9
+          ],
+          "rescue": [
+            5,
+            5,
+            5
+          ],
+          "wrong_to_wrong": [
+            2,
+            2,
+            2
+          ]
+        },
+        "dictionary": {
+          "correct": [
+            146,
+            145,
+            144
+          ],
+          "harm": [
+            3,
+            4,
+            5
+          ],
+          "rescue": [
+            5,
+            5,
+            5
+          ],
+          "wrong_to_wrong": [
+            2,
+            1,
+            2
+          ]
+        }
+      },
+      "baseline_correct": 144,
+      "rows": 156
+    },
+    "9-32": {
+      "arms": {
+        "annotation": {
+          "correct": [
+            0,
+            0,
+            0
+          ],
+          "harm": [
+            0,
+            0,
+            0
+          ],
+          "rescue": [
+            0,
+            0,
+            0
+          ],
+          "wrong_to_wrong": [
+            1,
+            1,
+            1
+          ]
+        },
+        "dictionary": {
+          "correct": [
+            0,
+            0,
+            0
+          ],
+          "harm": [
+            0,
+            0,
+            0
+          ],
+          "rescue": [
+            0,
+            0,
+            0
+          ],
+          "wrong_to_wrong": [
+            2,
+            2,
+            2
+          ]
+        }
+      },
+      "baseline_correct": 0,
+      "rows": 2
+    }
+  },
+  "selected_by_outcomes": false,
+  "status": "descriptive_only",
+  "training_profiles": {
+    "annotation": {
+      "in_sample_reading_majority_matches": 46635,
+      "interpretation": "Training-source descriptive statistics only, never model accuracy or unique IME correctness.",
+      "multi_form_readings": 1385,
+      "multi_form_rows": 12552,
+      "reading_length_counts": {
+        "10": 174,
+        "11": 94,
+        "12": 37,
+        "13": 24,
+        "14": 18,
+        "15": 6,
+        "16": 3,
+        "17": 5,
+        "18": 2,
+        "2": 7196,
+        "24": 1,
+        "26": 1,
+        "27": 1,
+        "3": 14657,
+        "4": 16335,
+        "5": 6315,
+        "6": 2664,
+        "7": 1389,
+        "8": 724,
+        "9": 354
+      },
+      "readings": 16827,
+      "rows": 50000,
+      "source_counts": {
+        "aozora": 25000,
+        "jawiki": 25000
+      },
+      "source_top1_rows": 34186
+    },
+    "dictionary": {
+      "in_sample_reading_majority_matches": 47040,
+      "interpretation": "Training-source descriptive statistics only, never model accuracy or unique IME correctness.",
+      "multi_form_readings": 1373,
+      "multi_form_rows": 12106,
+      "reading_length_counts": {
+        "10": 152,
+        "11": 81,
+        "12": 33,
+        "13": 22,
+        "14": 16,
+        "15": 6,
+        "16": 3,
+        "17": 5,
+        "18": 2,
+        "24": 1,
+        "26": 1,
+        "27": 1,
+        "3": 17832,
+        "4": 19401,
+        "5": 7266,
+        "6": 2824,
+        "7": 1368,
+        "8": 667,
+        "9": 319
+      },
+      "readings": 16311,
+      "rows": 50000,
+      "source_counts": {
+        "aozora": 25000,
+        "jawiki": 25000
+      },
+      "source_top1_rows": 40132
+    }
+  },
+  "use": "Aggregate hypothesis generation only; no evaluation words/targets fed into training and no retuning on these 985 rows."
+}

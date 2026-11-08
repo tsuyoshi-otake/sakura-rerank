@@ -19,6 +19,7 @@ from typing import Any, BinaryIO
 
 from ..atomic_io import commit_staged_file_and_bytes_atomic
 from .contracts import (
+    MAX_LEFT_CONTEXT_CHARS,
     MAX_READING_CHARS,
     MIN_READING_CHARS,
     ContractError,
@@ -28,6 +29,9 @@ from .contracts import (
     text_sha256,
 )
 from .manifest import LOCAL_ARTIFACT_VERIFIED
+from .source_quality import (
+    QUALITY_CLEANER_VERSION, QUALITY_MANIFEST_SCHEMA_VERSION, QUALITY_POLICY, quality_flags,
+)
 from .tier_a import (
     SOURCE_SPAN_RECORD_TYPE,
     SOURCE_SPAN_CLEANER_VERSION,
@@ -520,7 +524,10 @@ def iter_source_spans(
     counts: Counter[str],
     *,
     excluded_stable_ids: frozenset[str] = frozenset(),
+    cleaner_version: str = CLEANER_VERSION,
 ) -> Iterator[dict[str, Any]]:
+    if cleaner_version not in (CLEANER_VERSION, QUALITY_CLEANER_VERSION):
+        raise PreprocessingError('unsupported executable cleaner version')
     context = ET.iterparse(stream, events=("start", "end"))
     _, root = next(context)
     page_sequence = 0
@@ -586,6 +593,18 @@ def iter_source_spans(
                             if record["stable_id"] in excluded_stable_ids:
                                 counts["stable_id_exclusions"] += 1
                                 continue
+                            if cleaner_version == QUALITY_CLEANER_VERSION:
+                                # Preserve v4 coordinates and sampling. Inspect only the
+                                # prefix before this target, never the rest of the paragraph.
+                                target_start = sentence_offset + start
+                                left = paragraph[max(0, target_start - MAX_LEFT_CONTEXT_CHARS):target_start]
+                                flags = quality_flags(left, surface)
+                                counts['quality_examined'] += 1
+                                if flags:
+                                    counts['quality_quarantined'] += 1
+                                    counts.update('quality_' + reason for reason in flags)
+                                    continue
+                                counts['quality_retained'] += 1
                             yield record
                             emitted += 1
                             per_page += 1
@@ -614,8 +633,11 @@ def extract_source_spans(
     extractor_git_sha: str,
     config: ExtractorConfig,
     stable_id_exclusion_path: str | Path | None = None,
+    cleaner_version: str = CLEANER_VERSION,
 ) -> tuple[str, str, int]:
     config.validate()
+    if cleaner_version not in (CLEANER_VERSION, QUALITY_CLEANER_VERSION):
+        raise PreprocessingError('unsupported executable cleaner version')
     if jawiki_manifest.get("status") != LOCAL_ARTIFACT_VERIFIED:
         raise PreprocessingError("a local_artifact_verified jawiki manifest is required")
     if not re.fullmatch(r"[0-9a-f]{40}", extractor_git_sha):
@@ -661,10 +683,14 @@ def extract_source_spans(
                 config,
                 counts,
                 excluded_stable_ids=excluded_stable_ids,
+                cleaner_version=cleaner_version,
             ):
                 line = canonical_json_bytes(record) + b"\n"
                 if destination.tell() + len(line) > config.max_output_bytes:
                     counts["stopped_at_output_byte_bound"] = 1
+                    if cleaner_version == QUALITY_CLEANER_VERSION:
+                        counts['quality_retained'] -= 1
+                        counts['quality_output_byte_skipped'] += 1
                     break
                 destination.write(line)
                 digest.update(line)
@@ -675,14 +701,15 @@ def extract_source_spans(
             raise PreprocessingError("no source spans passed the configured boundary")
         output_sha = digest.hexdigest()
         manifest = {
-            "schema_version": PREPROCESSING_SCHEMA_VERSION,
+            "schema_version": (QUALITY_MANIFEST_SCHEMA_VERSION if cleaner_version == QUALITY_CLEANER_VERSION
+                               else PREPROCESSING_SCHEMA_VERSION),
             "manifest_kind": PREPROCESSING_MANIFEST_KIND,
             "verification_status": "measured",
             "snapshot_date": jawiki_manifest["snapshot_date"],
             "jawiki_local_sha256": jawiki_manifest["local_sha256"],
             "dictionary_index_sha256": normalized_dictionary_manifest["content_sha256"],
             "extractor_git_sha": extractor_git_sha,
-            "cleaner_version": CLEANER_VERSION,
+            "cleaner_version": cleaner_version,
             "config": asdict(config),
             "eligible_dictionary_surface_count": matcher.surface_count,
             "record_count": count,
@@ -691,6 +718,8 @@ def extract_source_spans(
             "raw_text_in_report": False,
             "stage4_stable_id_exclusion": stable_id_exclusion,
         }
+        if cleaner_version == QUALITY_CLEANER_VERSION:
+            manifest['candidate_quality_policy'] = QUALITY_POLICY
         report_payload = canonical_json_bytes(manifest) + b"\n"
         report_sha = hashlib.sha256(report_payload).hexdigest()
         commit_staged_file_and_bytes_atomic(output, temporary, report, report_payload)

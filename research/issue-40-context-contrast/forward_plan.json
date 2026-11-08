@@ -1,0 +1,20 @@
+{
+  "kind": "context_cohort_reference_conversion_plan",
+  "issue": 40,
+  "cohort_binding_sha256": "3fbd94eb67544313db41f2c1d6d7bde31cd61292b20de0a0ef6e02b3e7ef8e95",
+  "targets": 1215,
+  "main_rows": 991,
+  "contrast_groups": 61,
+  "contrast_rows": 244,
+  "request_rule": "Same reading shares the immutable reference converter snapshot. Reuse authenticated #39/#44 evidence; execute only new unique readings. No target substitution or annotation correction based on outcomes.",
+  "execution": {"concurrency": 2, "request_timeout_seconds": 30, "total_timeout_seconds": 600, "retries": 0, "top_k": 32, "failure_policy": "One reading per process. Known fixed candidate-count rejection is unmeasured; unexpected errors stop new scheduling and drain the at-most-two in-flight processes. Preserve every requested target and terminal status."},
+  "identity_sha256": "9193ee9d387d0431016347e881e2fb245833ea0d603b829e91494e3258d65877",
+  "prior_boundary_input_commit": "c5dead92e5c4ca704cf6259fb8a678d01b280b40",
+  "numeric_contract": "Use unchanged growth_numeric C2 encoding, including all candidate-missing targets and explicit acquisition status. No label admission into training or Gold. Preserve roles, source components and contrast group identities. Report candidate-surface truncations.",
+  "model_readiness": "Before six fits, require at least 500 measured main rows and at least 25 fixed contrast groups whose two original target forms both appear in the shared Top6. Report all 61 groups and all 991 main targets as well as that prespecified supported subset. Do not silently expand the source cohort or change thresholds on failure.",
+  "model_predictions": false,
+  "model_training": false,
+  "gold_certified": false,
+  "final_test": false,
+  "safety_threshold": 0.0025
+}

@@ -1,0 +1,39 @@
+{
+  "policy_version": "gold-pilot-triage-v1",
+  "purpose": "Retrospective, single-AI issue routing of all non-unique cases in the immutable AI pilot v1. This is a proposed Gold policy clarification, not a Gold label release.",
+  "reviewer_kind": "ai_teacher",
+  "reviewer_id": "codex-primary",
+  "gate_a_eligible": false,
+  "independent_test": false,
+  "labels_may_be_applied": false,
+  "evidence_scope": "Frozen train-only pilot left context, reading, candidates, source gold and gold segments; generation code and synthetic counterexamples. No right/future source text, holdout content, model predictions or external AI review.",
+  "rules": {
+    "A1": {"name": "meaning_ambiguity", "action": "retain_ambiguity", "definition": "More than one meaning is supported or the bounded input cannot establish the intended meaning. Do not resolve by corpus frequency or by inventing right context."},
+    "A2": {"name": "identity_ambiguity", "action": "retain_ambiguity", "definition": "A person, work, institution or place cannot be identified or its intended spelling cannot be established from permitted input. Familiarity is not evidence of identity."},
+    "E1": {"name": "numeral_style", "action": "review_form_policy", "definition": "Numeric value and reading agree; script choice remains a style choice. Check dates, units, leading zeroes and name/quotation protection before any secondary equivalence."},
+    "E2": {"name": "okurigana", "action": "review_form_policy", "definition": "Explicit okurigana alternatives need per-pair conventionality, reading and usage evidence; candidate membership is insufficient."},
+    "E3": {"name": "kana_kanji_or_iteration", "action": "review_form_policy", "definition": "Kana/kanji, script or repetition marks may preserve meaning but do not prove intended spelling. No universal phonetic-equivalence rule."},
+    "E4": {"name": "historical_glyph", "action": "review_form_policy", "definition": "Old/variant glyphs are style-sensitive. Do not replace modern canonical writing or normalize protected names."},
+    "E5": {"name": "historical_foreign_spelling", "action": "review_form_policy", "definition": "Historical kanji rendering of a foreign name needs reading, referent and register verification. It is not automatically a modern accepted output."},
+    "E6": {"name": "lexical_overlap", "action": "verify_semantics", "definition": "Different lexical items or senses cannot be admitted as mere spelling variants without explicit evidence of interchangeability in the bounded context."},
+    "P1": {"name": "protected_name_or_quote", "action": "preserve_exact_form", "definition": "A known or possible name, title, quotation, organization, legal label or credit receives exact-form protection. This protects against normalization; it does not certify the source gold or identify the entity."},
+    "L1": {"name": "source_language_or_abbreviation", "action": "verify_language_and_reading", "definition": "Roman letters, acronyms, translations and spoken readings are not interchangeable by default. Require separate reading, meaning, language/register and exact-form judgments."},
+    "B1": {"name": "contextual_reading_mismatch", "action": "verify_reading", "definition": "The initial AI flags a reading inconsistent with the visible compound. It remains a hypothesis until reading evidence and forward conversion for the complete chosen unit are verified."},
+    "B2": {"name": "visible_partial_unit", "action": "define_input_unit", "definition": "Left context and target show an internal lexical boundary. Synthetic extraction is not evidence that a user committed that prefix. Partial input needs its own declared provenance and evaluation stratum."},
+    "B3": {"name": "unverified_right_boundary", "action": "retain_boundary_unknown", "definition": "A target may be a prefix of a longer unit, but right context is unavailable by policy. Never assert a missing suffix or repair it by guessing."},
+    "N1": {"name": "context_artifact_impact_unknown", "action": "separate_noise_from_label", "definition": "Visible context defects are a separate axis. Missing material does not itself prove the target label wrong or unjudgeable. Preserve both the defect and its unknown impact."},
+    "N2": {"name": "residual_markup", "action": "quarantine_for_source_review", "definition": "Machine markup is directly observable. Quarantine is a proposed review disposition, not deletion or proof that ordinary non-Japanese input is invalid."},
+    "R1": {"name": "specialized_reading_unverified", "action": "verify_reading", "definition": "A domain-specific pronunciation cannot be inferred from candidate presence or AI memory; retain unknown pending a permitted authoritative pronunciation source."}
+  },
+  "prospective_gold_contract": {
+    "separate_axes": ["source_exact", "reading_validity", "input_unit_validity", "context_integrity", "meaning_identifiability", "spelling_intent", "review_provenance"],
+    "primary_metric": "Keep immutable source-exact scores and denominators unchanged; do not retroactively turn secondary semantic sets into baseline correct labels.",
+    "secondary_metric": "Only independently adjudicated, explicitly enumerated candidate sets under a pre-frozen policy may support semantic-acceptability analysis. Report eligible and excluded counts against the original denominator.",
+    "unique_claim": "One natural candidate is not proof of uniquely intended output. Unsupported possible names alone are not proof of ambiguity either. Record concrete plausible alternatives or leave the axis unknown.",
+    "input_unit": "Dictionary match and forward conversion verify existence, not contextual pronunciation or realistic committed-prefix boundaries. Do not silently merge synthetic whole-unit tasks with partial-commit tasks.",
+    "no_deletion_for_quality": "Ambiguous/noisy cases remain counted in the original cohort; quality and retention are distinct. No passing rate from deleting difficult cases.",
+    "pilot_only": "All 1000 cases, including the 807 initially called unique, require consistent re-review before a new label version. This 193-case triage cannot certify the 807 or estimate population quality.",
+    "final_quality": "Pilot is not final QA: point >=99.5%, Wilson 95% lower >=99.0%, independently valid final holdout >=3000 remain required; no pilot result passes Gate A.",
+    "safety": "0.25% safety threshold unchanged; no retraining, gate tuning or independent Test use in this triage. Freeze model/features/gate/label policy before a one-time independent Test."
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "all_results_fitted_training_only": true,
+  "code_commit": "f19c95ec01dd1d6060cffcc5281203bb05970414",
+  "conditions": [
+    {
+      "context": "intact",
+      "cpu_allclose": false,
+      "cpu_max_absolute_difference": 1.6450881958007812e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "reference29",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "empty",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.430511474609375e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "reference29",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "intact",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.4603137969970703e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "dictionary-s20260814",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "empty",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.2755393981933594e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "dictionary-s20260814",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "intact",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.919269561767578e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "annotation-s20260814",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "empty",
+      "cpu_allclose": false,
+      "cpu_max_absolute_difference": 1.823902130126953e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "annotation-s20260814",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "intact",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.2755393981933594e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "dictionary-s20261103",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "empty",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.2874603271484375e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "dictionary-s20261103",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "intact",
+      "cpu_allclose": false,
+      "cpu_max_absolute_difference": 1.9669532775878906e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "annotation-s20261103",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "empty",
+      "cpu_allclose": false,
+      "cpu_max_absolute_difference": 1.6450881958007812e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "annotation-s20261103",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "intact",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.2874603271484375e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "dictionary-s20261104",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "empty",
+      "cpu_allclose": false,
+      "cpu_max_absolute_difference": 1.4424324035644531e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "dictionary-s20261104",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "intact",
+      "cpu_allclose": true,
+      "cpu_max_absolute_difference": 1.9550323486328125e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "annotation-s20261104",
+      "rows_completed": 75000,
+      "status": "complete"
+    },
+    {
+      "context": "empty",
+      "cpu_allclose": false,
+      "cpu_max_absolute_difference": 1.71661376953125e-05,
+      "cpu_parity_rows": 292,
+      "cpu_winner_mismatches": 0,
+      "model": "annotation-s20261104",
+      "rows_completed": 75000,
+      "status": "complete"
+    }
+  ],
+  "cpu_parity_passed": false,
+  "elapsed_seconds": 46.345,
+  "environment": {
+    "numpy": "2.3.5",
+    "python": "3.13.13",
+    "torch": "2.12.1+cu130"
+  },
+  "evaluation_arrays_loaded": false,
+  "forbidden_data_read_attempts": 0,
+  "kind": "train_only_change_inference",
+  "new_fits": 0,
+  "not_attempted_conditions": 0,
+  "observed_data_read_paths": [
+    "data/generated/issue-21-retrain/run.py",
+    "data/generated/issue-29-distill-gate/final/student-s20260814.pt",
+    "data/generated/issue-33-annotation-comparison-v1/attempt-02/numeric-r2/cache/arrays.npz",
+    "data/generated/issue-33-annotation-comparison-v1/attempt-02/numeric-r2/cache/cohort-indices.json",
+    "data/generated/issue-33-annotation-comparison-v1/attempt-02/numeric-r2/cache/manifest.json",
+    "data/generated/issue-33-annotation-comparison-v1/attempt-02/numeric-r2/cache/row-receipts.jsonl",
+    "data/generated/issue-33-annotation-experiment-v1/fit-binding.json",
+    "data/generated/issue-33-annotation-experiment-v1/models/annotation-s20260814/model.pt",
+    "data/generated/issue-33-annotation-experiment-v1/models/annotation-s20261103/model.pt",
+    "data/generated/issue-33-annotation-experiment-v1/models/annotation-s20261104/model.pt",
+    "data/generated/issue-33-annotation-experiment-v1/models/dictionary-s20260814/model.pt",
+    "data/generated/issue-33-annotation-experiment-v1/models/dictionary-s20261103/model.pt",
+    "data/generated/issue-33-annotation-experiment-v1/models/dictionary-s20261104/model.pt",
+    "data/generated/issue-33-annotation-experiment-v1/training-execution.json",
+    "data/generated/issue-33-train-change-audit-v1/scores.npz"
+  ],
+  "plan_sha256": "06df086cdf9f01e824b28ee6168a477eb796c563f259d21588297363a4754e89",
+  "scores_sha256": "e84c7f3f8b2c63804ebbe436078a5ac0430c4ce0251eae18822b97cfb0642625",
+  "status": "complete"
+}

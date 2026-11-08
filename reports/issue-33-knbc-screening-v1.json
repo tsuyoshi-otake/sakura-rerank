@@ -1,0 +1,334 @@
+{
+  "kind": "screened_dictionary_research_frame_preparation",
+  "version": 1,
+  "issue": 33,
+  "parent_issue": 1,
+  "recorded_at_utc": "2026-11-06T15:53:06.817270+00:00",
+  "status": "insufficient_do_not_fit",
+  "plan_commit": "a0d740e3dd6d7f2091bd496d06d49826e31d46e3",
+  "plan_sha256": "124fa99081ac9132ad9c001ffa47dd619cf06b6fbb5716d975e26175ed6295af",
+  "source": {
+    "snapshot": "KNBC_v1.0_090925_utf8",
+    "local_sha256": "2df066f321f57413dc94404a60273b84a85c67b55fc5d2c8a34926074c1b83a4",
+    "official_cryptographic_digest": null,
+    "new_downloads": 0,
+    "reserved_census": {
+      "articles": 167,
+      "excluded": {
+        "metadata": 249,
+        "previously_reserved_family": 1401
+      },
+      "families": 62,
+      "slots": 2786
+    },
+    "previous_pilot_slots": 100,
+    "previous_reserved_articles": 20,
+    "previous_reserved_prefix_families": 19
+  },
+  "pilot": {
+    "fits": 0,
+    "gold_admission": false,
+    "inference": 0,
+    "new_semantic_members": 0,
+    "slots": 100,
+    "status": "existing_pilot_replayed",
+    "statuses": {
+      "pending_document_correction": 5,
+      "pending_no_kanji_target": 18,
+      "pending_non_kana_reading": 35,
+      "previous_empty_annotation": 1,
+      "ready_for_history": 41
+    },
+    "whole_bunsetsu": 613
+  },
+  "preparation": {
+    "final_test": false,
+    "fits": 0,
+    "gold_admission": false,
+    "input_hypotheses": 1158,
+    "ledger_head": "eb9ab5c1fdbf519bd60b5f6f2f0d1e02be02d55568f05f1f5e1fd3f40bd20314",
+    "ledger_sha256": "3dbc532019992eeeac3383baac37dd9bf100cf6a961b4bb749f502937930cf1b",
+    "model_calls": 0,
+    "slots": 2786,
+    "slots_sha256": "79894437b768a65c9da0492548689746f9b4de5a8667326593c064b2753708ce",
+    "source_coverage": 2771,
+    "status": "prepared_not_admitted",
+    "statuses": {
+      "pending_document_correction": 74,
+      "pending_exposed_documentation": 6,
+      "pending_knbc_morpheme_columns": 15,
+      "pending_no_kanji_target": 543,
+      "pending_non_kana_reading": 984,
+      "pending_style_annotation": 6,
+      "ready_for_history": 1158
+    }
+  },
+  "history": {
+    "all_nodes": 995283,
+    "audit": {
+      "actual_signature_comparisons": 548613,
+      "alias_connected_new_inputs": 1150,
+      "conceptual_near_record_pairs": 225295926,
+      "distinct_near_signature_pairs": 942,
+      "distinct_signatures": 618325,
+      "duplicate_key_groups": {
+        "article": 56384,
+        "author": 361,
+        "input": 2959,
+        "paragraph": 201899
+      },
+      "edge_kinds": {
+        "article": 871657,
+        "author": 534887,
+        "input": 5565,
+        "paragraph": 615786,
+        "sentence_exact": 376958,
+        "sentence_near": 2208
+      },
+      "exposed_source_nodes": 6260,
+      "historical_alias_hashes": 96748,
+      "nodes": 995283,
+      "representative_edges": 2407061
+    },
+    "authorship_independence_certified": false,
+    "calibration": false,
+    "elapsed_seconds": 203.963,
+    "final_test": false,
+    "fits": 0,
+    "full_reverse_parity": true,
+    "gold_admission": false,
+    "history_slots_sha256": "13c7e06fb349675dd8c28ced03531d1a8f2b2505b1e08a60850a7f471517a12c",
+    "model_calls": 0,
+    "new_nodes": 3929,
+    "numeric_candidate_input_history_pending": true,
+    "original_labels_changed": 0,
+    "previous_nodes": 991354,
+    "relations_sha256": "c1633b1a94f5aff2d204c62c737048cd1da599c0cc83248e431d6dd12feefd07",
+    "retained_recorded_components": 1,
+    "retained_slots": 8,
+    "slot_count": 2786,
+    "statistical_independence_certified": false,
+    "status": "insufficient_do_not_fit",
+    "statuses": {
+      "historical_input_alias_relation": 47,
+      "historical_or_consumed_source_relation": 1103,
+      "pending_document_correction": 74,
+      "pending_exposed_documentation": 6,
+      "pending_knbc_morpheme_columns": 15,
+      "pending_no_kanji_target": 543,
+      "pending_non_kana_reading": 984,
+      "pending_style_annotation": 6,
+      "retained_for_candidate_binding": 8
+    },
+    "training_admission": false
+  },
+  "direct_exposure": {
+    "all_recorded_component_sizes": [
+      1103,
+      28,
+      13,
+      8,
+      6
+    ],
+    "component_propagated_inputs": 1150,
+    "components_touched_by_direct_matches": 4,
+    "direct_actual_or_projected_history_matches": 167,
+    "distinct_direct_input_hashes": 140,
+    "exclusions_restored": 0,
+    "input_hypotheses": 1158,
+    "interpretation": "Counts of source relations and known inputs, not evidence that every excluded sentence is a duplicate or that new models fitted these examples.",
+    "kind": "direct_versus_transitive_known_input_exposure",
+    "new_fits": 0,
+    "new_predictions": 0,
+    "non_direct_inputs_in_touched_components": 983
+  },
+  "verification": {
+    "final_test": false,
+    "fits": 0,
+    "history_report_sha256": "20ddd342b7504f8921d6692e119a91269abdc8188e79720ba64048e9f67806bd",
+    "ledger_events": 2786,
+    "literal_input_pairs": 1158,
+    "model_calls": 0,
+    "new_source_replacements": 0,
+    "source_archive_sha256": "2df066f321f57413dc94404a60273b84a85c67b55fc5d2c8a34926074c1b83a4",
+    "source_slots": 2786,
+    "status": "passed"
+  },
+  "readiness": {
+    "meaning": "Candidate-binding preparation only; not fit, Gold, calibration or final Test admission.",
+    "minimum_recorded_components": 20,
+    "minimum_retained_slots": 500
+  },
+  "decision": {
+    "retained_slots": 8,
+    "recorded_components": 1,
+    "minimum_slots": 500,
+    "minimum_components": 20,
+    "fits_started": 0,
+    "restored_exclusions": 0,
+    "replacement_slots": 0,
+    "current_comparison": "stopped_without_effect_estimate",
+    "next": "Review the governing isolation/evaluation contract with direct versus propagated evidence before considering a separately reserved experiment; no automatic new source or infrastructure expansion."
+  },
+  "validation": {
+    "full_tests": {
+      "errors": 0,
+      "failures": 0,
+      "passed": true,
+      "skipped": 0,
+      "tests": 1077
+    },
+    "targeted_tests": {
+      "errors": 0,
+      "failures": 0,
+      "passed": true,
+      "skipped": 0,
+      "tests": 13
+    },
+    "static": [
+      {
+        "path": "src/sakura_rerank/data/knbc_research.py",
+        "sha256": "2b7ac1eb032dd18ee568a178c03fb528e9663f5197a8988affefd29b7653076a",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "tests/test_knbc_research.py",
+        "sha256": "0ea3b789c499e8c6878c08cb1860b5831fe8c90833df479b0b1a6920ea63ee5c",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-33-knbc-screening/diagnose.py",
+        "sha256": "093054ab9ec6432355393cb8c70418dba0c94996086299d59e802724160b8db8",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-33-knbc-screening/history.py",
+        "sha256": "cd3a8a4337efd4ebb73cbe81a7f5582e2556e7af6c613e46da613eedd884ffa1",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-33-knbc-screening/owner.py",
+        "sha256": "d1cc7387e963466b256c76a41eb9cdcb8f901e8b236c442fc5556e111113ad15",
+        "syntax": true,
+        "unused_imports": []
+      },
+      {
+        "path": "research/issue-33-knbc-screening/prepare.py",
+        "sha256": "ed95990f9eafcf5c032bc67aa2bcb91740c2fd58357fcc5c5fe9aa03fa5f6543",
+        "syntax": true,
+        "unused_imports": []
+      }
+    ],
+    "type_checker_run": false,
+    "integrity": {
+      "original_artifacts": 16,
+      "fit_bindings": 25,
+      "checkpoints": 10,
+      "prior_reports": 4,
+      "status": "passed",
+      "original_integrity_report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab"
+    },
+    "process_proof": {
+      "recorded_pid_count": 17,
+      "recorded_present": [],
+      "direct_descendants_present": [],
+      "matching_task_commands": [],
+      "utc": "2026-11-06T15:50:35.9511630Z"
+    }
+  },
+  "bindings": {
+    "selection.private.json": "6646e892c3dee192eb7a5bb7a4f6b530e6357c7c20e16a7909b5159ef2ba6ab6",
+    "consumption-reservation.json": "7984b1a7a06c8e45be3aeaf4f901cdb5640503017eb3953b97390e15457c1c67",
+    "consumption-ledger.private.jsonl": "3dbc532019992eeeac3383baac37dd9bf100cf6a961b4bb749f502937930cf1b",
+    "source-slots.private.json": "79894437b768a65c9da0492548689746f9b4de5a8667326593c064b2753708ce",
+    "preparation.json": "637a894f0e2574bf6776bfb83ce4e03223f92e61928c5d6c6ba77c2cad47b333",
+    "history-slots.private.json": "13c7e06fb349675dd8c28ced03531d1a8f2b2505b1e08a60850a7f471517a12c",
+    "relations.private.json": "c1633b1a94f5aff2d204c62c737048cd1da599c0cc83248e431d6dd12feefd07",
+    "history-report.json": "20ddd342b7504f8921d6692e119a91269abdc8188e79720ba64048e9f67806bd",
+    "direct-exposure-diagnostic.json": "ce2c58e152d3795d10a582be75e4c244d7cecbf162cf9373f89a3ddb1b22bb95",
+    "verification.json": "d0cf5709aa5280e849ef5aa98515f617d987349942e0947658a478c3619ec3d8"
+  },
+  "attempts": {
+    "first": {
+      "status": "failed_before_archive_access",
+      "failure": {
+        "error_code": null,
+        "error_type": "KeyError",
+        "stage": "pilot",
+        "status": "failed"
+      },
+      "preserved": true
+    },
+    "second": {
+      "pilot": {
+        "child_pid": 20264,
+        "elapsed_seconds": 1.124,
+        "exit_code": 0,
+        "stage": "pilot",
+        "status": "complete"
+      },
+      "prepare": {
+        "child_pid": 47340,
+        "elapsed_seconds": 7.34,
+        "exit_code": 0,
+        "stage": "prepare",
+        "status": "complete"
+      },
+      "history": {
+        "child_pid": 6264,
+        "elapsed_seconds": 205.698,
+        "exit_code": 0,
+        "stage": "history",
+        "status": "complete"
+      },
+      "verify": {
+        "child_pid": 66120,
+        "elapsed_seconds": 2.793,
+        "exit_code": 0,
+        "stage": "verify",
+        "status": "complete"
+      },
+      "tests": {
+        "child_pid": 32964,
+        "elapsed_seconds": 69.965,
+        "exit_code": 0,
+        "stage": "tests",
+        "status": "complete"
+      }
+    }
+  },
+  "retention": {
+    "private_directory": "data/generated/issue-33-knbc-screening-v1/",
+    "files": 40,
+    "bytes": 13099655,
+    "reason": "Immutable source consumption, failed pilot consumer, prepared slots and verification receipts; recovery only, no Gold admission.",
+    "dedicated_task_temp_roots_created": 0,
+    "new_worktrees": 0
+  },
+  "unchanged": {
+    "adopted_accuracy_percent": 90.72,
+    "demonstrated_accuracy_gain": false,
+    "safety_limit": 0.0025,
+    "gold_point_minimum": 0.995,
+    "gold_wilson95_lower_minimum": 0.99,
+    "final_valid_minimum": 3000,
+    "model_changes": 0,
+    "original_data_changes": 0,
+    "production_changes": 0,
+    "calibration_uses": 0,
+    "final_test_uses": 0,
+    "gold_admission": false,
+    "release_complete": false
+  },
+  "limitations": [
+    "Literal annotation reconstruction is not intended IME correctness.",
+    "Direct input matches include prior source-context and empty-context projections; they are not all direct fitting leaks.",
+    "Complete-component exclusion does not mean every excluded sentence is duplicated or wrong.",
+    "Prefix families are conservative relations, not verified authors; statistical independence is not established.",
+    "Candidate and numeric-input history was not reached because source readiness failed."
+  ]
+}

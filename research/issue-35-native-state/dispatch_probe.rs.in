@@ -1,0 +1,85 @@
+// Runs the actual native Dispatcher, Session, conversion, preference and selection.
+// This module is inserted only in an archived research test build.
+use super::*;
+use crate::long_conversion::research_state as native;
+use std::cell::RefCell;
+use std::io::Write as _;
+
+thread_local! { static CAPTURES: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) }; }
+
+pub(crate) fn capture(owner: u64, session_id: SessionId, session: &Session,
+    candidates: &[ConversionCandidate], direct_count: usize, baseline: usize, selected: usize) {
+    let prefix = direct_count.min(6);
+    let rows = candidates.iter().map(|candidate| format!(
+        "{{\"surface_hex\":\"{}\",\"cost\":{},\"evidence\":{},\"fingerprint\":{}}}",
+        native::hex(candidate.text().as_bytes()), candidate.cost,
+        candidate.evidence_class().fingerprint_tag(), native::fingerprint(candidate)))
+        .collect::<Vec<_>>().join(",");
+    let capture = format!(concat!(
+        "{{\"owner\":{},\"session\":{},\"generation\":{},\"reading_hex\":\"{}\",",
+        "\"direct_count\":{},\"baseline_index\":{},\"selected_index\":{},",
+        "\"selection_calls\":{},\"candidate_set\":{},\"candidates\":[{}]}}"),
+        owner,session_id,session.prediction_generation,native::hex(session.preedit.as_str().as_bytes()),
+        direct_count,baseline,selected,native::calls(),native::set_fingerprint(&candidates[..prefix]),rows);
+    CAPTURES.with(|values| { let mut values=values.borrow_mut(); assert!(values.len()<4); values.push(capture); });
+}
+
+#[test]
+fn research_native_snapshot_probe() {
+    let output = std::env::var_os("SAKURA_RESEARCH_NATIVE_OUTPUT").expect("bounded output required");
+    let mut file=std::fs::OpenOptions::new().write(true).create_new(true).open(output).expect("fresh output");
+    let scenarios = ["normal", "learned", "cached", "learned_tail", "cached_tail", "explicit", "scope_off", "long_short",
+        "long_multi", "unclassified", "password", "renderer", "cursor", "pending_romaji",
+        "owner", "session", "generation", "reading_hash", "reading_bytes", "candidate_set",
+        "score_fingerprint", "score_count", "nonfinite", "not_ready", "missing"];
+    for (index, scenario) in scenarios.iter().enumerate() {
+      for baseline_run in [true, false] {
+        let index=index*2+usize::from(!baseline_run);
+        let conversion=conversion_fixture();
+        let learning=Arc::new(LearningService::memory());
+        if *scenario=="learned" { learning.learn("かな", "加奈", 0, 0); }
+        if *scenario=="learned_tail" { learning.learn("かな", "候補14", 0, 0); }
+        let scope=match *scenario { "scope_off"=>NeuralRerankerScope::Off,
+            "long_short" | "long_multi"=>NeuralRerankerScope::LongTextOnly,
+            _=>NeuralRerankerScope::AllNormalConversions };
+        let preferences=Preferences { neural_reranker_scope:scope, prediction_enabled:false,
+            association_enabled:false,..Preferences::default() };
+        let mut dispatcher=Dispatcher::new_with_configuration(Arc::clone(&conversion), learning, preferences).expect("dispatcher");
+        let service=native::service(conversion);
+        dispatcher.long_conversion_owner=service.allocate_owner();
+        dispatcher.long_conversion=Some(Arc::clone(&service));
+        let mut out=OutputBuf::new();
+        let session=create_session(&mut dispatcher, &mut out,
+            if *scenario=="renderer" { "sakura_renderer.exe" } else { "synthetic-native-probe.exe" });
+        if *scenario!="unclassified" {
+            dispatcher.dispatch(&Request::SetInputScope { session, scope:if *scenario=="password" {
+                InputScope::Password } else { InputScope::Normal } }, &mut out);
+        }
+        type_word(&mut dispatcher,session,if *scenario=="long_multi" {"kanakanakana"}
+            else if *scenario=="pending_romaji" {"kanan"} else {"kana"},&mut out);
+        if *scenario=="cursor" { dispatcher.dispatch(&Request::SendKey {session,key:named_key(KeyCode::Left)},&mut out); }
+        if *scenario=="cached" || *scenario=="cached_tail" {
+            let state=dispatcher.sessions.get_mut(session).expect("session");
+            state.record_current_commit(if *scenario=="cached_tail" {"候補14"} else {"加奈"},0,0,1);
+        }
+        let mutation=match *scenario { "owner"|"session"|"generation"|"reading_hash"|"reading_bytes"|
+            "candidate_set"|"score_fingerprint"|"score_count"|"nonfinite"|"not_ready"|"missing"=>*scenario,
+            _=>"none" };
+        let work=native::complete(&service,if baseline_run {"missing"} else {mutation});
+        native::reset_calls();
+        CAPTURES.with(|values| values.borrow_mut().clear());
+        if *scenario=="explicit" {
+            let mut scratch=FixedStr::new();
+            let state=dispatcher.sessions.get_mut(session).expect("session");
+            begin_conversion(session,state,&dispatcher.table,dispatcher.conversion.as_deref(),
+                dispatcher.learning.as_deref(),Some(&service),dispatcher.long_conversion_owner,
+                &mut scratch,1,ConversionTrigger { is_space:true },&mut out).expect("conversion");
+        } else {
+            dispatcher.dispatch(&Request::SendKey {session,key:named_key(KeyCode::Space)},&mut out);
+        }
+        let captures=CAPTURES.with(|values| values.borrow().join(","));
+        writeln!(file,"{{\"fixture\":{index},\"scenario\":\"{scenario}\",\"baseline_run\":{baseline_run},\"work\":{work},\"captures\":[{captures}],\"terminal\":\"{}\"}}",native::result_state(&service)).expect("bounded receipt");
+      }
+    }
+    file.sync_all().expect("durable receipt");
+}

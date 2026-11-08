@@ -1,0 +1,10 @@
+{
+  "diagnostic_scores_sha256": "2a75b380f77d22dc9146a79742ff268bccb6372b37a758a7a68b92e48513bf8d",
+  "method": "Scalar candidate/surface-equivalence selection; no diagnostic outcome helper",
+  "new_fits": 0,
+  "new_inference_runs": 0,
+  "point_reports_recounted": 120,
+  "report_sha256": "6bad9d2fb2210509df18e2174e32130a243cad48693ea10ac71dc51e8793dd67",
+  "rows_per_report": 4000,
+  "status": "passed"
+}

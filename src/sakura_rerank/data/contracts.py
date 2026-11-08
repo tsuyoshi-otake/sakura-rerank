@@ -1065,6 +1065,22 @@ def validate_record(record: Mapping[str, Any], *, require_split: bool = True) ->
     return json.loads(json.dumps(normalized, ensure_ascii=False, sort_keys=True))
 
 
+def validate_conversion_candidates(reading: str, candidates: Any) -> list[dict[str, Any]]:
+    """Validate native full-reading candidates without imposing a corpus/label tier.
+
+    This boundary proves structural/fingerprint consistency only. It cannot prove
+    exporter execution, source truth, context provenance or Gold admission.
+    """
+    reading = _require_string(reading, "reading", max_chars=MAX_READING_CHARS)
+    if not isinstance(candidates, list) or not 1 <= len(candidates) <= 32:
+        _error("candidates", "native candidate count outside bound")
+    result = [_validate_candidate(value, f"candidates[{i}]", rank=i, reading=reading, is_fixture=False)
+              for i, value in enumerate(candidates)]
+    if len({value["surface"] for value in result}) != len(result):
+        _error("candidates", "native candidate surfaces must be unique")
+    return result
+
+
 def validate_records(
     records: Sequence[Mapping[str, Any]], *, require_split: bool = True
 ) -> list[dict[str, Any]]:

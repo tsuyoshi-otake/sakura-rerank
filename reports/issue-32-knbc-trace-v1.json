@@ -1,0 +1,257 @@
+{
+  "accuracy_improvement_demonstrated": false,
+  "adopted_accuracy_percent": 90.72,
+  "comparison_status": "stopped_before_fit",
+  "release_complete": false,
+  "trace": {
+    "calibration": false,
+    "changed_exclusions": 0,
+    "elapsed_seconds": 144.893,
+    "final_test": false,
+    "fits": 0,
+    "gold_admission": false,
+    "graph": {
+      "actual_signature_comparisons": 548613,
+      "conceptual_near_record_pairs": 225295926,
+      "distinct_near_signature_pairs": 942,
+      "distinct_signatures": 618325,
+      "duplicate_key_groups": {
+        "article": 56384,
+        "author": 361,
+        "input": 2959,
+        "paragraph": 201899
+      },
+      "edge_kinds": {
+        "article": 871657,
+        "author": 534887,
+        "input": 5565,
+        "paragraph": 615786,
+        "sentence_exact": 376958,
+        "sentence_near": 2208
+      },
+      "nodes": 995283,
+      "representative_edges": 2407061
+    },
+    "interpretation": "author edges use template_cluster_id; KNBC prefixes are not certified authors. Distances count content edges on the representative graph after identity contraction. Diagnostic omission is not admission or a new independent evaluation.",
+    "kind": "consumed_knbc_relation_trace_v1",
+    "model_calls": 0,
+    "new_input_components": [
+      {
+        "direct_known_inputs": 159,
+        "inputs": 1103,
+        "new_articles": 158,
+        "new_prefix_families": 58,
+        "seeds": {
+          "consumed_source": 676,
+          "historical_input": 193012,
+          "known_input_alias": 159
+        }
+      },
+      {
+        "direct_known_inputs": 4,
+        "inputs": 28,
+        "new_articles": 4,
+        "new_prefix_families": 1,
+        "seeds": {
+          "consumed_source": 0,
+          "historical_input": 0,
+          "known_input_alias": 4
+        }
+      },
+      {
+        "direct_known_inputs": 2,
+        "inputs": 13,
+        "new_articles": 2,
+        "new_prefix_families": 1,
+        "seeds": {
+          "consumed_source": 0,
+          "historical_input": 0,
+          "known_input_alias": 2
+        }
+      },
+      {
+        "direct_known_inputs": 0,
+        "inputs": 8,
+        "new_articles": 1,
+        "new_prefix_families": 1,
+        "seeds": {
+          "consumed_source": 0,
+          "historical_input": 0,
+          "known_input_alias": 0
+        }
+      },
+      {
+        "direct_known_inputs": 2,
+        "inputs": 6,
+        "new_articles": 2,
+        "new_prefix_families": 1,
+        "seeds": {
+          "consumed_source": 0,
+          "historical_input": 0,
+          "known_input_alias": 2
+        }
+      }
+    ],
+    "paths": {
+      "consumed_source": {
+        "content_edge_distance": {
+          "-1": 55,
+          "0": 1103
+        },
+        "selected_path_content_kinds": {
+          "identity_only": 1103
+        },
+        "selected_seed_source": {
+          "tatoeba": 1103
+        },
+        "verified_identity_roots": 119789
+      },
+      "historical_input": {
+        "content_edge_distance": {
+          "-1": 55,
+          "0": 1103
+        },
+        "selected_path_content_kinds": {
+          "identity_only": 1103
+        },
+        "selected_seed_source": {
+          "kwdlc": 1103
+        },
+        "verified_identity_roots": 119789
+      },
+      "known_input_alias": {
+        "content_edge_distance": {
+          "-1": 8,
+          "0": 1150
+        },
+        "selected_path_content_kinds": {
+          "identity_only": 1150
+        },
+        "selected_seed_source": {
+          "knbc": 1150
+        },
+        "verified_identity_roots": 119789
+      }
+    },
+    "plan_sha256": "a872c972062ea94c67e89d0c48efa760f012a6e89971e2a6cc73aba7321fb279",
+    "seed_counts": {
+      "consumed_source": 6260,
+      "historical_input": 503339,
+      "known_input_alias": 167
+    },
+    "status": "complete_diagnostic_only",
+    "training_admission": false,
+    "verification": {
+      "component_identities": 1158,
+      "legal_edges": 2407061,
+      "preserved_exclusions": 1150
+    },
+    "views": {
+      "article_input": {
+        "any_seed_connected": 995,
+        "connected_inputs": {
+          "consumed_source": 715,
+          "historical_input": 738,
+          "known_input_alias": 976
+        },
+        "input_components": 68,
+        "unconnected_inputs": 163
+      },
+      "content_only": {
+        "any_seed_connected": 167,
+        "connected_inputs": {
+          "consumed_source": 0,
+          "historical_input": 0,
+          "known_input_alias": 167
+        },
+        "input_components": 1158,
+        "unconnected_inputs": 991
+      },
+      "full": {
+        "any_seed_connected": 1150,
+        "connected_inputs": {
+          "consumed_source": 1103,
+          "historical_input": 1103,
+          "known_input_alias": 1150
+        },
+        "input_components": 5,
+        "unconnected_inputs": 8
+      },
+      "identity_and_exact": {
+        "any_seed_connected": 1150,
+        "connected_inputs": {
+          "consumed_source": 1103,
+          "historical_input": 1103,
+          "known_input_alias": 1150
+        },
+        "input_components": 5,
+        "unconnected_inputs": 8
+      },
+      "identity_only": {
+        "any_seed_connected": 1150,
+        "connected_inputs": {
+          "consumed_source": 1103,
+          "historical_input": 1103,
+          "known_input_alias": 1150
+        },
+        "input_components": 5,
+        "unconnected_inputs": 8
+      },
+      "input_only": {
+        "any_seed_connected": 181,
+        "connected_inputs": {
+          "consumed_source": 0,
+          "historical_input": 59,
+          "known_input_alias": 167
+        },
+        "input_components": 1057,
+        "unconnected_inputs": 977
+      },
+      "template_input": {
+        "any_seed_connected": 1150,
+        "connected_inputs": {
+          "consumed_source": 1103,
+          "historical_input": 1103,
+          "known_input_alias": 1150
+        },
+        "input_components": 5,
+        "unconnected_inputs": 8
+      },
+      "without_template": {
+        "any_seed_connected": 1008,
+        "connected_inputs": {
+          "consumed_source": 789,
+          "historical_input": 812,
+          "known_input_alias": 989
+        },
+        "input_components": 60,
+        "unconnected_inputs": 150
+      }
+    },
+    "witnesses_sha256": "628a42c7ae6659fc338c39e3a7d37727bb32db910b5d1b62b5afc36cf8815b0f"
+  },
+  "trace_plan_commit": "982d56f",
+  "trace_report_sha256": "c30f66e07740e35cc7003d491737934ccc74ca9b26310fe683932ae504521d1c",
+  "validation": {
+    "dedicated_temp_created": false,
+    "elapsed_test_seconds": 75.56,
+    "errors": 0,
+    "failures": 0,
+    "full_tests": 1082,
+    "preservation": {
+      "checkpoint_hashes": 10,
+      "fit_bindings": 25,
+      "integrity_report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab",
+      "old_artifacts": 16,
+      "status": "passed",
+      "syntax_unused_import_files": 2,
+      "type_checker": "not_run",
+      "unchanged_prior_reports": 5
+    },
+    "private_recovery_bytes": 223998,
+    "private_recovery_files": 8,
+    "recorded_pids_absent": 6,
+    "skips": 0,
+    "survivors": 0
+  }
+}

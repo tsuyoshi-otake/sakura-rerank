@@ -1,0 +1,25 @@
+fn path_fixture(scenario:&str)->Arc<ConversionService> {
+    if !["fused","mixed_user","repair_dictionary"].contains(&scenario) { return conversion_fixture(); }
+    let mut source=String::from("# license: MIT\nreading\tsurface\tleft_id\tright_id\tword_cost\tprediction_cost\tflags\tannotation\n");
+    if scenario=="mixed_user" {
+        source.push_str("か\t科\t1\t1\t100\t100\t\tfixture\nか\t課\t1\t1\t200\t200\t\tfixture\n");
+    } else {
+        for index in 0..5 {
+            writeln!(source,"かな\t形{index}\t1\t1\t{}\t{}\t{}\tfixture",100+index*100,100+index*100,
+                if scenario=="repair_dictionary" && index==0 {"correction"} else {""}).expect("entry");
+        }
+    }
+    let entries=dictc_core::parse_entries("research-path.tsv",&source).expect("entries");
+    let matrix=dictc_core::parse_connection("matrix.tsv","# license: MIT\nclasses\t2\ndefault\t0\n",false).expect("matrix");
+    let features=vec!["BOS".to_owned(),"NOUN".to_owned()];
+    let rules=dictc_core::segmenter::parse_mozc_segmenter_rules("rules","* * false\n").expect("rules");
+    let boundaries=dictc_core::segmenter::build_boundaries("rules",&features,&rules).expect("boundaries");
+    let image=dictc_core::compile_with_tables(&entries,&matrix,dictc_core::OptionalTables {
+        boundaries:Some(&boundaries),..Default::default() }).expect("image");
+    let conversion=Arc::new(ConversionService::from_static_bytes(Box::leak(image.into_boxed_slice())).expect("conversion"));
+    if scenario=="mixed_user" {
+        conversion.replace_user_dictionary(UserDictionary::parse_tsv(
+            "reading\tsurface\tpos\tcomment\nな\tユーザー\tnoun\tfixture\n").expect("user"));
+    }
+    conversion
+}

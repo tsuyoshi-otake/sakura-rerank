@@ -1,0 +1,48 @@
+{
+  "kind": "literal_and_input_boundary_research_plan",
+  "issues": [31, 32],
+  "parent": 1,
+  "date": "2026-11-05",
+  "population_commit": "dfb3601062fc5dc6a53d76fb096141d1e10db032",
+  "population_path": "data/generated/issue-39-context-pilot-v1/targets.jsonl",
+  "population_sha256": "08adf8380c474ea4bd4e6c414748ac6c1506ffbf07c23c1ab599fd9afcfe0417",
+  "population_binding_sha256": "27d495757eed2a53debb25dcc252bf17b5eeb9a5255f27f5e9a36830bc66ee5c",
+  "source_scope": "Same 250 fixed KWDLC train documents and all 1000 previously exposed slots. Research evaluation only, no training, no redistribution. Original rights limitations remain.",
+  "selection": "No replacement, new source acquisition, or candidate-dependent target selection. Retain all 1000 slots and the original v1 statuses.",
+  "token_classes": {
+    "phonetic": "Nonempty reading contains only U+3041..U+3096 or U+30FC. Preserve original reading and surface exactly.",
+    "literal": "Nonempty surface equals reading byte-for-byte and every character has Unicode general category P* or S*. Phonetic takes precedence (long-vowel marks stay phonetic).",
+    "unresolved": "Any alternative annotation, unsupported token, original parse/bounds failure, or reconstructed span mismatch. No normalization, reading repair, or semantic certification."
+  },
+  "views": {
+    "whole": "One converter request for the original full reading, including literal characters. This is a research hypothesis about input extent, not an observed user boundary.",
+    "literal_split": "Preserve each literal span exactly; convert maximal contiguous phonetic token runs independently. No cross-EOS or inferred morpheme split inside a run.",
+    "morpheme_diagnostic": "Convert every original phonetic morpheme independently and preserve literal tokens. Diagnostic for composition vs component support only; not a proposed user input policy."
+  },
+  "bounds": {"slots": 1000, "reading_characters": 128, "surface_characters": 256, "phonetic_parts_per_view": 32, "unique_requests": 16000, "batch": 100, "batch_timeout_seconds": 120, "run_timeout_seconds": 600, "retries": 0},
+  "reuse": "Authenticate and reuse the 722 pure-reading converter snapshots from the immutable #39 run. Convert only new unique readings, using the identical frozen converter and dictionary. No user dictionary or context input.",
+  "converter_identity_sha256": "9193ee9d387d0431016347e881e2fb245833ea0d603b829e91494e3258d65877",
+  "metrics": [
+    "Terminal statuses by original input-unit policy; measured and unmeasured retain separate denominators",
+    "Whole-reading source-exact Top1/5/6/10/32 counts; explicitly compare the same 747 original measured slots",
+    "Split/composed Top1 and all-components-present-at-k oracle for k=1/5/6/10/32; never call the Cartesian oracle whole-reading Top-k",
+    "Within the same slots, original whole-reading misses vs component-support failures and composed-support availability; no automatic reading-error, dictionary-error or pruning attribution",
+    "Literal-token counts, split-run bounds, new/reused request counts, converter search terminal statuses, failures and not-attempted outcomes"
+  ],
+  "failure_policy": "Any invalid snapshot, hash/identity mismatch, timeout or nonzero converter exit stops new execution. Preserve failed batch receipt and count remaining requests as not_attempted. No automatic retry or target replacement.",
+  "sakura_input_observed_head": "c53f1f179b5424ed335a44dddf8a16cd46648920",
+  "behavior_source": "Historical reference exporter source 5eefa2ffe15297e563da281432cece56049a1b09 only; production checkout is not used.",
+  "gold_certified": false,
+  "model_training": false,
+  "model_predictions": false,
+  "independent_test": false,
+  "production_protocol_change": false,
+  "safety_threshold": 0.0025,
+  "verify_expect": [
+    {"Verify": "Authenticate old population, selection and source bodies; regenerate old slots and new views twice", "Expect": "Old bytes unchanged; identical new preparation; 1000 retained slots; no raw text in tracked artifacts"},
+    {"Verify": "Commit plan before new preparation and commit input binding before converter access", "Expect": "Exact immutable identities for both stages; no outcome-based policy changes"},
+    {"Verify": "Test token classification, alternatives, bounds, literal preservation, request reuse and partial failures", "Expect": "Explicit terminal outcome for every slot; no unresolved row counted as measured"},
+    {"Verify": "Validate native receipts and independently recount source presence and composition", "Expect": "All reported counts match saved snapshots; source-exact and oracle metrics distinguished"},
+    {"Verify": "Run full regression suite, old artifact integrity, process and cleanup checks", "Expect": "All tests pass, old models/data unchanged, no owned runner or temporary files remain"}
+  ]
+}

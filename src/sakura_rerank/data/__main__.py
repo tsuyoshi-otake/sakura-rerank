@@ -66,11 +66,13 @@ from .exporter_requests import (
 from .exporter_shards import read_exporter_output_shards, read_request_shard_directory
 from .jawiki_acquisition import AcquisitionError, acquire_jawiki
 from .jawiki_preprocess import (
+    CLEANER_VERSION,
     ExtractorConfig,
     PreprocessingError,
     extract_source_spans,
     load_dictionary_inputs,
 )
+from .source_quality import QUALITY_CLEANER_VERSION
 from .human_audit import (
     apply_audit_responses,
     build_quality_report,
@@ -203,6 +205,8 @@ def _parser() -> argparse.ArgumentParser:
     preprocess.add_argument("--dictionary-manifest", type=Path, required=True)
     preprocess.add_argument("--report", type=Path, required=True)
     preprocess.add_argument("--extractor-git-sha", required=True)
+    preprocess.add_argument('--cleaner-version', choices=(CLEANER_VERSION, QUALITY_CLEANER_VERSION),
+                            default=CLEANER_VERSION, help='explicit v5 source-quality quarantine; v4 stays reproducible')
     preprocess.add_argument("--sample-modulus", type=int, default=1_000)
     preprocess.add_argument("--sample-slots", type=int, default=10)
     preprocess.add_argument("--sample-slot-start", type=int, default=0)
@@ -1420,6 +1424,7 @@ def _run(arguments: argparse.Namespace) -> int:
                 max_reading_chars=arguments.max_reading_chars,
             ),
             stable_id_exclusion_path=arguments.stable_id_exclusion,
+            cleaner_version=arguments.cleaner_version,
         )
         print(
             json.dumps(

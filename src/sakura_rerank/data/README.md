@@ -1,5 +1,318 @@
 # Data boundary tooling
 
+Issue #35's [prospective source/input partition](../../../research/issue-35-consumption-partition/README.md)
+is research-only and grants no admission. Source components retain every original
+non-input relation; known/shared input units quarantine individually without
+merging articles. A fixed consumed-frame counterfactual leaves 615/47, but actual
+independent Test capacity is 0. The span diagnostic tests context/teacher/body
+re-entry while refusing to certify missing coverage. Existing isolation and Gold
+readers are unchanged. Contracts: `tests/test_consumption_partition.py`.
+
+Issue #33's [single KNBC research frame](../../../research/issue-33-knbc-screening/README.md)
+adds `knbc_research.py`: preserve previously consumed families, choose a complete
+provider bunsetsu before validity checks, and retain every pending slot. Source
+reading/surface evidence is not IME intent. Historical input aliases and explicit
+source consumption can only exclude complete components of the existing graph.
+Direct input matches and propagated exclusions are reported separately. The
+2,786-slot application retained eight slots/one component and therefore stopped
+before candidate binding or fitting; the original isolation/admission rules are
+unchanged. Contracts: `tests/test_knbc_research.py`.
+
+The subsequent [relation trace](../../../research/issue-33-knbc-screening/README.md#exclusion-trace-2026-11-07)
+replays all 1,158 component identities and 1,150 exclusions. Input equality and
+prefix grouping suffice; content relations add zero excluded inputs in this
+frame. The `author` edge name denotes `template_cluster_id`, not verified KNBC
+authorship. Its eight views are diagnostic only and cannot admit an excluded
+row or reuse the consumed frame as independent Test. `tests/test_knbc_trace.py`
+checks propagation and rejects invalid path certificates.
+
+Issue #35's [native path features](../../../research/issue-35-native-paths/README.md)
+adds schema5 with exact pre-fusion raw edges. Native construction supplies source
+kinds/UTF-8 boundaries; display counts and evidence tags never substitute for them.
+`native_paths` validates whole input/path identity before inference;
+`native_path_inputs` preserves frozen historical model math. This grants no
+training/exporter identity, independent Gold or final-Test admission.
+
+Issue #35's [full native population](../../../research/issue-35-native-population/README.md)
+adds evaluation schema4:1–768 candidates and1536 UTF-8 bytes per reading/surface,
+using observed native fields only. Full and model-prefix counts are sealed
+separately; tail fallback and full oracle enter metrics. Historical schemas and
+training remain32-bound; unproven per-edge features and Gold admission stay refused.
+
+Issue #35's [native capture binding](../../../research/issue-35-native-state/README.md)
+adds `native_snapshot.py` and evaluator schema3. The actual private native build
+produces candidates, local selection and request/response identities; hash-bound
+row verification precedes inference and rejects replay. Full native populations
+are retained in diagnostics. Schemas1–3 still reject populations over32
+and unproven per-edge research features, never silently truncates or guesses them.
+This evidence grants no Gold, real-session, training or final-Test admission.
+
+Issue #35's [current Tiny snapshot contract](../../../research/issue-35-current-tiny-parity/README.md)
+requires explicit native local-selection index, direct-prefix count, evidence
+tags and schedule/selection facts for version2 evaluation. Missing facts fail;
+legacy source categories do not establish them. The provenance artifact must
+bind the actual producer and immutable snapshot. Existing candidate fingerprint
+checks validate the legacy descriptor format, not the current engine's full
+session/candidate-set handshake. No real native-state producer or Gold admission
+is supplied by the synthetic parity tests. Both converter-Top1 and native-local
+safety references retain the unchanged0.25% requirement.
+
+Issue #35's [evaluation runner](../../../research/evaluation-runner-v1.md) uses
+`contracts.validate_conversion_candidates(reading, candidates)` to check native
+candidate structure without asserting label validity. It reuses full UTF-8 segment,
+rank, provenance, cost and fingerprint validation, with1–32 unique surfaces.
+It grants no exporter-truth, Gold or training admission and does not infer current
+product candidate-evidence groups from legacy source categories. Contracts:
+`tests/test_evaluation_runner.py`.
+
+Issue #35's [fixed KNBC format pilot](../../../research/issue-35-knbc-format-pilot/README.md)
+adds `knbc_source.py`: metadata-only reservations and bounded, source-preserving
+annotation parsing. Annotated surface, reading, lemma, grammar, structural lines,
+notes and alternatives stay distinct. ER can occur on structural lines; lemma
+ambiguity is not a reading/IME-label verdict. The complete 100-slot consumption
+ledger, 20 reserved articles and 19 conservative prefix families must enter any
+future history binding, including the failed empty-file slot. This producer grants
+no training/Gold/evaluation admission and does not establish original-surface,
+author, input-boundary or full-history independence. Contracts: `test_knbc_source.py`.
+
+Issue #31's [source-screened recipe](../../../research/issue-31-source-recipe/README.md)
+adds `source_research_recipe.py`. It joins authenticated source decisions to all
+original numeric identities, distinguishes annotation evidence from explicitly
+weak dictionary-only evidence, and filters a separately bound original per-arm
+presentation order. Source order, numeric row order and arm order are distinct.
+The hash-bound reader permits only `fit_binding_preparation`; original cache
+admission, excluded history and Gold/evaluation restrictions remain. Contracts:
+`tests/test_source_research_recipe.py`.
+
+Issue #31's [lexical coverage diagnostic](../../../research/issue-31-lexical-coverage/README.md)
+adds `lexical_cover.py`. It checks complete exact target/reading composition from
+authenticated dictionary pairs, with optional literal-kana copying as a separate
+condition. Bounded graph witnesses use character offsets; they do not imply native
+segment counts, POS connectivity, candidate reachability or Japanese correctness.
+Limits return explicit `work_bound`, never absence. All source/control rows retain
+lineage and deny training/Gold admission. Contracts: `tests/test_lexical_cover.py`.
+
+Issue #31's [source-extent diagnostic](../../../research/issue-31-source-extents/README.md)
+adds `source_reading_units.py`: original ruby, following literal kana and maximal
+supported runs, derived only from complete original annotations and literal kana.
+Unknown readings/annotations form barriers; no guessed pronunciation, partial
+annotation, normalization or clipping. Native diagnostic and preparation bounds
+remain distinct; all variants retain parent/component lineage and deny training,
+Gold and independent evaluation. Tests: `test_source_reading_units.py`. These are
+input hypotheses, not certified words or a replacement for the source-reading gate.
+
+Issue #31's [original-reading reconstruction](../../../research/issue-31-reading-rebuild/README.md)
+adds `source_reading_rebuild.py`. Only an authenticated exact original-ruby
+contradiction can derive a new reading/identity; target, context, component and
+parent provenance remain. Out-of-bound readings stay pending. Children pass the
+strict source gate and remain research-only, without fitting/Gold permission.
+Candidate execution and numeric exposure are separately bound because changing
+reading changes both input equality and candidate availability. Contracts are
+`tests/test_source_reading_rebuild.py`; original rows and extractors are unchanged.
+
+Issue #31's [reading-consistency preparation](../../../research/issue-31-reading-consistency/README.md)
+adds `source_reading_gate.py`. New preparation recomputes exact original-span/ruby
+evidence; conflicts and uncertain annotations stay pending. Missing annotation is
+pending by default, with separately explicit dictionary-only weak preparation.
+The complete decision chain is preserved; the authenticated candidate/numeric-only
+reader cannot return pending rows or authorize training/Gold. Staging is validated
+before transactional publication. Existing extractors and labels are unchanged.
+Contracts and corruption/failure checks: `tests/test_source_reading_gate.py`.
+
+Issue #31's [source-conflict diagnosis](../../../research/issue-31-conflict-source/README.md)
+keeps dictionary uniqueness, original ruby agreement, source substring presence
+and intended IME correctness separate. All75,000 consumed source spans replay;
+335 dictionary-reading contradictions are hash-only repair proposals, not applied
+labels or Gold. Mechanical notation folds and character adjacency never admit or
+reject labels. The research-only contract tests are `test_conflict_source.py`;
+the existing source extractors, training cache and production inputs are unchanged.
+
+Issue #34's [fixed CPU proposals](../../../research/issue-34-cpu-proposals/README.md)
+add strict label-free source/empty-context projections in `gate_proposal_inputs.py`.
+Projected input equality is joined with complete original components before folds;
+context removal can introduce old-input exposure that was absent in the original
+representation. Eight model inputs stay separate from the later source-label
+census. Contract tests are `test_gate_proposal_inputs.py` and
+`test_gate_proposal_metrics.py`. The proposal bundle authorizes no fit, calibration,
+Gold or final Test; empirical source-label ceilings are not IME accuracy ceilings.
+
+Issue #34's [OOF metadata audit](../../../research/issue-34-oof-design/README.md)
+preserves all training components plus original/numeric-input equality before
+fold allocation. `gate_oof.py` checks fitting and selection exposures through
+initialization/teacher ancestry; unknown ancestry is never a clean root. Nested
+gate evaluation excludes its outer fold from every inner proposal generator.
+Recorded evidence cannot self-certify source independence, Gold or fit permission.
+Contracts are in `tests/test_gate_oof.py`; individual identities/folds stay private.
+
+Issue #35's [fixed source-model comparison](../../../research/issue-35-source-models/README.md)
+projects authenticated candidates into eight label-free inputs with empty observed
+session context. `source_model_inputs.py` preserves the legacy 32-character prefix
+and masks one to six actual candidates; six is padded capacity, not required count.
+The research score adapter applies the published gates only after all fixed model
+outputs are sealed. Source targets stay in a separate evaluator sidecar. All source
+and native failures remain in the full denominator; this path admits no training,
+Gold, calibration or final Test. Contracts are `test_source_model_inputs.py` and
+`test_source_model_decisions.py`.
+
+Issue #35's [prospective source consumption](../../../research/issue-35-source-consumption/README.md)
+adds `tatoeba_consumption.py`: metadata-only reservation before decoding, exact
+continuous extents, empty observed-session context and explicit failed slots.
+`source_exposure.py` distinguishes semantically consumed neutral source records
+from unconsumed inventory. Explicit source-only exposure propagates existing
+relations and can only add exclusions, even when no valid reading/input exists.
+It cannot fabricate an input token, change old splits or admit Gold. Contracts:
+`test_tatoeba_consumption.py`, `test_source_consumption_metrics.py` and
+`test_source_exposure.py`. Preserve all consumed source IDs for future reservations,
+including source/annotation/native failures. Source presence is not IME correctness.
+
+Issue #35's [source-unit diagnostic](../../../research/issue-35-source-units/README.md)
+adds `tatoeba_input_units.py` for whole-source, literal-run and ruby-fragment
+hypotheses with exact original surfaces and an explicit kana input projection.
+`source_owner_diagnostic.py` omits only authenticated administrative-owner groups
+in diagnostic views; it cannot write splits or restore exclusions. Native output
+rejected by the unchanged 18-segment snapshot bound stays unmeasured, and only
+previously unattempted requests may continue under a new binding. The report
+separates component presence from whole-input rank and independent accuracy.
+Contracts are `test_tatoeba_input_units.py`, `test_source_owner_diagnostic.py`,
+`test_source_unit_metrics.py`, and `test_source_unit_continuation.py` under `tests/`.
+
+Issue #35's [external-source pilot](../../../research/issue-35-source-pilot/README.md)
+adds `tatoeba_source.py` for bounded export decoding and exact whole-ruby alignment.
+Named editors are provider provenance, never imported A/B human judgments. Licensed
+sentence membership is checked before selecting transcription rows; every selected
+slot remains visible, including invalid markup. Source alignment, intended reading,
+IME input boundaries, historical relations and Gold admission stay separate.
+No source pilot output enters training, calibration or final Test. Contracts are
+`tests/test_tatoeba_source.py` and `tests/test_tatoeba_acquisition.py`.
+
+Issue #33's [fixed loss-balance experiment](../../../research/issue-33-loss-balance/README.md)
+reuses the same authenticated training rows and changes only train-derived
+per-example loss weights. Separate committed fit and evaluation permissions,
+the train-only read guard, full history closure, and all-model sealing remain
+required. The weighted recipe passed its narrow research comparison on 593 fresh
+examples but did not beat dictionary anchors or establish safety. The KWDLC
+public-train reservation has no unused documents left. Future comparisons need
+new isolated sources; the existing cache admission and Gold contracts stay
+unchanged. Loss and statistics contracts are in
+`tests/test_balanced_reconstruction_loss.py` and `tests/test_loss_balance_statistics.py`.
+
+Issue #33's [train-only change audit](../../../research/issue-33-train-change-audit/README.md)
+reuses the authenticated 75,000-row cache and all seven fixed checkpoints.
+Shared Wikipedia and both Aozora cohorts stay disjoint in reporting; saved
+scores, exposure replay and scalar recounts diagnose excessive changes without
+new labels, fitting, evaluation backfill or cache admission changes. The
+sampled GPU/CPU tolerance failures remain explicit. Contracts are in
+`tests/test_train_change_audit.py`; these fitted-data observations do not certify
+independent accuracy, Gold quality or a safety gate.
+
+Issue #33's [paired extraction experiment](../../../research/issue-33-annotation-experiment/README.md)
+completed the separately bound six fits and fresh research evaluation. Its
+train-only reader authenticates all 75,000 union rows and denies unbound data
+reads during fitting; evaluation uses the same 985 isolated main examples for
+all models. The annotation recipe failed its prespecified comparison and is not
+adopted. This research consumer leaves the source cache's original unverified
+admission state unchanged and does not authorize Gold or production use.
+Boundary tests: `tests/test_annotation_fit_boundary.py`,
+`tests/test_annotation_experiment_numeric.py`, and
+`tests/test_annotation_experiment_statistics.py`.
+
+Issue #33's [paired extraction preparation](../../../research/issue-33-annotation-comparison/README.md)
+adds `reconstruction_inputs.py` for original dictionary-fragment positions and
+`reconstruction_graph.py` for complete neutral-source metadata. Neutral source
+signatures have a separate bounded contract; real input bounds and relation
+algorithms are unchanged. Full legacy parity, mixed-source closure and all
+numeric rows are checked before any fit. Contracts are in
+`tests/test_reconstruction_inputs.py` and `tests/test_reconstruction_graph.py`.
+The two fixed 50,000-row cohorts remain weak source reconstruction, not Gold;
+fresh research evaluation readiness and a separate fit binding were required
+before the linked experiment, and remain required for any new fit.
+
+Issue #33's [consumed numeric preparation](../../../research/issue-33-consumed-numeric/README.md)
+adds `consumed_numeric.py` for minimal encoder projections, row provenance chains
+and bounded authenticated array loading. The only enabled reader purpose is
+numeric verification. Original source labels remain unpromoted; a separate
+verification receipt does not authorize fitting or Gold evaluation. Right-side
+source observations and origin metadata never enter feature tensors. All source,
+snapshot and tensor bindings are recorded in the linked report; contracts are in
+`tests/test_consumed_numeric.py`.
+
+Issue #49's [consumed annotation contrast audit](../../../research/issue-49-consumed-contrast/README.md)
+adds `annotation_contrast.py` for descriptive source-boundary observations and
+conservative contrast capacity within #32's verified consumption scope. Character
+adjacency never certifies or rejects a label; right-side source classes are audit
+metadata, not model inputs. Fixed native batches and per-member failure accounting
+live in the linked research scripts. All source inputs and candidate snapshots
+require final receipt verification; preparation alone is not trusted admission.
+Contracts: `tests/test_annotation_contrast.py` and `tests/test_consumed_batch_execution.py`.
+
+Issue #32's [consumed-source quarantine trial](../../../research/issue-32-consumed-source/README.md)
+separates immutable full-source inventory from a proposed paragraph consumption
+scope. `consumed_source.py` rejects whole historically related paragraphs, checks
+exact original context/annotation positions, and emits hash-only receipts for
+`source_verification` only. Training/body/cache/model/checkpoint consumers remain
+disabled by this trial; the existing training pipeline is not changed. Relations
+must be rebuilt from retained nodes, not obtained by deleting old representative
+edges. Contracts: `tests/test_consumed_source.py`. Isolation is not label quality,
+Gold certification, or permission to restore old exclusions.
+
+Issue #32's [source relation paths](../../../research/issue-32-source-relations/README.md)
+add `relation_witnesses.py` for read-only typed connectivity and historical path
+certificates. Equal-signature stars alone are insufficient for removing relation
+types: distinct near-signature pairs retain their own bipartite spanning evidence.
+Diagnostic disconnection never admits a row, rewrites a split, or certifies Gold.
+Contracts: `tests/test_relation_witnesses.py`; full #49 component parity and
+all-parent verification are recorded in the linked report.
+
+Issue #49's [annotation-first source and candidate audit](../../../research/issue-49-annotation-first/README.md)
+adds `annotation_first.py` for whole original ruby bases and all retained-source
+coverage, and `annotation_isolation.py` for the existing relation core with its
+one-million-node research bound. Source-only nodes carry no synthetic input hash.
+Every annotation has a terminal outcome; original readings and positions remain
+provisional evidence, never certified Gold or admitted training labels. The
+historical adapter and source artifacts are immutable. Contracts are in
+`tests/test_annotation_first.py`, `tests/test_annotation_isolation.py`, and
+`tests/test_annotation_relation_audit.py`. The linked report separates historical
+roles, short-text relations and conditional candidate presence from accuracy.
+
+Issue #48's [train contrast and original reading evidence audit](../../../research/issue-48-contrast-data/README.md)
+adds `contrast_capacity.py` for source-balanced planning and separate document/component
+witnesses, and `aozora_ruby_evidence.py` for exact original span and ruby recovery.
+Neither admits new training labels nor certifies Gold. Missing, conflicting and
+partial annotation evidence remains explicit; frozen source data and old sidecars
+are unchanged. Contracts: `test_contrast_capacity.py`, `test_aozora_ruby_evidence.py`,
+and `test_contrast_evidence_publication.py` under `tests/`.
+
+Issue #31/#32's [literal and input-boundary audit](../../../research/issue-31-input-boundary/README.md)
+defines exact phonetic/literal hypotheses in `input_boundary.py`. Whole-reading
+N-best presence and all-components presence are different metrics. Export
+rejections remain unmeasured with explicit receipts; they are never empty
+certified candidate lists. Contracts: `tests/test_input_boundary.py` and
+`tests/test_input_boundary_execution.py`. No annotations, training inputs,
+production boundaries or Gold admission rules are changed.
+
+The approved Issue #31/#32 [Gold operations pilot](../../../research/gold-pilot-protocol.md)
+uses separate `gold_pilot` and read-only `frozen_diagnostics` commands. It never
+applies labels or certifies Gate A, even after 1,000 unanimous human judgments.
+Do not feed its packets or proposals to the legacy `human-audit apply` command.
+
+Issue #35's [independent evaluation protocol](../../../research/independent-evaluation-protocol-v1.md)
+adds `splitter.audit_evaluation_partitions` for read-only history/train/calibration/Test
+audits, including exact bounded input equality in the source-component closure.
+It returns aggregate evidence and private Test reuse tokens without certifying
+Gold or historical coverage. `sakura_rerank.test_use_registry` owns durable Test
+consumption records; failed evaluations never release that population for reuse.
+The corresponding contracts are in `tests/test_evaluation_protocol.py`. Existing
+split assignment and historical exclusion behavior remain unchanged.
+`evaluation_component_keys` exposes the same closure for paired resampling.
+The [metric contract](../../../research/evaluation-metrics-v1.md) documents
+`sakura_rerank.evaluation_metrics`: shared denominators, exact surfaces, explicit
+fallback outcomes, paired component intervals and their statistical limits.
+The [artifact access contract](../../../research/evaluation-admission-v1.md)
+connects exact plan/data/model/gate identities to the Test registry. It refuses
+unrecognized independent Gold evidence, pins consumption before Test content
+access, and preserves failure outcomes. Its trust set is currently empty; this
+is not a completed independent evaluation. See `tests/test_evaluation_admission.py`.
+
 This package defines acquisition, deterministic source-span preprocessing,
 provenance, Tier A assembly, and splitting. It never invokes Sakura Input or
 trains a model. Tier A assembly consumes immutable external artifacts and does

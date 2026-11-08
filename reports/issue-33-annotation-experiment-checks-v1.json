@@ -1,0 +1,40 @@
+{
+  "ast_and_compile_files": 17,
+  "bound_code_hash_checks": 13,
+  "diff_check": true,
+  "final_test_used": false,
+  "gold_certified": false,
+  "kind": "annotation_experiment_completion_checks",
+  "local_report_links": true,
+  "new_accuracy_recipe_adopted": false,
+  "original_integrity": {
+    "bound_fit_artifacts": 25,
+    "original_artifacts": 16,
+    "report_sha256": "19369f801ab515161bfce4f03d49f69c31609d66dac37b3e6db2a8b22072ebab",
+    "status": "passed"
+  },
+  "public_copied_reports_verified": 8,
+  "public_json_reports_content_checked": 10,
+  "release_complete": false,
+  "result_verification_sha256": "b39c39eb57e3f93e0f1eb361a816c3e30d98fbfda480e7ae603acfc70c2f942b",
+  "safety_threshold": 0.0025,
+  "static_advisory_disposition": "One unused import in the already executed, hash-bound prepare_fit recipe. Preserve the frozen experiment bytes; this is not a clean lint result and no runtime function is unreachable because of it.",
+  "status": "passed_with_documented_static_advisory",
+  "tracked_raw_artifacts_in_experiment_commits": 0,
+  "type_checker_run": false,
+  "unit_receipt_sha256": "7f15bfc0580020af003d5552c8244097957793862ad534ae349993aabcdf414a",
+  "unit_tests": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "successful": true,
+    "tests": 658
+  },
+  "unused_import_findings": [
+    {
+      "line": 9,
+      "name": "rows",
+      "path": "research/issue-33-annotation-experiment/prepare_fit.py"
+    }
+  ]
+}
