@@ -96,6 +96,22 @@ class PilotDoubtEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.result(dict(self.supplement, sources=[self.source]))
 
+    def test_report_labels_sources_without_ledger_ids(self):
+        # Ledger source ids are reviewer-chosen text and can name a person or place
+        # tied to one audited case; the public report keeps only neutral labels (#92).
+        s = copy.deepcopy(self.supplement)
+        second = dict(self.source, id='a-person-name', excerpt='Second evidence',
+                      excerpt_sha256=hashlib.sha256(b'Second evidence').hexdigest())
+        first = dict(self.source, id='z-place-name')
+        s['sources'] = [first, second]
+        s['decisions'][0].update(outcome='external_reading_support', source_ids=['z-place-name', 'a-person-name'])
+        result = self.result(s)
+        self.assertEqual(result['source_excerpt_sha256'],
+                         {'source-1': second['excerpt_sha256'], 'source-2': first['excerpt_sha256']})
+        text = json.dumps(result)
+        self.assertNotIn('a-person-name', text)
+        self.assertNotIn('z-place-name', text)
+
     def test_source_hash_url_identity_time_and_limits(self):
         self.assertEqual(set(validate_sources([self.source])), {'source-1'})
         for change in (dict(excerpt='changed'), dict(url='http://example.org/'),

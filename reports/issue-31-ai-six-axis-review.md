@@ -109,7 +109,9 @@ python -X utf8 -m sakura_rerank.data.source_quality_audit --source data/generate
 
 **確認できたこと。** 辞書index全368,341行を1回のstreamでhash検証し、50件すべての対象表記は割当と一致する一意読みを持つと確認した。一方、左文脈の末尾32文字以内と対象を連結した長い辞書語が見つかったのは3件。これは左側重複の下限であり、残る47件に語境界の問題がないという主張ではない。右文脈は追加していない。
 
-読みの支持3件は、[京都大学の氏名読み記載](https://www.kyoto-u.ac.jp/kurenai/201910/onshi/index.html)、[日本郵便の三ツ沢中町](https://www.post.japanpost.jp/cgi-zip/zipcode.php?zip=2210851)、[同・五所川原市石岡](https://www.post.japanpost.jp/cgi-zip/zipcode.php?city=1022040&id=9680&pref=2)による。衝突2件は、[日本郵便の瀬戸市町名一覧](https://www.post.japanpost.jp/cgi-zip/zipcode.php?city=1232040&pref=23)と、[ZOOTIME園長による飼育個体・標本の解説](https://zootime.info/2021/03/17/%E3%80%90%E7%94%B2%E7%BE%85%E3%81%AE%E3%81%99%E3%81%B9%E3%81%A6%E3%82%92%E9%AA%A8%E6%A0%BC%E6%A8%99%E6%9C%AC%E3%81%A7%E8%A7%A3%E8%AA%AC%E3%80%91%E7%94%B2%E7%BE%85%E3%81%AE%E6%AD%A3%E4%BD%93%E3%81%A8/)に文脈上の全語読みが明記されることを根拠とする。後者は実務者の一次解説であり、唯一の規範の証明にはしない。いずれも当日の資料で、過去snapshotの同一性まで保証しない。検索結果snippetだけでは採用せず、ページ本文の対象一致を確認した。同字の別地域・別代の人物の資料は根拠にしなかった。
+読みの支持3件は、大学の公開人物記載1件と郵便番号検索の町名記載2件による。衝突2件は、郵便番号検索の町名一覧1件と、動物園の実務者による飼育個体・標本の解説1件に文脈上の全語読みが明記されることを根拠とする。後者は実務者の一次解説であり、唯一の規範の証明にはしない。いずれも当日の資料で、過去snapshotの同一性まで保証しない。検索結果snippetだけでは採用せず、ページ本文の対象一致を確認した。同字の別地域・別代の人物の資料は根拠にしなかった。5件の参照先URLと資料名は個別事例を特定するため、ignored local台帳 `data/generated/issue-31-doubt-evidence-v1/supplement.json`（sha256 `c4a458f7f942b9bc7faef5ddbaa9456653381f885560c4d45fc53d936b32355f`）だけに保持する。
+
+2026-11-08（#92）: 上の段落から事例を特定する参照先と資料名を外した。変更はこの段落と本注記だけである。変更前のbytesはsha256 `4a32cb012dbfa0b7c3f2e94f7ed5954b6a1c8b9f5072f42d0620eebdcfc54502` で、既存の検証報告7件の`old_artifact_hashes_unchanged` が記録するのはこの変更前の版である。同日、`reports/issue-31-doubt-evidence-v1.json` の `source_excerpt_sha256` のkeyをlocal台帳のsource id（人名・地名を含む）から、そのid辞書順の中立ラベル `source-1`〜`source-5` に置き換えた。excerpt hash値と他のfieldは不変で、変更前sha256は `80f1723222fa7226bc9d62f6e434bbafcd5a16939cc962a61ba0fc7e4a406209`、変更後は `7ea80477d29febe068da6eb622550dd8e85272d5143553b09092de5f923d10bf` である。生成元 `pilot_doubt_evidence.aggregate` も同じ規則で出力する。
 
 各資料の短い転記抜粋、URL、日時、保証範囲と限界をlocal台帳に保存した。excerpt hashは**保存した転記のhash**であり、サーバーから取得したページ全体のbyte hashではない。参照先の将来不変性や抜粋解釈の自動的な正しさを保証しない。
 
