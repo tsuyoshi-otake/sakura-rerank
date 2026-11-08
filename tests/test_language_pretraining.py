@@ -1,3 +1,4 @@
+import importlib.util
 import unittest
 
 from sakura_rerank.data.language_windows import fragment_windows
@@ -27,6 +28,7 @@ class LanguageWindowTests(unittest.TestCase):
         self.assertNotEqual(first["window_id"],second["window_id"])
 
 
+@unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch is an optional training dependency")
 class TiedLanguageHeadTests(unittest.TestCase):
     def setUp(self):
         import torch
