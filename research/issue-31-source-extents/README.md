@@ -151,7 +151,7 @@ The recorded stage commands are:
 ```powershell
 $env:PYTHONPATH='src;.'
 $env:PYTHONDONTWRITEBYTECODE='1'
-$python='C:/Users/developer/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe'
+$python="$HOME/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe"
 $sourceCommit='41e5a3a510087b12194a6fb9f54a4d68d64e45e5'
 $nativeCommit='e0c989f62eda0a266f8c832eef8fc9e11d74dec7'
 & $python -B research/issue-31-source-extents/run_owned.py prepare --commit $sourceCommit

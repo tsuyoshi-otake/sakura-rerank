@@ -155,7 +155,7 @@ Seven Python files pass syntax/unused-import checks. The original16 artifacts,
 $env:PYTHONPATH='src'
 $env:PYTHONDONTWRITEBYTECODE='1'
 $env:SAKURA_CONFLICT_ATTEMPT='attempt-02'
-$python='C:/Users/developer/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe'
+$python="$HOME/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe"
 $commit='247c8a791fb68e3375880c4d66449b62e08dd35f'
 & $python -B research/issue-31-conflict-source/run_owned.py audit --commit $commit
 & $python -B research/issue-31-conflict-source/run_owned.py verify --commit $commit

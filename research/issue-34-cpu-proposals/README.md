@@ -109,7 +109,7 @@ Preparation took 10.530 s, inference 83.889 s, and the verifier owner 91.005 s.
 ```powershell
 $env:PYTHONPATH='src'
 $env:PYTHONDONTWRITEBYTECODE='1'
-$python='C:/Users/developer/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe'
+$python="$HOME/tmp/rerank-improve-20261103/train-env/.venv/Scripts/python.exe"
 & $python -B research/issue-34-cpu-proposals/prepare_proposals.py plan
 # Commit the plan before preparation; commit the inference binding before scoring.
 & $python -B research/issue-34-cpu-proposals/run_stage.py preparation prepare_proposals.py 1800 execute --commit b5f69fe2be4290dc283b05f31db694b3d3cbce9c
