@@ -19,15 +19,16 @@ before relying on any result it holds.
 
 ## Experiment method
 
-- A few dev rows of difference are noise: with about 60 discordant rows an
-  exact McNemar test needs a net of at least 18 rows for p < 0.05. Select
-  epochs and thresholds on grouped train out-of-fold predictions, never on dev.
+- A few dev rows of difference are noise. Before calling a paired difference
+  real, compute the exact McNemar threshold for the actual discordant count.
+  Select epochs and thresholds on grouped train out-of-fold predictions, never
+  on dev.
 - Compare a new recipe with B0 retrained under the same no-dev protocol, not
   with a published prototype whose epoch was chosen on dev.
 - Budget harm with the exact one-sided binomial test on cross-fitted train OOF.
   Choosing the smallest threshold whose selection-set harm sits at the limit
-  overshoots on held-out rows, and dev is too small to show harm below 0.25%
-  except at zero.
+  overshoots on held-out rows, and dev is too small to resolve the harm limit
+  except at zero harm (figures: `reports/issue-25-confidence-gate.json`).
 - Cross-fitted distillation: outer fold k's teacher must never have trained on
   k. Train one model per fold pair {a, b} on the other folds and score both.
 - Latency: never index an `np.load` NpzFile inside a timed loop, because each
