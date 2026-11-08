@@ -29,28 +29,23 @@
     "confirmed_dev_rows": 1,
     "ambiguous_dev_rows": 3,
     "reviewer": "root assistant, not human adjudication",
+    "reviewer_kind": "ai_teacher",
+    "reviewer_model": "not_recorded",
+    "owner_policy_acceptance": "not_recorded",
+    "admissible_as_gold": false,
+    "provenance_note": "Recorded on 2026-11-08 (#85). The 2026-11-03 audit was an AI judgment with no recorded owner-policy acceptance, so its verdicts are exploratory nominations only and never admissible Gold.",
     "truth_limit": "Source-exactness and automatic dictionary/converter checks do not establish unique semantic correctness from the bounded input. Ambiguous labels are not demonstrated errors.",
     "blinding": "Opaque cases were reviewed without prediction/split/role; mapping was revealed afterward. R12 was conservatively downgraded before numeric analysis because identity is not established by bounded context.",
     "canonical_labels_changed": false,
     "benchmark_rows_removed": 0,
     "no_new_raw_text_artifact": true,
-    "primary_references": [
-      {
-        "case": "R10",
-        "url": "https://www.iwi.co.jp/company/about/",
-        "purpose": "official corporate spelling"
-      },
-      {
-        "case": "R12",
-        "url": "https://www.teichiku.co.jp/teichiku/artist/masuiyama/profile/",
-        "purpose": "official artist spelling/reading; does not resolve bounded-context identity"
-      },
-      {
-        "case": "R12",
-        "url": "https://www.sumo.or.jp/Yokozuna/profile/97/",
-        "purpose": "role-specific reading caveat"
-      }
-    ],
+    "primary_references": {
+      "count": 3,
+      "cases": 2,
+      "stored_locally": "data/generated/weight-edit-conditional-20261103/primary-references.json",
+      "sha256": "b02287bdad566d5433464c7920c751ec3a9fd8672e6ac6c106086913cddca242",
+      "note": "Case-level source URLs identify the audited rows, so they stay in the ignored evidence directory (#85)."
+    },
     "scope_limit": "Targeted error/gain sample, not a corpus-wide label audit; verdicts are contextual judgments."
   },
   "middle_layer_analysis": {
