@@ -165,7 +165,10 @@ def aggregate(queue: dict, decisions: dict, dictionary: dict, supplement: dict,
         dictionary_target_single_reading_matches=sum(
             dictionary[c].get(queue[c]['source_gold_surface']) == [queue[c]['reading']] for c in selected),
         dictionary_left_overlap_cases=sum(len(dictionary[c]) > 1 for c in selected),
-        external_sources=len(sources), source_excerpt_sha256={k: s['excerpt_sha256'] for k, s in sources.items()},
+        # Ledger ids can name the person or place behind one case; publish neutral
+        # labels in ledger-id order so the local ledger still resolves each one.
+        external_sources=len(sources),
+        source_excerpt_sha256={f'source-{i}': sources[k]['excerpt_sha256'] for i, k in enumerate(sorted(sources), 1)},
         synthetic_cleaner_probes=probes, synthetic_probes_establish_actual_source_cause=False,
         reviewer_kind='ai_teacher', reviewer_count=1, human_review_count=0,
         prior_case_exposure=True, independent_review=False, independent_test=False,
