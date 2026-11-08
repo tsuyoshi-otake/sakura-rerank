@@ -13,7 +13,7 @@ The [Gold evidence audit](research/issue-31-gold-evidence/README.md) distinguish
 KNBC/KWDLC/Tatoeba/AJIMEE annotation guarantees from independent IME-label quality.
 The certified Gold trust set and independently usable Test capacity are both zero.
 Release is blocked on externally justified, task-matched quality evidence;
-no automatic fit or source-search loop follows. All 1,095 tests pass.
+no automatic fit or source-search loop follows. All 1,100 tests pass.
 The [prospective partition](research/issue-35-consumption-partition/README.md)
 leaves615 inputs/47 source groups only as a metadata counterfactual, not new Gold.
 Safety0.25%, complete provenance and parent#1's full release requirements remain.
