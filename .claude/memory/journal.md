@@ -289,3 +289,13 @@
 - fix 3 (this PR): `.claude/memory/rules.md` keeps durable procedures plus links to the reports holding results; the five 2026-11-03 entries in `.codex/memory/rules.md` keep the lesson and evidence link without dated figures.
 - learning: AGENTS.md routes results to reports/manifests/README. Memory rules hold procedures and links, and the journal holds dated figures. Public leak scans must cover case-level identities (URLs, names) as well as paths.
 - Commit SHA: 51f3802, 47886d8; the memory PR's squash SHA is in the #85 closing comment.
+
+## 2026-11-08 — Publish Oracle@6 with the certified scored-prefix definition (#90)
+
+- request: owner approved fixing the Codex P1 on #87 with the recommended approach (keep the positional view, publish a separate scored-prefix Oracle@6, check it against the evidence).
+- symptom: after #87, `read_cohort` certified `oracle6_present` over `min(6, direct_count)`, but the metrics report still published only `observed_candidate_oracle["6"]` over a positional first six. On a product row with a non-direct tail inside the first six, the published Oracle@6 (2997 in the fixture) disagreed with the certificate it was checked against (2996).
+- root cause: one rule (the scored prefix) had two consumers but the metrics owner published only the positional variant; `model_prefix_oracle` held the right value only for full-population schemas.
+- fix: `evaluate_runs` computes the scored-prefix count once and publishes it as `scored_prefix_oracle6` for every schema (full-population `model_prefix_oracle` reuses the same count). `observed_candidate_oracle` is unchanged. `run_evaluation` requires the overall and converter-reference `scored_prefix_oracle6` numerators to equal `prepared["quality"]["oracle6_present"]` before `access.complete`; a mismatch raises `RunnerError` and the reservation ends `failed`.
+- verification: two fail-before tests (`scored_prefix_oracle6` 2996 beside positional 2997; tampered metrics output fails closed with terminal `failed`) errored with KeyError before the fix and pass after; full suite 1099 tests OK; no python survivors.
+- learning: when a certificate check is narrowed to a new definition, the published metric must carry that same definition and be checked against it; otherwise the report and its certificate silently diverge.
+- Commit SHA: see the #90 closing comment.
